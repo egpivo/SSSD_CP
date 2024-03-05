@@ -12,6 +12,7 @@ if REQUIRED_PYTHON != CURRENT_PYTHON:
 setup(
     name="sssd",
     version="0.2.0.dev4",
+    use_scm_version=True,  # Automatically set version from Git tags
     install_requires=[
         "h5py==3.10.0",
         "ipykernel==6.13.0",
@@ -37,6 +38,8 @@ setup(
     setup_requires=[
         "cython==0.29.24",
         "setuptools>=18.0",
+        "setuptools_scm==7.0.1",  # Ensure setuptools_scm is installed
     ],
+    use_pep517=True,  # Use PEP 517 for building
     zip_safe=False,
 )

@@ -34,6 +34,17 @@ find_conda_env_path() {
   fi
 }
 
+initialize_conda_env() {
+  local CONDA_ENV=$1
+  local PYTHON_VERSION=$2
+
+  conda create -c conda-forge -n "${CONDA_ENV}" "python=${PYTHON_VERSION}" -y
+  source activate "${CONDA_ENV}"
+  conda install pipx -y
+  pipx install poetry==1.2.0 --force
+  poetry install
+  conda deactivate
+}
 
 retry_to_find_conda_env_path() {
   local CONDA_ENV=$1
@@ -43,9 +54,9 @@ retry_to_find_conda_env_path() {
     PYTHON_VERSION="${DEFAULT_PYTHON_VERSION}"
   fi
 
-  conda create -c conda-forge -n "${CONDA_ENV}" "python=${PYTHON_VERSION}" -y
-  find_conda_env_path "${CONDA_ENV}"
+  initialize_conda_env "${CONDA_ENV}" "${PYTHON_VERSION}"
 
+  find_conda_env_path "${CONDA_ENV}"
   if [ "$?" == "${ERROR_EXITCODE}" ]; then
     echo -e "${FG_RED}Unknown exception occurs from the side of Conda infra${FG_RESET}"
   fi
@@ -54,32 +65,21 @@ retry_to_find_conda_env_path() {
 
 install_python_package() {
   local TARGET_PROJECT_DIR=$1
-  local CONDA_ENV=$2
 
   pushd "${TARGET_PROJECT_DIR}"
 
-  if [ -f "setup.py" ]; then
-    initialize_conda
-    source activate "${CONDA_ENV}"
-    echo -e "${FG_YELLOW}Activating conda env '${CONDA_ENV}'${FG_RESET}"
-
-    if [ -d "${PWD}"/dist/ ]; then
-      FILE_COUNT=$(ls "${PWD}/dist/*" 2>/dev/null | wc -l)
-      if [ "x${FILE_COUNT//[[:space:]]/}x" != "x0x" ]; then
-        echo -e "${FG_YELLOW}Removing ${PWD}/dist/* files${FG_RESET}"
-        rm "${PWD}/dist/*"
-      fi
+  if [ -d "${PWD}"/dist/ ]; then
+    FILE_COUNT=$(ls "${PWD}/dist/*" 2>/dev/null | wc -l)
+    if [ "x${FILE_COUNT//[[:space:]]/}x" != "x0x" ]; then
+      echo -e "${FG_YELLOW}Removing ${PWD}/dist/* files${FG_RESET}"
+      rm "${PWD}/dist/*"
     fi
-
-    echo -e "${FG_YELLOW}Installing python package${FG_RESET}"
-    python "setup.py" sdist
-    pip install dist/*
-    rm -r dist *.egg*
-
-    conda deactivate
-  else
-    echo -e "${FG_RED}No valid $(setup.py) file exists${FG_RESET}"
   fi
+
+  echo -e "${FG_YELLOW}Installing python package${FG_RESET}"
+  poetry build
+  pip install dist/*.tar.gz
+  rm -r dist
 
   popd
 }

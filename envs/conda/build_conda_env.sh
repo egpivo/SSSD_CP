@@ -15,12 +15,13 @@
 #    - If you don't have `realpath` on Mac, please install via `brew install coreutils`
 #
 CONDA_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+set -a
 source "${CONDA_DIR}/conda_env_info.sh"
-
+source "${CONDA_DIR}/utils.sh"
 source "${COLOR_MAP_PATH}"
-source "${BASH_UTILS_PATH}"
 source "${EXIT_CODE_PATH}"
-source "${CONDA_ENV_UTILS_PATH}"
+set +a
+
 
 for ARG in "$@"; do
   shift
@@ -53,7 +54,7 @@ build() {
   fi
 
   # Will return `CONDA_ENV_DIR`
-  echo -e "${FG_YELLOW}Checking Conda Env: `${CONDA_ENV}`${FG_RESET}"
+  echo -e "${FG_YELLOW}Checking Conda Env: '${CONDA_ENV}'${FG_RESET}"
   find_conda_env_path "${CONDA_ENV}"
   # Try to build the conda env if the error code is captured
   if [ "$?" == "${ERROR_EXITCODE}" ]; then
@@ -64,8 +65,12 @@ build() {
     fi
   fi
 
+  initialize_conda
+  source activate "${CONDA_ENV}"
+  echo -e "${FG_YELLOW}Activating conda env '${CONDA_ENV}'${FG_RESET}"
+
   # Check HDF5 dependency [TODO] wrap it to other function
-  if [ conda list | grep -q hdf5 ]; then
+  if conda list | grep -q hdf5; then
     echo -e "${FG_GREEN}hdf5 is installed.${FG_RESET}"
   else
     echo "${FG_RED}hdf5 is not installed.${FG_RESET}"
@@ -75,8 +80,9 @@ build() {
 
   # Installation
   echo -e "${FG_YELLOW}Installing package ${FG_RESET}"
-  install_python_package "${TARGET_PROJECT_DIR}" "${CONDA_ENV}"
+  install_python_package "${PACKAGE_BASE_PATH}"
   echo -e "${FG_GREEN}Updated package${FG_RESET}"
+  conda deactivate
 
   return "${SUCCESS_EXITCODE}"
 }
