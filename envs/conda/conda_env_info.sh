@@ -1,0 +1,8 @@
+#!/bin/bash
+PACKAGE_BASE_PATH="${CONDA_DIR}/../.."
+
+DEFAULT_PYTHON_VERSION="3.9"
+COLOR_MAP_PATH="${PACKAGE_BASE_PATH}/bin/color_map.sh"
+EXIT_CODE_PATH="${PACKAGE_BASE_PATH}/bin/exit_code.sh"
+CONDA_ENV_UTILS_PATH="${CONDA_DIR}/utils.sh"
+
