@@ -15,7 +15,7 @@ Note that the cleaned data is created following the scripts in dataset_script/ny
 3. Generate 10 predictions for each sample in test data: `python3 inference_multiples.py -c config/config_SSSDS4-NYISO-3-mix.json`
 
 
-## Seggestion
+## Suggestion
 1. Use `CUDA_VISIBLE_DEVICES` to specify the number of GPUs. Both training and inference require the same number of GPUs.
 2. Use the sample size as the parameter `--num_samples` in the inference section.
 
