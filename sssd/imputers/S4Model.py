@@ -1048,8 +1048,8 @@ class S4(nn.Module):
 
         super().__init__()
         if verbose:
-            import src.utils.train
-            log = src.utils.train.get_logger(__name__)
+            import sssd.utils.train
+            log = sssd.utils.train.get_logger(__name__)
             log.info(f"Constructing S4 (H, N, L) = ({d_model}, {d_state}, {l_max})")
 
         self.h = d_model
@@ -1096,7 +1096,7 @@ class S4(nn.Module):
         
         
 
-    def forward(self, u, **kwargs): # absorbs return_output and transformer src mask
+    def forward(self, u, **kwargs): # absorbs return_output and transformer sssd mask
         """
         u: (B H L) if self.transposed else (B L H)
         state: (H N) never needed unless you know what you're doing

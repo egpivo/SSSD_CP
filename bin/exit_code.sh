@@ -1,0 +1,4 @@
+#!/bin/bash
+
+ERROR_EXITCODE=1
+SUCCESS_EXITCODE=0

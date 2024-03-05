@@ -1,0 +1,8 @@
+#!/bin/bash
+
+FG_GRAY="\\033[1;90m"
+FG_RED="\\033[38;31m"
+FG_GREEN="\\033[1;92m"
+FG_YELLOW="\\033[1;93m"
+FG_BLUE="\\033[38;34m"
+FG_RESET="\\033[0m"
