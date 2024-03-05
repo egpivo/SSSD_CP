@@ -41,8 +41,7 @@ initialize_conda_env() {
   conda create -c conda-forge -n "${CONDA_ENV}" "python=${PYTHON_VERSION}" -y
   source activate "${CONDA_ENV}"
   conda install pipx -y
-  pipx install poetry==1.2.0 --force
-  poetry install
+  pipx install poetry --force
   conda deactivate
 }
 
@@ -77,9 +76,9 @@ install_python_package() {
   fi
 
   echo -e "${FG_YELLOW}Installing python package${FG_RESET}"
+  poetry install
   poetry build
   pip install dist/*.tar.gz
   rm -r dist
-
   popd
 }
