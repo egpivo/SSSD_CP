@@ -13,4 +13,3 @@ clean-build:
 
 install: clean
 	@$(SHELL) envs/conda/build_conda_env.sh
-
