@@ -18,5 +18,3 @@ Note that the cleaned data is created following the scripts in dataset_script/ny
 ## Suggestion
 1. Use `CUDA_VISIBLE_DEVICES` to specify the number of GPUs. Both training and inference require the same number of GPUs.
 2. Use the sample size as the parameter `--num_samples` in the inference section.
-
-

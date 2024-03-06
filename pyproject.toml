@@ -52,7 +52,7 @@ build-backend = "poetry.core.masonry.api"
 
 
 [tool.black]
-target-version = ['py309']
+target-version = ['py310']
 
 [tool.isort]
 profile = "black"

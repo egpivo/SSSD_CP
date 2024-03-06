@@ -7,4 +7,3 @@ POETRY_VERSION="1.8.0"
 
 COLOR_MAP_PATH="${PACKAGE_BASE_PATH}/bin/color_map.sh"
 EXIT_CODE_PATH="${PACKAGE_BASE_PATH}/bin/exit_code.sh"
-

@@ -12,7 +12,7 @@ wget https://archive.ics.uci.edu/ml/machine-learning-databases/00321/LD2011_2014
 unzip LD2011_2014.txt.zip
 ```
 
-### Pre-process only the electricity dataset. 
+### Pre-process only the electricity dataset.
 ```
 python gene_UCI_electricity_dataset.py \
   --file_path RawData/Electricity/LD2011_2014.txt \
@@ -27,4 +27,3 @@ python gene_UCI_electricity_dataset.py \
 ```
 dataset = np.split(dataset, 10, 2) # shape = 10, x, 100, 37
 ```
-
