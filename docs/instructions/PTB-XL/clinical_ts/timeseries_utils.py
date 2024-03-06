@@ -116,11 +116,11 @@ def load_dataset(target_root,filename_postfix="",df_mapped=True):
 
 
 def dataset_add_chunk_col(df, col="data"):
-    '''add a chunk column to the dataset df'''
+    '''add a chunk column to the NYISO df'''
     df["chunk"]=df.groupby(col).cumcount()
 
 def dataset_add_length_col(df, col="data", data_folder=None):
-    '''add a length column to the dataset df'''
+    '''add a length column to the NYISO df'''
     df[col+"_length"]=df[col].apply(lambda x: len(np.load(x if data_folder is None else data_folder/x, allow_pickle=True)))
 
 def dataset_add_labels_col(df, col="label", data_folder=None):
@@ -327,7 +327,7 @@ class ConcatDatasetTimeseriesDatasetCrops(torch.utils.data.ConcatDataset):
         
 
 class TimeseriesDatasetCrops(torch.utils.data.Dataset):
-    """timeseries dataset with partial crops."""
+    """timeseries NYISO with partial crops."""
 
     def __init__(self, df, output_size, chunk_length, min_chunk_length, memmap_filename=None, npy_data=None, random_crop=True, data_folder=None, num_classes=2, copies=0, col_lbl="label", cols_static=None, stride=None, start_idx=0, annotation=False, transforms=None, sample_items_per_record=1):
         """

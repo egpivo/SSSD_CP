@@ -36,7 +36,7 @@ def generate(output_directory,
     ckpt_path (str):                  checkpoint path
     ckpt_iter (int or 'max'):         the pretrained checkpoint to be loaded; 
                                       automitically selects the maximum iteration if 'max' is selected
-    data_path (str):                  path to dataset, numpy array.
+    data_path (str):                  path to NYISO, numpy array.
     use_model (int):                  0:DiffWave. 1:SSSDSA. 2:SSSDS4.
     masking (str):                    'mnr': missing not at random, 'bm': black-out, 'rm': random missing
     only_generate_missing (int):      0:all sample diffusion.  1:only apply diffusion to missing portions of the signal

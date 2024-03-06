@@ -40,7 +40,7 @@ def train(output_directory,
     output_directory (str):         save model checkpoints to this path
     ckpt_iter (int or 'max'):       the pretrained checkpoint to be loaded; 
                                     automatically selects the maximum iteration if 'max' is selected
-    data_path (str):                path to dataset, numpy array.
+    data_path (str):                path to NYISO, numpy array.
     n_iters (int):                  number of iterations to train
     iters_per_ckpt (int):           number of iterations to save checkpoint, 
                                     default is 10k, for models with residual_channel=64 this number can be larger
@@ -64,19 +64,18 @@ def train(output_directory,
     #     os.makedirs(output_directory)
     #     os.chmod(output_directory, 0o775)
     # print("output directory", output_directory, flush=True)
-
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # map diffusion hyperparameters to gpu
     for key in diffusion_hyperparams:
         if key != "T":
-            diffusion_hyperparams[key] = diffusion_hyperparams[key].cuda()
-
+            diffusion_hyperparams[key] = diffusion_hyperparams[key].to(device)
     # predefine model
     if use_model == 0:
-        net = DiffWaveImputer(**model_config).cuda()
+        net = DiffWaveImputer(**model_config, device=device).to(device)
     elif use_model == 1:
-        net = SSSDSAImputer(**model_config).cuda()
+        net = SSSDSAImputer(**model_config).to(device)
     elif use_model == 2:
-        net = SSSDS4Imputer(**model_config).cuda()
+        net = SSSDS4Imputer(**model_config, device=device).to(device)
     else:
         print('Model chosen not available.')
     print_size(net)
@@ -87,7 +86,6 @@ def train(output_directory,
         net = nn.DataParallel(net)
 
     # Move the model to the GPU(s)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     net.to(device)
 
     # define optimizer
@@ -133,7 +131,7 @@ def train(output_directory,
     training_data = training_data_load[index,] # 捨棄 training_size 除以 batch_size 的餘數
     training_data = np.split(training_data, batch_num, 0) # split into batch_num batches
     training_data = np.array(training_data)
-    training_data = torch.from_numpy(training_data).float().cuda()
+    training_data = torch.from_numpy(training_data).float().cuda() if torch.cuda.is_available() else torch.from_numpy(training_data).float().cpu()
     print('Data loaded')
     
     
@@ -157,7 +155,7 @@ def train(output_directory,
                 training_data = training_data_load[index,] # 捨棄 training_size 除以 batch_size 的餘數
                 training_data = np.split(training_data, batch_num, 0) # split into batch_num batches
                 training_data = np.array(training_data)
-                training_data = torch.from_numpy(training_data).float().cuda()
+                training_data = torch.from_numpy(training_data).float().to(device)
             ################################################
             if masking == 'rm':
                 transposed_mask = get_mask_rm(batch[0], missing_k)
@@ -169,7 +167,7 @@ def train(output_directory,
                 transposed_mask = get_mask_forecast(batch[0], missing_k)
 
             mask = transposed_mask.permute(1, 0)
-            mask = mask.repeat(batch.size()[0], 1, 1).float().cuda()
+            mask = mask.repeat(batch.size()[0], 1, 1).float().to(device)
             loss_mask = ~mask.bool()
             batch = batch.permute(0, 2, 1)
 
@@ -179,7 +177,7 @@ def train(output_directory,
             optimizer.zero_grad()
             X = batch, batch, mask, loss_mask
             loss = training_loss(net, nn.MSELoss(), X, diffusion_hyperparams,
-                                 only_generate_missing=only_generate_missing)
+                                 only_generate_missing=only_generate_missing, device=device)
             # loss = training_loss(net, MeanAbsolutePercentageError().cuda(), X, diffusion_hyperparams,
             #                      only_generate_missing=only_generate_missing)                                 
 

@@ -260,7 +260,7 @@ class SSSDSAImputer(nn.Module):
         s4_lmax=1,
         s4_d_state=64,
         s4_dropout=0.0,
-        s4_bidirectional=True,
+        s4_bidirectional=True
     ):
         
         """

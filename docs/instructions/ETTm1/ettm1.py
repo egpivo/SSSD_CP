@@ -10,13 +10,13 @@ from pandas.tseries import offsets
 from pandas.tseries.frequencies import to_offset
 
 
-''' This file contains the dataloader that authors have in their repository to pre-process the dataset, 
+''' This file contains the dataloader that authors have in their repository to pre-process the NYISO, 
 you could either use it here or go into their repo and download directly from there, similarly, their dataloaders 
-works for more forecasting dataset. see into: https://github.com/zhouhaoyi/Informer2020
+works for more forecasting NYISO. see into: https://github.com/zhouhaoyi/Informer2020
 (Zhou, Haoyi et al. “Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting.” AAAI (2021).)'''
 
 
-''' Download the .csv dataset ''' 
+''' Download the .csv NYISO '''
 ettm1 = pd.read_csv('https://raw.githubusercontent.com/zhouhaoyi/ETDataset/main/ETT-small/ETTm1.csv', date_parser=0)
 ettm1.to_csv('ETTm1.csv', index=False)
 

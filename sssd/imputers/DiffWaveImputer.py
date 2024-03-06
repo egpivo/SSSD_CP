@@ -92,7 +92,8 @@ class Residual_group(nn.Module):
                  diffusion_step_embed_dim_in, 
                  diffusion_step_embed_dim_mid,
                  diffusion_step_embed_dim_out,
-                 in_channels):
+                 in_channels,
+                 device="cuda"):
         super(Residual_group, self).__init__()
         self.num_res_layers = num_res_layers
         self.diffusion_step_embed_dim_in = diffusion_step_embed_dim_in
@@ -108,11 +109,12 @@ class Residual_group(nn.Module):
                                                        dilation=2 ** (n % dilation_cycle),
                                                        diffusion_step_embed_dim_out=diffusion_step_embed_dim_out,
                                                        in_channels=in_channels))
+        self.device = device
 
     def forward(self, input_data):
         noise, conditional, diffusion_steps = input_data
 
-        diffusion_step_embed = calc_diffusion_step_embedding(diffusion_steps, self.diffusion_step_embed_dim_in)
+        diffusion_step_embed = calc_diffusion_step_embedding(diffusion_steps, self.diffusion_step_embed_dim_in, device=self.device)
         diffusion_step_embed = swish(self.fc_t1(diffusion_step_embed))
         diffusion_step_embed = swish(self.fc_t2(diffusion_step_embed))
 
@@ -130,7 +132,9 @@ class DiffWaveImputer(nn.Module):
                  num_res_layers, dilation_cycle, 
                  diffusion_step_embed_dim_in, 
                  diffusion_step_embed_dim_mid,
-                 diffusion_step_embed_dim_out):
+                 diffusion_step_embed_dim_out,
+                 device="cuda"
+                 ):
         super(DiffWaveImputer, self).__init__()
 
         self.init_conv = nn.Sequential(Conv(in_channels, res_channels, kernel_size=1), nn.ReLU())
@@ -142,7 +146,8 @@ class DiffWaveImputer(nn.Module):
                                              diffusion_step_embed_dim_in=diffusion_step_embed_dim_in,
                                              diffusion_step_embed_dim_mid=diffusion_step_embed_dim_mid,
                                              diffusion_step_embed_dim_out=diffusion_step_embed_dim_out,
-                                             in_channels=in_channels)
+                                             in_channels=in_channels,
+                                             device=device)
         
         self.final_conv = nn.Sequential(Conv(skip_channels, skip_channels, kernel_size=1),
                                         nn.ReLU(),

@@ -150,7 +150,7 @@ def reformat_data_ptb(datafiles, target_fs=200, channels=12, channel_stoi=channe
         sex = metadata[1]
         label_sex = _sex_to_categorical(sex)
 
-        row={"data":filename_out_relative,"dataset":"PTB-XL","channels_available":channels_available,"patient":"PTB_"+patient, "ecg": "PTB_"+ecg, "age": age, "label_age":label_age,"sex": sex, "label_sex": label_sex, "ecg_date":metadata[2], "diagnosis":diagnosis1, "infarction_localization":metadata[5], "diagnosis2": diagnosis2, "diagnosis12": diagnosis12,"smoker": smoker, "label_smoker":label_smoker, "infarction_date":metadata[10], "catheterization_date":metadata[14]}
+        row={"data":filename_out_relative,"NYISO":"PTB-XL","channels_available":channels_available,"patient":"PTB_"+patient, "ecg": "PTB_"+ecg, "age": age, "label_age":label_age,"sex": sex, "label_sex": label_sex, "ecg_date":metadata[2], "diagnosis":diagnosis1, "infarction_localization":metadata[5], "diagnosis2": diagnosis2, "diagnosis12": diagnosis12,"smoker": smoker, "label_smoker":label_smoker, "infarction_date":metadata[10], "catheterization_date":metadata[14]}
         #add hemodynamics
         for i in range(14,36):
             row[metadata_descr[i]]=metadata[i]
@@ -443,7 +443,7 @@ def reformat_data_icbeb(datafiles, labelfile, target_fs=100, channels=12, channe
     rows=[]
     for d in tqdm(datafiles):
         sex,age,channels_available,filename_out,filename_out_relative=mat_to_np(filename_in=d, target_fs=target_fs, channels=channels, channel_stoi=channel_stoi, target_folder=target_folder)
-        rows.append({"ecg":d.stem, "dataset":"ICBEB2018", "data":filename_out_relative, "age": (np.nan if np.isnan(age) else int(age)), "sex": sex.lower(), "channels_available":channels_available})
+        rows.append({"ecg":d.stem, "NYISO":"ICBEB2018", "data":filename_out_relative, "age": (np.nan if np.isnan(age) else int(age)), "sex": sex.lower(), "channels_available":channels_available})
     df=pd.DataFrame(rows)
     df=df.set_index("ecg")
     #join
@@ -561,7 +561,7 @@ def prepare_data_ptb_xl(data_path, min_cnt=10, target_fs=100, channels=12, chann
         df_ptb_xl["label_diag_subclass"]= df_ptb_xl.label_diag.apply(lambda x: [diag_subclass_mapping[y] for y in x if y in diag_subclass_mapping])
         df_ptb_xl["label_diag_superclass"]= df_ptb_xl.label_diag.apply(lambda x: [diag_class_mapping[y] for y in x if y in diag_class_mapping])
 
-        df_ptb_xl["dataset"]="ptb_xl"
+        df_ptb_xl["NYISO"]="ptb_xl"
         #filter and map (can be reapplied at any time)
         df_ptb_xl, lbl_itos_ptb_xl =map_and_filter_labels(df_ptb_xl,min_cnt=min_cnt,lbl_cols=["label_all","label_diag","label_form","label_rhythm","label_diag_subclass","label_diag_superclass"])
 
@@ -645,7 +645,7 @@ def reformat_data_thew(data_path=".",max_length_seconds=0, target_fs=100, channe
     label_stoi={s:i for i,s in enumerate(label_itos)}
     df_clinical["label"]=df_clinical.FinalDx.apply(lambda x: label_stoi[x])
     df_clinical["label_txt"]=df_clinical.FinalDx
-    df_clinical["dataset"]="THEW Chest Pain LR"
+    df_clinical["NYISO"]="THEW Chest Pain LR"
     df_clinical = df_clinical[~df_clinical.StudyID.isna()]
     df_clinical = df_clinical.astype({'StudyID': 'int32'})
     df_clinical = df_clinical.set_index("StudyID")
@@ -702,7 +702,7 @@ def prepare_data_thew(data_folder, max_length_seconds=0, target_folder=None, cha
 
 # Cell
 def prepare_data_cinc(data_path, min_cnt=10, datasets=None, target_fs=100, strat_folds=10, channels=12, channel_stoi=channel_stoi_default, target_folder=None, recreate_data=True):
-    '''unzip archives into separate folders with dataset names from above
+    '''unzip archives into separate folders with NYISO names from above
     use datasets e.g. ["ICBEB2018","ICBEB2018_2","INCART","PTB-XL","PTB-XL-XL","Georgia"] to filter particular datasets (None for all)
     '''
     target_root = Path(".") if target_folder is None else target_folder
@@ -743,7 +743,7 @@ def prepare_data_cinc(data_path, min_cnt=10, datasets=None, target_fs=100, strat
                     elif(sex=="f"):
                         sex="female"
 
-            metadata.append({"data":Path(filename.stem+".npy"),"label":labels,"sex":sex,"age":age,"dataset":"cinc_"+filename.parts[-2]})
+            metadata.append({"data":Path(filename.stem+".npy"),"label":labels,"sex":sex,"age":age,"NYISO":"cinc_"+filename.parts[-2]})
         df =pd.DataFrame(metadata)
 
         #lbl_itos = np.unique([item for sublist in list(df.label) for item in sublist])
@@ -755,7 +755,7 @@ def prepare_data_cinc(data_path, min_cnt=10, datasets=None, target_fs=100, strat
 
         #does not incorporate patient-level split
         df["strat_fold"]=-1
-        for ds in np.unique(df["dataset"]):
+        for ds in np.unique(df["NYISO"]):
             print("Creating CV folds:",ds)
             dfx = df[df.dataset==ds]
             idxs = np.array(dfx.index.values)
@@ -781,7 +781,7 @@ def prepare_data_cinc(data_path, min_cnt=10, datasets=None, target_fs=100, strat
 
 # Cell
 def prepare_data_chapman(data_path, min_cnt=10, denoised=False, target_fs=100, strat_folds=10, channels=12, channel_stoi=channel_stoi_default, target_folder=None, recreate_data=True):
-    '''prepares the Chapman dataset from Zheng et al 2020'''
+    '''prepares the Chapman NYISO from Zheng et al 2020'''
     target_root = Path(".") if target_folder is None else target_folder
     target_root.mkdir(parents=True, exist_ok=True)
 
@@ -815,7 +815,7 @@ def prepare_data_chapman(data_path, min_cnt=10, denoised=False, target_fs=100, s
         #filter (can be reapplied at any time)
         df, lbl_itos =map_and_filter_labels(df,min_cnt=min_cnt,lbl_cols=["label_all","label_condition","label_rhythm"])
         
-        df["dataset"]="Chapman"
+        df["NYISO"]="Chapman"
 
         for id,row in tqdm(list(df.iterrows())):
             fs = 500.
@@ -888,7 +888,7 @@ def prepare_data_ribeiro_test(data_path, denoised=False, target_fs=100, strat_fo
 
         df=df_gold.join([df_cardiologist1,df_cardiologist2,df_cardiology_residents,df_emergency_residents,df_medical_students,df_dnn,df_attributes])
         df["data"]=[Path("Ribeiro_test_"+str(i)+".npy") for i in range(len(df))]
-        df["dataset"]="Ribeiro_test"
+        df["NYISO"]="Ribeiro_test"
         #prepare raw data
         with h5py.File(data_path/"ecg_tracings.hdf5", "r") as f:
             sigbufs = np.array(f['tracings'])
@@ -1055,7 +1055,7 @@ def prepare_data_ludb(data_path, subdivide=True, extra_segments=True, crop_bg=Tr
             metadata.append(meta)
 
         df =pd.DataFrame(metadata)
-        df["dataset"]="ludb"
+        df["NYISO"]="ludb"
         #global label
         diag_list = [item for sublist in list(df.diag) for item in sublist]
         a,b = np.unique(diag_list,return_counts=True)
@@ -1124,7 +1124,7 @@ def prepare_data_ribeiro_full(data_path, max_records_per_id_exam = 0, min_record
 
         #3 minor postprocessing
         df = df.join(df_annotations, how="left", on="id_exam")
-        df["dataset"]="Ribeiro_full"
+        df["NYISO"]="Ribeiro_full"
 
         df["date_exam"]=pd.to_datetime(df["date_exam"])
         df["missing_label"] = df.ST.isna()
@@ -1447,7 +1447,7 @@ def prepare_physionet_dataset_with_annotations(df_stats, ann_stoi, ann_unk_id, d
             df_single = pd.DataFrame(metadata_single)
             lbl_unique_single = np.unique([item for sublist in list(df_single["label_unique"]) for item in sublist])
 
-        df["dataset"]=dataset_name
+        df["NYISO"]=dataset_name
         #global label
         lbl_unique = np.unique([item for sublist in list(df["label_unique"]) for item in sublist])
         #stratified_ids = stratify(list(df["label_unique"]), lbl_unique, [1./strat_folds]*strat_folds)
@@ -1523,7 +1523,7 @@ channel_stoi_mitdb={"mlii":0, "v1":1, "v2":1, "v4":1, "v5":1}
  
 def prepare_mitdb(data_path, ann_stoi=ann_stoi_af, ann_unk_id=ann_unk_id_af, create_segments=True, drop_unk=False, target_fs=128, strat_folds=5, channels=2, channel_stoi=channel_stoi_mitdb, target_folder=None, recreate_data=True):
 
-    print("Preparing dataset mitdb.\nLoading dataset stats...")
+    print("Preparing NYISO mitdb.\nLoading NYISO stats...")
     df_stats = get_data_annot_stats(data_path)
     
     df_stats["ecg_id"]=df_stats.filename.apply(lambda x: x.stem)
@@ -1547,7 +1547,7 @@ channel_stoi_afdb={"ecg1":1, "ecg2":0}
 
 def prepare_afdb(data_path, ann_stoi=ann_stoi_af, ann_unk_id=ann_unk_id_af, create_segments=False, drop_unk=False, target_fs=128, strat_folds=5, channels=2, channel_stoi=channel_stoi_afdb, target_folder=None, recreate_data=True):
 
-    print("Preparing dataset afdb.\nLoading dataset stats...")
+    print("Preparing NYISO afdb.\nLoading NYISO stats...")
     df_stats = get_data_annot_stats(data_path)
     df_stats["ecg_id"]=df_stats.filename.apply(lambda x: x.stem)
 
@@ -1570,7 +1570,7 @@ def prepare_afdb(data_path, ann_stoi=ann_stoi_af, ann_unk_id=ann_unk_id_af, crea
  
 def prepare_ltafdb(data_path, ann_stoi=ann_stoi_af, ann_unk_id=ann_unk_id_af, create_segments=False, drop_unk=False, target_fs=128, strat_folds=5, channels=2, channel_stoi=channel_stoi_afdb, target_folder=None, recreate_data=True):
 
-    print("Preparing dataset ltafdb.\nLoading dataset stats...")
+    print("Preparing NYISO ltafdb.\nLoading NYISO stats...")
     df_stats = get_data_annot_stats(data_path)
     df_stats.channels=[['ecg1','ecg2']]*len(df_stats)
     df_stats["ecg_id"]=df_stats.filename.apply(lambda x: x.stem)
@@ -1603,7 +1603,7 @@ def prepare_ltafdb(data_path, ann_stoi=ann_stoi_af, ann_unk_id=ann_unk_id_af, cr
  
 def prepare_vfdb(data_path, ann_stoi=ann_stoi_af, ann_unk_id=ann_unk_id_af, create_segments=False, drop_unk=False, target_fs=128, strat_folds=5, channels=2, channel_stoi=channel_stoi_afdb, target_folder=None, recreate_data=True):
 
-    print("Preparing dataset vfdb.\nLoading dataset stats...")
+    print("Preparing NYISO vfdb.\nLoading NYISO stats...")
     df_stats = get_data_annot_stats(data_path)
     df_stats.channels=[['ecg1','ecg2']]*len(df_stats)
     df_stats["ecg_id"]=df_stats.filename.apply(lambda x: x.stem)
@@ -1623,7 +1623,7 @@ channel_stoi_cpsc21={"i":1, "ii":0}
 
 def prepare_cpsc21(data_path, ann_stoi=ann_stoi_af, ann_unk_id=ann_unk_id_af, create_segments=False, drop_unk=False, target_fs=128, strat_folds=5, channels=2, channel_stoi=channel_stoi_cpsc21, target_folder=None, recreate_data=True):
 
-    print("Preparing dataset cpsc21.\nLoading dataset stats...")
+    print("Preparing NYISO cpsc21.\nLoading NYISO stats...")
     df_stats = get_data_annot_stats(data_path)
 
     df_stats["ecg_id"]=df_stats.filename.apply(lambda x: x.stem[5:])
