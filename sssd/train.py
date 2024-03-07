@@ -244,15 +244,10 @@ if __name__ == "__main__":
         help="JSON file for configuration",
     )
 
-    # parser.add_argument('--logdir', default='log')
     args = parser.parse_args()
 
-    # writer = SummaryWriter(args.logdir)
-
     with open(args.config) as f:
-        data = f.read()
-
-    config = json.loads(data)
+        config = json.load(f)
     print(config)
 
     # 建立 output directionary
