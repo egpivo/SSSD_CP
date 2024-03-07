@@ -23,8 +23,6 @@ from utils.util import (
     training_loss,
 )
 
-# from torchmetrics.regression import MeanAbsolutePercentageError
-
 
 def train(
     output_directory,
@@ -200,15 +198,11 @@ def train(
                 only_generate_missing=only_generate_missing,
                 device=device,
             )
-            # loss = training_loss(net, MeanAbsolutePercentageError().cuda(), X, diffusion_hyperparams,
-            #                      only_generate_missing=only_generate_missing)
 
             loss.backward()
             optimizer.step()
-
             # loss_all += loss.item()
             writer.add_scalar("Train/Loss", loss.item(), n_iter)
-
             if n_iter % iters_per_logging == 0:
                 print("iteration: {} \tloss: {}".format(n_iter, loss.item()))
 
@@ -227,11 +221,6 @@ def train(
                 print("當前時間:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
 
             n_iter += 1
-
-        # loss_mean = loss_all/(training_size/batch_size) # calculate mse of all training data
-        # iter_all_dataset = n_iter-1
-        # print("iteration: {} \tmean_loss: {}".format(iter_all_dataset, loss_mean))
-        # writer.add_scalar('Train/Loss', loss_mean, iter_all_dataset)
 
 
 if __name__ == "__main__":

@@ -236,7 +236,7 @@ def LinearActivation(
 
     # Weight norm
     if weight_norm:
-        linear = nn.utils.weight_norm(linear)
+        linear = nn.utils.parametrizations.weight_norm(linear)
 
     if activate and activation is not None:
         activation = Activation(activation, dim=-2 if transposed else -1)

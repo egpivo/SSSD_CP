@@ -231,7 +231,7 @@ def LinearActivation(
 
     # Weight norm
     if weight_norm:
-        linear = nn.utils.weight_norm(linear)
+        linear = nn.utils.parametrizations.weight_norm(linear)
 
     if activate and activation is not None:
         activation = Activation(activation, dim=-2 if transposed else -1)
@@ -776,7 +776,8 @@ class SSKernelNPLR(nn.Module):
 
         # Move from frequency to coefficients
         k = torch.fft.irfft(k_f)  # (S+1, C, H, L)
-
+        # Avoid the underflow or overflow
+        k = torch.nan_to_num(k)
         # Truncate to target length
         k = k[..., :L]
 

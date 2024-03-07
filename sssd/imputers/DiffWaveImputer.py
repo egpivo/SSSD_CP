@@ -20,7 +20,7 @@ class Conv(nn.Module):
             dilation=dilation,
             padding=self.padding,
         )
-        self.conv = nn.utils.weight_norm(self.conv)
+        self.conv = nn.utils.parametrizations.weight_norm(self.conv)
         nn.init.kaiming_normal_(self.conv.weight)
 
     def forward(self, x):
@@ -67,12 +67,12 @@ class Residual_block(nn.Module):
 
         # residual conv1x1 layer, connect to next residual layer
         self.res_conv = nn.Conv1d(res_channels, res_channels, kernel_size=1)
-        self.res_conv = nn.utils.weight_norm(self.res_conv)
+        self.res_conv = nn.utils.parametrizations.weight_norm(self.res_conv)
         nn.init.kaiming_normal_(self.res_conv.weight)
 
         # skip conv1x1 layer, add to all skip outputs through skip connections
         self.skip_conv = nn.Conv1d(res_channels, skip_channels, kernel_size=1)
-        self.skip_conv = nn.utils.weight_norm(self.skip_conv)
+        self.skip_conv = nn.utils.parametrizations.weight_norm(self.skip_conv)
         nn.init.kaiming_normal_(self.skip_conv.weight)
 
     def forward(self, input_data):

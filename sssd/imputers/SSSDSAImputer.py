@@ -23,7 +23,7 @@ class Conv(nn.Module):
             stride=stride,
         )
 
-        self.conv = nn.utils.weight_norm(self.conv)
+        self.conv = nn.utils.parametrizations.weight_norm(self.conv)
         nn.init.kaiming_normal_(self.conv.weight)
 
     def forward(self, x):
