@@ -1,13 +1,13 @@
-{   
+{
     "diffusion_config":{
         "T": 200,
         "beta_0": 0.0001,
         "beta_T": 0.02
     },
     "sashimi_config": {
-        "in_channels": 12, 
+        "in_channels": 12,
         "out_channels":12,
-        "d_model": 128, 
+        "d_model": 128,
         "n_layers":6,
         "diffusion_step_embed_dim_in": 128,
         "diffusion_step_embed_dim_mid": 512,

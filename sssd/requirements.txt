@@ -2,7 +2,7 @@ absl-py==1.4.0
 aiohttp==3.8.1 # no result
 aiosignal==1.2.0 # no result
 alembic==1.8.0 # no
-anyio==3.7.1 
+anyio==3.7.1
 argon2-cffi==21.3.0
 argon2-cffi-bindings==21.2.0
 asks==3.0.0 # no

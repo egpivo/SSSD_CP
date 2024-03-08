@@ -485,4 +485,3 @@ cauchy_mult_sym_bwd_cuda(torch::Tensor v,
   C10_CUDA_KERNEL_LAUNCH_CHECK();
   return std::make_tuple(dv.sum(-1), dw.sum(-1));
 }
-
