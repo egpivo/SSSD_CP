@@ -1,8 +1,13 @@
 [tool.poetry]
 name = "sssd"
-version = "0.0.1"
+version = "0.0.2"
 description = ""
-authors = ["Joseph Wang <egpivo@gmail.com>"]
+authors = [
+    "Yu-Ting Fan <ytfan.st07g@nctu.edu.tw>",
+    "Joseph Wang <egpivo@gmail.com>",
+    "Hsin-Cheng Huang <hchuang@stat.sinica.edu.tw>",
+    "ShengLi Tzeng <slt.cmu@gmail.com>"
+]
 readme = "README.md"
 
 [tool.poetry.dependencies]
@@ -27,9 +32,9 @@ wandb = "0.12.16"
 protobuf = "^3.20.1"
 opt-einsum = "^3.3.0"
 torch = [
-  {markers = "sys_platform == 'darwin' and platform_machine == 'arm64'", url = "https://download.pytorch.org/whl/cpu/torch-2.1.0-cp310-none-macosx_11_0_arm64.whl"},
-  {markers = "sys_platform == 'darwin' and platform_machine == 'x86_64'", url = "https://download.pytorch.org/whl/cpu/torch-2.1.0-cp310-none-macosx_10_9_x86_64.whl"},
-  {markers = "sys_platform == 'linux'", url="https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp310-cp310-linux_x86_64.whl"}
+    { markers = "sys_platform == 'darwin' and platform_machine == 'arm64'", url = "https://download.pytorch.org/whl/cpu/torch-2.1.0-cp310-none-macosx_11_0_arm64.whl" },
+    { markers = "sys_platform == 'darwin' and platform_machine == 'x86_64'", url = "https://download.pytorch.org/whl/cpu/torch-2.1.0-cp310-none-macosx_10_9_x86_64.whl" },
+    { markers = "sys_platform == 'linux'", url = "https://download.pytorch.org/whl/cpu/torch-2.1.0%2Bcpu-cp310-cp310-linux_x86_64.whl" }
 ]
 
 [tool.poetry.group.dev.dependencies]
@@ -45,11 +50,9 @@ pre-commit = "^2.20.0"
 python-dotenv = "^1.0.0"
 poetry-bumpversion = "^0.3.0"
 
-
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
-
 
 [tool.black]
 target-version = ['py310']
