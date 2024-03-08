@@ -2,8 +2,9 @@ import math
 
 import torch
 import torch.nn as nn
-from imputers.S4Model import S4Layer
-from utils.util import calc_diffusion_step_embedding
+
+from sssd.imputers.S4Model import S4Layer
+from sssd.utils.util import calc_diffusion_step_embedding
 
 
 def swish(x):
@@ -237,11 +238,7 @@ class SSSDS4Imputer(nn.Module):
         conditional = torch.cat([conditional, mask.float()], dim=1)
 
         x = noise
-        # x = self.batch_norm(x)
-        print(torch.max(x))
         x = self.init_conv(x)
-        print(torch.max(x))
         x = self.residual_layer((x, conditional, diffusion_steps))
-        print(x)
         y = self.final_conv(x)
         return y
