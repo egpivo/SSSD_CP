@@ -238,11 +238,7 @@ class SSSDS4Imputer(nn.Module):
         conditional = torch.cat([conditional, mask.float()], dim=1)
 
         x = noise
-        # x = self.batch_norm(x)
-        print(torch.max(x))
         x = self.init_conv(x)
-        print(torch.max(x))
         x = self.residual_layer((x, conditional, diffusion_steps))
-        print(x)
         y = self.final_conv(x)
         return y
