@@ -76,6 +76,11 @@ def train(
     writer (SummaryWriter):         TensorBoard SummaryWriter for logging
     batch_size (int):               Size of each training batch
     """
+    if masking not in MASK_FN:
+        raise KeyError(f"Please enter a correct masking, but got {masking}")
+    if use_model not in MODELS:
+        raise KeyError(f"Please enter a correct model number, but got {use_model}")
+
     # Check if multiple GPUs are available
     if torch.cuda.device_count() > 1:
         print("Using", torch.cuda.device_count(), "GPUs!")
@@ -87,8 +92,6 @@ def train(
             diffusion_hyperparams[key] = diffusion_hyperparams[key].to(device)
 
     # Predefine model
-    if use_model not in MODELS:
-        raise KeyError(f"Please enter a correct model number, but got {use_model}")
     net = MODELS[use_model](**model_config, device=device).to(device)
     print_size(net)
 
@@ -144,9 +147,6 @@ def train(
                 training_data = load_and_split_data(
                     training_data_load, batch_num, batch_size, device
                 )
-
-            if masking not in MASK_FN:
-                raise KeyError(f"Please enter a correct masking, but got {masking}")
             transposed_mask = MASK_FN[masking](batch[0], missing_k)
             mask = (
                 transposed_mask.permute(1, 0)
@@ -210,7 +210,7 @@ if __name__ == "__main__":
         config = json.load(f)
     print(config)
 
-    # 建立 output directionary
+    # Build output directory
     local_path = "T{}_beta0{}_betaT{}".format(
         config["diffusion_config"]["T"],
         config["diffusion_config"]["beta_0"],
@@ -223,12 +223,12 @@ if __name__ == "__main__":
     if not os.path.isdir(output_directory):
         os.makedirs(output_directory)
         os.chmod(output_directory, 0o775)
-    print("output directory", output_directory, flush=True)
+    print("Output directory", output_directory, flush=True)
 
-    # 更新 config file 的值
+    # Update config file values
     config["train_config"]["output_directory"] = output_directory
 
-    # 設定 toesorboard 要存在哪
+    # Set TensorBoard directory
     writer = SummaryWriter(f"{output_directory}/log")
     config["train_config"]["writer"] = writer
     train_config = config["train_config"]  # training parameters
@@ -255,9 +255,9 @@ if __name__ == "__main__":
         )
 
     current_time = datetime.datetime.now()
-    print("當前時間:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
+    print("Current time:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
 
     train(**train_config)
 
     current_time = datetime.datetime.now()
-    print("當前時間:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
+    print("Current time:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
