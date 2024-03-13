@@ -140,11 +140,7 @@ def train(
         training_data, batch_num, 0
     )  # split into batch_num batches
     training_data = np.array(training_data)
-    training_data = (
-        torch.from_numpy(training_data).float().cuda()
-        if torch.cuda.is_available()
-        else torch.from_numpy(training_data).float().cpu()
-    )
+    training_data = torch.from_numpy(training_data).float().to(device)
     print("Data loaded")
 
     # training
