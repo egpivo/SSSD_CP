@@ -24,6 +24,15 @@ from sssd.utils.util import (
     training_loss,
 )
 
+MASK_FN = {
+    "rm": get_mask_rm,
+    "mnr": get_mask_mnr,
+    "bm": get_mask_bm,
+    "forecast": get_mask_forecast,
+}
+
+MODELS = {0: DiffWaveImputer, 1: SSSDSAImputer, 2: SSSDS4Imputer}
+
 
 def train(
     output_directory,
@@ -37,6 +46,7 @@ def train(
     masking,
     missing_k,
     writer,
+    batch_size=80,
 ):
 
     """
@@ -70,28 +80,23 @@ def train(
     #     os.makedirs(output_directory)
     #     os.chmod(output_directory, 0o775)
     # print("output directory", output_directory, flush=True)
+    # Check if multiple GPUs are available
+    if torch.cuda.device_count() > 1:
+        print("Using ", torch.cuda.device_count(), " GPUs!")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     # map diffusion hyperparameters to gpu
     for key in diffusion_hyperparams:
         if key != "T":
             diffusion_hyperparams[key] = diffusion_hyperparams[key].to(device)
     # predefine model
-    if use_model == 0:
-        net = DiffWaveImputer(**model_config, device=device).to(device)
-    elif use_model == 1:
-        net = SSSDSAImputer(**model_config).to(device)
-    elif use_model == 2:
-        net = SSSDS4Imputer(**model_config, device=device).to(device)
-    else:
-        print("Model chosen not available.")
+    if use_model not in MODELS:
+        raise KeyError(f"Please enter a correct model number, but got {use_model}")
+    net = MODELS[use_model](**model_config, device=device).to(device)
     print_size(net)
 
-    # Check if multiple GPUs are available
-    if torch.cuda.device_count() > 1:
-        print("Using ", torch.cuda.device_count(), " GPUs!")
-        net = nn.DataParallel(net)
-
-    # Move the model to the GPU(s)
+    # Move the model to the device
+    net = nn.DataParallel(net)
     net.to(device)
 
     # define optimizer
@@ -127,7 +132,6 @@ def train(
     ### Custom data loading and reshaping ###
     training_data_load = np.load(trainset_config["train_data_path"])
 
-    batch_size = 80
     training_size = training_data_load.shape[0]
     batch_num = floor(training_size / batch_size)
     print(batch_num)
@@ -144,11 +148,7 @@ def train(
     print("Data loaded")
 
     # training
-    if ckpt_iter == -1:
-        n_iter = ckpt_iter + 2
-    else:
-        n_iter = ckpt_iter + 1
-
+    n_iter = ckpt_iter + 2 if ckpt_iter == -1 else ckpt_iter + 1
     print(f"start the {n_iter} iteration")
     while n_iter < n_iters + 1:
         # loss_all = 0
@@ -167,17 +167,9 @@ def train(
                 training_data = np.array(training_data)
                 training_data = torch.from_numpy(training_data).float().to(device)
             ################################################
-            if masking == "rm":
-                transposed_mask = get_mask_rm(batch[0], missing_k)
-            elif masking == "mnr":
-                transposed_mask = get_mask_mnr(batch[0], missing_k)
-            elif masking == "bm":
-                transposed_mask = get_mask_bm(batch[0], missing_k)
-            elif masking == "forecast":
-                transposed_mask = get_mask_forecast(batch[0], missing_k)
-            else:
+            if masking not in MASK_FN:
                 raise KeyError(f"Please enter a correct masking, but got {masking}")
-
+            transposed_mask = MASK_FN[masking](batch[0], missing_k)
             mask = transposed_mask.permute(1, 0)
             mask = mask.repeat(batch.size()[0], 1, 1).float().to(device)
             loss_mask = ~mask.bool()
