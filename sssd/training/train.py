@@ -154,7 +154,6 @@ def train(
         # loss_all = 0
 
         for batch in training_data:
-
             ############ shuffle batch after each epoch ############
             if n_iter % batch_num == 0:
                 # print(f'update training batch at {n_iter}')
@@ -176,6 +175,8 @@ def train(
                 transposed_mask = get_mask_bm(batch[0], missing_k)
             elif masking == "forecast":
                 transposed_mask = get_mask_forecast(batch[0], missing_k)
+            else:
+                raise KeyError(f"Please enter a correct masking, but got {masking}")
 
             mask = transposed_mask.permute(1, 0)
             mask = mask.repeat(batch.size()[0], 1, 1).float().to(device)
