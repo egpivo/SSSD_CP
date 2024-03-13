@@ -3,7 +3,6 @@ import datetime
 import json
 import os
 import random
-from math import floor
 
 import numpy as np
 import torch
@@ -32,6 +31,16 @@ MASK_FN = {
 }
 
 MODELS = {0: DiffWaveImputer, 1: SSSDSAImputer, 2: SSSDS4Imputer}
+
+
+def load_and_split_data(training_data_load, batch_num, batch_size, device):
+    index = random.sample(range(training_data_load.shape[0]), batch_num * batch_size)
+    training_data = training_data_load[
+        index,
+    ]
+    training_data = np.split(training_data, batch_num, 0)
+    training_data = np.array(training_data)
+    return torch.from_numpy(training_data).to(device, dtype=torch.float32)
 
 
 def train(
@@ -117,16 +126,12 @@ def train(
     # Custom data loading and reshaping
     training_data_load = np.load(trainset_config["train_data_path"])
     training_size = training_data_load.shape[0]
-    batch_num = floor(training_size / batch_size)
+    batch_num = training_size // batch_size
     print(batch_num)
 
-    index = random.sample(range(training_size), batch_num * batch_size)
-    training_data = training_data_load[
-        index,
-    ]
-    training_data = np.split(training_data, batch_num, 0)
-    training_data = np.array(training_data)
-    training_data = torch.from_numpy(training_data).to(device, dtype=torch.float32)
+    training_data = load_and_split_data(
+        training_data_load, batch_num, batch_size, device
+    )
     print("Data loaded")
 
     # Training
@@ -136,14 +141,8 @@ def train(
         for batch in training_data:
             # Shuffle batch after each epoch
             if n_iter % batch_num == 0:
-                index = random.sample(range(training_size), batch_num * batch_size)
-                training_data = training_data_load[
-                    index,
-                ]
-                training_data = np.split(training_data, batch_num, 0)
-                training_data = np.array(training_data)
-                training_data = torch.from_numpy(training_data).to(
-                    device, dtype=torch.float32
+                training_data = load_and_split_data(
+                    training_data_load, batch_num, batch_size, device
                 )
 
             if masking not in MASK_FN:
