@@ -1,5 +1,4 @@
 import argparse
-import datetime
 import json
 import os
 import random
@@ -14,6 +13,7 @@ from sssd.imputers.SSSDS4Imputer import SSSDS4Imputer
 from sssd.imputers.SSSDSAImputer import SSSDSAImputer
 from sssd.utils.util import (
     calc_diffusion_hyperparams,
+    display_current_time,
     find_max_epoch,
     get_mask_bm,
     get_mask_forecast,
@@ -40,10 +40,6 @@ def load_and_split_data(training_data_load, batch_num, batch_size, device):
     training_data = np.split(training_data, batch_num, 0)
     training_data = np.array(training_data)
     return torch.from_numpy(training_data).to(device, dtype=torch.float32)
-
-
-def print_current_time():
-    print(f"Current time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
 
 
 class DiffusionTrainer:
@@ -100,13 +96,10 @@ class DiffusionTrainer:
         self.missing_k = missing_k
         self.writer = SummaryWriter(f"{output_directory}/log")
         self.batch_size = batch_size
+        self.optimizer = torch.optim.Adam(self.net.parameters(), lr=self.learning_rate)
 
         if self.masking not in MASK_FN:
             raise KeyError(f"Please enter a correct masking, but got {self.masking}")
-
-        self._update_diffusion_hyperparams()
-        self._load_checkpoint()
-        self.optimizer = torch.optim.Adam(self.net.parameters(), lr=self.learning_rate)
 
     def _update_diffusion_hyperparams(self):
         for key in self.diffusion_hyperparams:
@@ -115,7 +108,7 @@ class DiffusionTrainer:
                     self.device
                 )
 
-    def _load_checkpoint(self, optimizer):
+    def _load_checkpoint(self):
         if self.ckpt_iter == "max":
             self.ckpt_iter = find_max_epoch(self.output_directory)
         if self.ckpt_iter >= 0:
@@ -127,7 +120,7 @@ class DiffusionTrainer:
 
                 self.net.load_state_dict(checkpoint["model_state_dict"])
                 if "optimizer_state_dict" in checkpoint:
-                    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+                    self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
                 print(
                     "Successfully loaded model at iteration {}".format(self.ckpt_iter)
@@ -152,7 +145,27 @@ class DiffusionTrainer:
         print("Data loaded")
         return training_data, batch_num
 
+    def _save_model(self, n_iter):
+        if n_iter > 0 and n_iter % self.iters_per_ckpt == 0:
+            torch.save(
+                {
+                    "model_state_dict": self.net.state_dict(),
+                    "optimizer_state_dict": self.optimizer.state_dict(),
+                },
+                os.path.join(self.output_directory, f"{n_iter}.pkl"),
+            )
+
+    def _update_mask(self, batch):
+        transposed_mask = MASK_FN[self.masking](batch[0], self.missing_k)
+        return (
+            transposed_mask.permute(1, 0)
+            .repeat(batch.size()[0], 1, 1)
+            .to(self.device, dtype=torch.float32)
+        )
+
     def train(self):
+        self._update_diffusion_hyperparams()
+        self._load_checkpoint()
         training_data, batch_num = self._prepare_training_data()
 
         n_iter_start = (
@@ -166,15 +179,11 @@ class DiffusionTrainer:
                     training_data = load_and_split_data(
                         self.training_data_load, batch_num, self.batch_size, self.device
                     )
-                transposed_mask = MASK_FN[self.masking](batch[0], self.missing_k)
-                mask = (
-                    transposed_mask.permute(1, 0)
-                    .repeat(batch.size()[0], 1, 1)
-                    .to(self.device, dtype=torch.float32)
-                )
-                loss_mask = ~mask.bool()
-                batch = batch.permute(0, 2, 1)
 
+                mask = self._update_mask(batch)
+                loss_mask = ~mask.bool()
+
+                batch = batch.permute(0, 2, 1)
                 assert batch.size() == mask.size() == loss_mask.size()
 
                 self.optimizer.zero_grad()
@@ -186,25 +195,13 @@ class DiffusionTrainer:
                     only_generate_missing=self.only_generate_missing,
                     device=self.device,
                 )
-
                 loss.backward()
                 self.optimizer.step()
 
                 self.writer.add_scalar("Train/Loss", loss.item(), n_iter)
                 if n_iter % self.iters_per_logging == 0:
                     print(f"Iteration: {n_iter} \tLoss: {loss.item()}")
-
-                if n_iter > 0 and n_iter % self.iters_per_ckpt == 0:
-                    checkpoint_name = f"{n_iter}.pkl"
-                    torch.save(
-                        {
-                            "model_state_dict": self.net.state_dict(),
-                            "optimizer_state_dict": self.optimizer.state_dict(),
-                        },
-                        os.path.join(self.output_directory, checkpoint_name),
-                    )
-                    print(f"Model at iteration {n_iter} is saved")
-                    print_current_time()
+                self._save_model(n_iter)
 
 
 if __name__ == "__main__":
@@ -216,13 +213,12 @@ if __name__ == "__main__":
         default="config/SSSDS4.json",
         help="JSON file for configuration",
     )
+    args = parser.parse_args()
 
     # Check if multiple GPUs are available
     if torch.cuda.device_count() > 1:
         print("Using", torch.cuda.device_count(), "GPUs!")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    args = parser.parse_args()
 
     with open(args.config) as f:
         config = json.load(f)
@@ -257,10 +253,10 @@ if __name__ == "__main__":
     else:
         raise KeyError(f"Please enter correct model number, but got {use_model}")
     net = MODELS[use_model](**model_config, device=device).to(device)
-    print_current_time()
+    display_current_time()
 
     DiffusionTrainer(
         training_data_load, diffusion_hyperparams, net, device, **config["train_config"]
     ).train()
 
-    print_current_time()
+    display_current_time()
