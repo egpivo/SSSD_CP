@@ -1,7 +1,12 @@
 import logging
 
 
-def setup_logger():
+def setup_logger() -> logging.Logger:
+    # Check if logger has already been configured
+    if logging.getLogger(__name__).handlers:
+        return logging.getLogger(__name__)
+
+    # Create a new logger
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.INFO)
 
