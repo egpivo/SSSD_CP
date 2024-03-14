@@ -85,6 +85,7 @@ def run_job(config: dict, device: torch.device, batch_size: int) -> None:
         masking=config["train_config"].get("masking"),
         missing_k=config["train_config"].get("missing_k"),
         batch_size=batch_size,
+        logger=LOGGER,
     )
     trainer.train()
 

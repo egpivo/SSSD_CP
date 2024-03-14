@@ -1,4 +1,6 @@
+import logging
 import os
+from typing import Any, Dict, Optional
 
 import torch
 import torch.nn as nn
@@ -35,22 +37,22 @@ class DiffusionTrainer:
 
     def __init__(
         self,
-        training_data_load,
-        diffusion_hyperparams,
-        net,
-        device,
-        output_directory,
-        ckpt_iter,
-        n_iters,
-        iters_per_ckpt,
-        iters_per_logging,
-        learning_rate,
-        only_generate_missing,
-        masking,
-        missing_k,
-        batch_size=80,
-        **kwargs,
-    ):
+        training_data_load: Any,
+        diffusion_hyperparams: Dict[str, Any],
+        net: nn.Module,
+        device: torch.device,
+        output_directory: str,
+        ckpt_iter: Optional[int],
+        n_iters: int,
+        iters_per_ckpt: int,
+        iters_per_logging: int,
+        learning_rate: float,
+        only_generate_missing: int,
+        masking: str,
+        missing_k: int,
+        batch_size: int,
+        logger: Optional[logging.Logger] = None,
+    ) -> None:
         self.training_data_load = training_data_load
         self.diffusion_hyperparams = diffusion_hyperparams
         self.net = nn.DataParallel(net).to(device)
@@ -67,6 +69,7 @@ class DiffusionTrainer:
         self.writer = SummaryWriter(f"{output_directory}/log")
         self.batch_size = batch_size
         self.optimizer = torch.optim.Adam(self.net.parameters(), lr=self.learning_rate)
+        self.logger = logger or LOGGER
 
         if self.masking not in MASK_FN:
             raise KeyError(f"Please enter a correct masking, but got {self.masking}")
@@ -92,13 +95,15 @@ class DiffusionTrainer:
                 if "optimizer_state_dict" in checkpoint:
                     self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
-                LOGGER.info("Successfully loaded model at iteration %s", self.ckpt_iter)
+                self.logger.info(
+                    "Successfully loaded model at iteration %s", self.ckpt_iter
+                )
             except Exception as e:
                 self.ckpt_iter = -1
-                LOGGER.error("No valid checkpoint model found. Error: %s", e)
+                self.logger.error("No valid checkpoint model found. Error: %s", e)
         else:
             self.ckpt_iter = -1
-            LOGGER.info(
+            self.logger.info(
                 "No valid checkpoint model found, start training from initialization."
             )
 
@@ -108,7 +113,7 @@ class DiffusionTrainer:
         training_data = load_and_split_data(
             self.training_data_load, batch_num, self.batch_size, self.device
         )
-        LOGGER.info("Data loaded with batch num - %s", batch_num)
+        self.logger.info("Data loaded with batch num - %s", batch_num)
         return training_data, batch_num
 
     def _save_model(self, n_iter):
@@ -159,7 +164,7 @@ class DiffusionTrainer:
         n_iter_start = (
             self.ckpt_iter + 2 if self.ckpt_iter == -1 else self.ckpt_iter + 1
         )
-        LOGGER.info(f"Start the {n_iter_start} iteration")
+        self.logger.info(f"Start the {n_iter_start} iteration")
 
         for n_iter in range(n_iter_start, self.n_iters + 1):
             if n_iter % batch_num == 0:
@@ -171,5 +176,5 @@ class DiffusionTrainer:
 
             self.writer.add_scalar("Train/Loss", loss.item(), n_iter)
             if n_iter % self.iters_per_logging == 0:
-                LOGGER.info(f"Iteration: {n_iter} \tLoss: { loss.item()}")
+                self.logger.info(f"Iteration: {n_iter} \tLoss: { loss.item()}")
             self._save_model(n_iter)
