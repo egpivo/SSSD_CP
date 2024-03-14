@@ -1,5 +1,6 @@
 import argparse
 import json
+import logging
 import os
 import random
 
@@ -31,12 +32,20 @@ MASK_FN = {
 
 MODELS = {0: DiffWaveImputer, 1: SSSDSAImputer, 2: SSSDS4Imputer}
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("training.log"),
+        logging.StreamHandler(),
+    ],
+)
+logger = logging.getLogger(__name__)
+
 
 def load_and_split_data(training_data_load, batch_num, batch_size, device):
     index = random.sample(range(training_data_load.shape[0]), batch_num * batch_size)
-    training_data = training_data_load[
-        index,
-    ]
+    training_data = training_data_load[index]
     training_data = np.split(training_data, batch_num, 0)
     training_data = np.array(training_data)
     return torch.from_numpy(training_data).to(device, dtype=torch.float32)
@@ -122,27 +131,23 @@ class DiffusionTrainer:
                 if "optimizer_state_dict" in checkpoint:
                     self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
-                print(
-                    "Successfully loaded model at iteration {}".format(self.ckpt_iter)
-                )
+                logger.info("Successfully loaded model at iteration %s", self.ckpt_iter)
             except Exception as e:
                 self.ckpt_iter = -1
-                print(f"No valid checkpoint model found. Error: {e}")
+                logger.error("No valid checkpoint model found. Error: %s", e)
         else:
             self.ckpt_iter = -1
-            print(
+            logger.info(
                 "No valid checkpoint model found, start training from initialization."
             )
 
     def _prepare_training_data(self):
         training_size = self.training_data_load.shape[0]
         batch_num = training_size // self.batch_size
-        print(batch_num)
-
         training_data = load_and_split_data(
             self.training_data_load, batch_num, self.batch_size, self.device
         )
-        print("Data loaded")
+        logger.info("Data loaded with batch num - %s", batch_num)
         return training_data, batch_num
 
     def _save_model(self, n_iter):
@@ -163,6 +168,28 @@ class DiffusionTrainer:
             .to(self.device, dtype=torch.float32)
         )
 
+    def _train_per_epoch(self, training_data):
+        for batch in training_data:
+            mask = self._update_mask(batch)
+            loss_mask = ~mask.bool()
+
+            batch = batch.permute(0, 2, 1)
+            assert batch.size() == mask.size() == loss_mask.size()
+
+            self.optimizer.zero_grad()
+            loss = training_loss(
+                net=self.net,
+                loss_fn=nn.MSELoss(),
+                X=(batch, batch, mask, loss_mask),
+                diffusion_hyperparams=self.diffusion_hyperparams,
+                only_generate_missing=self.only_generate_missing,
+                device=self.device,
+            )
+            loss.backward()
+            self.optimizer.step()
+
+        return loss
+
     def train(self):
         self._update_diffusion_hyperparams()
         self._load_checkpoint()
@@ -171,37 +198,20 @@ class DiffusionTrainer:
         n_iter_start = (
             self.ckpt_iter + 2 if self.ckpt_iter == -1 else self.ckpt_iter + 1
         )
-        print(f"Start the {n_iter_start} iteration")
+        logger.info(f"Start the {n_iter_start} iteration")
 
         for n_iter in range(n_iter_start, self.n_iters + 1):
-            for batch in training_data:
-                if n_iter % batch_num == 0:
-                    training_data = load_and_split_data(
-                        self.training_data_load, batch_num, self.batch_size, self.device
-                    )
-
-                mask = self._update_mask(batch)
-                loss_mask = ~mask.bool()
-
-                batch = batch.permute(0, 2, 1)
-                assert batch.size() == mask.size() == loss_mask.size()
-
-                self.optimizer.zero_grad()
-                loss = training_loss(
-                    net=self.net,
-                    loss_fn=nn.MSELoss(),
-                    X=(batch, batch, mask, loss_mask),
-                    diffusion_hyperparams=self.diffusion_hyperparams,
-                    only_generate_missing=self.only_generate_missing,
-                    device=self.device,
+            if n_iter % batch_num == 0:
+                training_data = load_and_split_data(
+                    self.training_data_load, batch_num, self.batch_size, self.device
                 )
-                loss.backward()
-                self.optimizer.step()
 
-                self.writer.add_scalar("Train/Loss", loss.item(), n_iter)
-                if n_iter % self.iters_per_logging == 0:
-                    print(f"Iteration: {n_iter} \tLoss: {loss.item()}")
-                self._save_model(n_iter)
+            loss = self._train_per_epoch(training_data)
+
+            self.writer.add_scalar("Train/Loss", loss.item(), n_iter)
+            if n_iter % self.iters_per_logging == 0:
+                logger.info(f"Iteration: {n_iter} \tLoss: { loss.item()}")
+            self._save_model(n_iter)
 
 
 if __name__ == "__main__":
@@ -217,12 +227,12 @@ if __name__ == "__main__":
 
     # Check if multiple GPUs are available
     if torch.cuda.device_count() > 1:
-        print("Using", torch.cuda.device_count(), "GPUs!")
+        logger.info("Using %s GPUs!", torch.cuda.device_count())
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     with open(args.config) as f:
         config = json.load(f)
-    print(config)
+    logger.info(config)
 
     # Build output directory
     local_path = "T{}_beta0{}_betaT{}".format(
@@ -237,7 +247,7 @@ if __name__ == "__main__":
     if not os.path.isdir(output_directory):
         os.makedirs(output_directory)
         os.chmod(output_directory, 0o775)
-    print("Output directory", output_directory, flush=True)
+    logger.info("Output directory %s", output_directory)
 
     # Update config file values
     config["train_config"]["output_directory"] = output_directory
@@ -251,12 +261,15 @@ if __name__ == "__main__":
     elif use_model == 1:
         model_config = config["sashimi_config"]
     else:
-        raise KeyError(f"Please enter correct model number, but got {use_model}")
+        raise KeyError(
+            "Please enter correct model number, but got {}".format(use_model)
+        )
     net = MODELS[use_model](**model_config, device=device).to(device)
     display_current_time()
 
-    DiffusionTrainer(
+    trainer = DiffusionTrainer(
         training_data_load, diffusion_hyperparams, net, device, **config["train_config"]
-    ).train()
+    )
+    trainer.train()
 
     display_current_time()
