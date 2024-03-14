@@ -2,7 +2,6 @@ import argparse
 import json
 import logging
 import os
-import random
 
 import numpy as np
 import torch
@@ -10,6 +9,7 @@ import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
 from sssd.training.model_specs import MASK_FN, MODELS
+from sssd.training.utils import load_and_split_data
 from sssd.utils.util import (
     calc_diffusion_hyperparams,
     display_current_time,
@@ -26,14 +26,6 @@ logging.basicConfig(
     ],
 )
 logger = logging.getLogger(__name__)
-
-
-def load_and_split_data(training_data_load, batch_num, batch_size, device):
-    index = random.sample(range(training_data_load.shape[0]), batch_num * batch_size)
-    training_data = training_data_load[index]
-    training_data = np.split(training_data, batch_num, 0)
-    training_data = np.array(training_data)
-    return torch.from_numpy(training_data).to(device, dtype=torch.float32)
 
 
 class DiffusionTrainer:
