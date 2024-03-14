@@ -524,7 +524,7 @@ class SSKernelNPLR(nn.Module):
     p, q: (... P N) low-rank correction to A, such that Ap=A+pq^T is a normal matrix
 
     The forward pass of this Module returns:
-    (... L) that represents represents FFT SSKernel_L(A^dt, B^dt, C)
+    (... L) that represents FFT SSKernel_L(A^dt, B^dt, C)
 
     """
 
