@@ -61,7 +61,7 @@ def read_missing_k_data(folder_path, npy_file, missing_k):
     return true
 
 
-def pred_interval(pred, beta):
+def pred_interval(pred, beta=0.05):
     """
     goal: compute the (1-alpha) quantile of imputation ecdf, i.e, prediction interval
     output: lower bound and upper bound, shape: (obs, channel, length)
@@ -70,8 +70,8 @@ def pred_interval(pred, beta):
         beta = significance level of original prediction interval
     """
     # compute original prediciton intervals
-    L = np.quantile(pred_data, 0.025, axis=0)
-    U = np.quantile(pred_data, 0.975, axis=0)
+    L = np.quantile(pred, beta / 2, axis=0)
+    U = np.quantile(pred, 1 - beta / 2, axis=0)
 
     return L, U
 
@@ -120,7 +120,7 @@ def coverage_rate(L, U, true):
         U = upper bound, shape: (2209, 1, 24)
         true = true data, shape: (2209, 1, 24)
     """
-    return np.sum(np.logical_and(true_data > L, true_data < U), axis=0) / true.shape[0]
+    return np.sum(np.logical_and(true > L, true < U), axis=0) / true.shape[0]
 
 
 def generate_date_from_seq(value):
