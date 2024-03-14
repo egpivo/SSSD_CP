@@ -13,7 +13,7 @@ from sssd.utils.util import calc_diffusion_hyperparams, display_current_time
 LOGGER = setup_logger()
 
 
-def fetch_args():
+def fetch_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-c",
@@ -32,7 +32,7 @@ def fetch_args():
     return parser.parse_args()
 
 
-def setup_model(config, device):
+def setup_model(config: dict, device: torch.device) -> torch.nn.Module:
     use_model = config["train_config"]["use_model"]
     if use_model in (0, 2):
         model_config = config["wavenet_config"]
@@ -45,7 +45,7 @@ def setup_model(config, device):
     return MODELS[use_model](**model_config, device=device).to(device)
 
 
-def setup_output_directory(config):
+def setup_output_directory(config: dict) -> str:
     # Build output directory
     local_path = "T{}_beta0{}_betaT{}".format(
         config["diffusion_config"]["T"],
@@ -63,7 +63,7 @@ def setup_output_directory(config):
     return output_directory
 
 
-def run_job(config, device, batch_size):
+def run_job(config: dict, device: torch.device, batch_size: int) -> None:
     output_directory = setup_output_directory(config)
     training_data_load = np.load(config["trainset_config"]["train_data_path"])
     diffusion_hyperparams = calc_diffusion_hyperparams(**config["diffusion_config"])
