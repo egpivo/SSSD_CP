@@ -19,7 +19,6 @@ from sssd.utils.util import (
     get_mask_forecast,
     get_mask_mnr,
     get_mask_rm,
-    print_size,
     training_loss,
 )
 
@@ -43,24 +42,12 @@ def load_and_split_data(training_data_load, batch_num, batch_size, device):
     return torch.from_numpy(training_data).to(device, dtype=torch.float32)
 
 
-def train(
-    output_directory,
-    ckpt_iter,
-    n_iters,
-    iters_per_ckpt,
-    iters_per_logging,
-    learning_rate,
-    use_model,
-    only_generate_missing,
-    masking,
-    missing_k,
-    writer,
-    batch_size=80,
-):
+class DiffusionTrainer:
     """
     Train Diffusion Models
 
     Parameters:
+    -----------
     output_directory (str):         Save model checkpoints to this path
     ckpt_iter (int or 'max'):       The pretrained checkpoint to be loaded;
                                     automatically selects the maximum iteration if 'max' is selected
@@ -76,122 +63,137 @@ def train(
     writer (SummaryWriter):         TensorBoard SummaryWriter for logging
     batch_size (int):               Size of each training batch
     """
-    if masking not in MASK_FN:
-        raise KeyError(f"Please enter a correct masking, but got {masking}")
-    if use_model not in MODELS:
-        raise KeyError(f"Please enter a correct model number, but got {use_model}")
 
-    # Check if multiple GPUs are available
-    if torch.cuda.device_count() > 1:
-        print("Using", torch.cuda.device_count(), "GPUs!")
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    def __init__(
+        self,
+        training_data_load,
+        diffusion_hyperparams,
+        net,
+        device,
+        output_directory,
+        ckpt_iter,
+        n_iters,
+        iters_per_ckpt,
+        iters_per_logging,
+        learning_rate,
+        only_generate_missing,
+        masking,
+        missing_k,
+        writer,
+        batch_size=80,
+        **kwargs,
+    ):
+        self.training_data_load = training_data_load
+        self.diffusion_hyperparams = diffusion_hyperparams
+        self.net = nn.DataParallel(net).to(device)
+        self.device = device
+        self.output_directory = output_directory
+        self.ckpt_iter = ckpt_iter
+        self.n_iters = n_iters
+        self.iters_per_ckpt = iters_per_ckpt
+        self.iters_per_logging = iters_per_logging
+        self.learning_rate = learning_rate
+        self.only_generate_missing = only_generate_missing
+        self.masking = masking
+        self.missing_k = missing_k
+        self.writer = writer
+        self.batch_size = batch_size
 
-    # Map diffusion hyperparameters to GPU
-    for key in diffusion_hyperparams:
-        if key != "T":
-            diffusion_hyperparams[key] = diffusion_hyperparams[key].to(device)
+    def train(self):
+        if self.masking not in MASK_FN:
+            raise KeyError(f"Please enter a correct masking, but got {self.masking}")
 
-    # Predefine model
-    net = MODELS[use_model](**model_config, device=device).to(device)
-    print_size(net)
-
-    # Move the model to the device
-    net = nn.DataParallel(net).to(device)
-
-    # Define optimizer
-    optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate)
-
-    # Load checkpoint
-    if ckpt_iter == "max":
-        print(output_directory)
-        ckpt_iter = find_max_epoch(output_directory)
-        print(ckpt_iter)
-    if ckpt_iter >= 0:
-        try:
-            # Load checkpoint file
-            model_path = os.path.join(output_directory, f"{ckpt_iter}.pkl")
-            print(model_path)
-            checkpoint = torch.load(model_path, map_location="cpu")
-
-            # Feed model dict and optimizer state
-            net.load_state_dict(checkpoint["model_state_dict"])
-            if "optimizer_state_dict" in checkpoint:
-                optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
-
-            print("Successfully loaded model at iteration {}".format(ckpt_iter))
-        except Exception as e:
-            ckpt_iter = -1
-            print(f"No valid checkpoint model found. Error: {e}")
-    else:
-        ckpt_iter = -1
-        print("No valid checkpoint model found, start training from initialization.")
-
-    # Custom data loading and reshaping
-    training_data_load = np.load(trainset_config["train_data_path"])
-    training_size = training_data_load.shape[0]
-    batch_num = training_size // batch_size
-    print(batch_num)
-
-    training_data = load_and_split_data(
-        training_data_load, batch_num, batch_size, device
-    )
-    print("Data loaded")
-
-    # Training
-    n_iter = ckpt_iter + 2 if ckpt_iter == -1 else ckpt_iter + 1
-    print(f"Start the {n_iter} iteration")
-    while n_iter < n_iters + 1:
-        for batch in training_data:
-            # Shuffle batch after each epoch
-            if n_iter % batch_num == 0:
-                training_data = load_and_split_data(
-                    training_data_load, batch_num, batch_size, device
+        for key in self.diffusion_hyperparams:
+            if key != "T":
+                self.diffusion_hyperparams[key] = self.diffusion_hyperparams[key].to(
+                    self.device
                 )
-            transposed_mask = MASK_FN[masking](batch[0], missing_k)
-            mask = (
-                transposed_mask.permute(1, 0)
-                .repeat(batch.size()[0], 1, 1)
-                .to(device, dtype=torch.float32)
-            )
-            loss_mask = ~mask.bool()
-            batch = batch.permute(0, 2, 1)
 
-            assert batch.size() == mask.size() == loss_mask.size()
+        optimizer = torch.optim.Adam(self.net.parameters(), lr=self.learning_rate)
 
-            # Back-propagation
-            optimizer.zero_grad()
-            X = batch, batch, mask, loss_mask
-            loss = training_loss(
-                net,
-                nn.MSELoss(),
-                X,
-                diffusion_hyperparams,
-                only_generate_missing=only_generate_missing,
-                device=device,
+        if self.ckpt_iter == "max":
+            self.ckpt_iter = find_max_epoch(self.output_directory)
+        if self.ckpt_iter >= 0:
+            try:
+                model_path = os.path.join(
+                    self.output_directory, f"{self.ckpt_iter}.pkl"
+                )
+                checkpoint = torch.load(model_path, map_location="cpu")
+
+                self.net.load_state_dict(checkpoint["model_state_dict"])
+                if "optimizer_state_dict" in checkpoint:
+                    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+
+                print(
+                    "Successfully loaded model at iteration {}".format(self.ckpt_iter)
+                )
+            except Exception as e:
+                self.ckpt_iter = -1
+                print(f"No valid checkpoint model found. Error: {e}")
+        else:
+            self.ckpt_iter = -1
+            print(
+                "No valid checkpoint model found, start training from initialization."
             )
 
-            loss.backward()
-            optimizer.step()
+        training_size = self.training_data_load.shape[0]
+        batch_num = training_size // self.batch_size
 
-            writer.add_scalar("Train/Loss", loss.item(), n_iter)
-            if n_iter % iters_per_logging == 0:
-                print(f"Iteration: {n_iter} \tLoss: {loss.item()}")
+        training_data = load_and_split_data(
+            self.training_data_load, batch_num, self.batch_size, self.device
+        )
 
-                # Save checkpoint
-            if n_iter > 0 and n_iter % iters_per_ckpt == 0:
-                checkpoint_name = f"{n_iter}.pkl"
-                torch.save(
-                    {
-                        "model_state_dict": net.state_dict(),
-                        "optimizer_state_dict": optimizer.state_dict(),
-                    },
-                    os.path.join(output_directory, checkpoint_name),
+        n_iter_start = (
+            self.ckpt_iter + 2 if self.ckpt_iter == -1 else self.ckpt_iter + 1
+        )
+        print(f"Start the {n_iter_start} iteration")
+
+        for n_iter in range(n_iter_start, self.n_iters + 1):
+            for batch in training_data:
+                if n_iter % batch_num == 0:
+                    training_data = load_and_split_data(
+                        self.training_data_load, batch_num, self.batch_size, self.device
+                    )
+                transposed_mask = MASK_FN[self.masking](batch[0], self.missing_k)
+                mask = (
+                    transposed_mask.permute(1, 0)
+                    .repeat(batch.size()[0], 1, 1)
+                    .to(self.device, dtype=torch.float32)
                 )
-                print(f"Model at iteration {n_iter} is saved")
-                current_time = datetime.datetime.now()
-                print("Current time:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
+                loss_mask = ~mask.bool()
+                batch = batch.permute(0, 2, 1)
 
-            n_iter += 1
+                assert batch.size() == mask.size() == loss_mask.size()
+
+                optimizer.zero_grad()
+                loss = training_loss(
+                    net=self.net,
+                    loss_fn=nn.MSELoss(),
+                    X=(batch, batch, mask, loss_mask),
+                    diffusion_hyperparams=self.diffusion_hyperparams,
+                    only_generate_missing=self.only_generate_missing,
+                    device=self.device,
+                )
+
+                loss.backward()
+                optimizer.step()
+
+                self.writer.add_scalar("Train/Loss", loss.item(), n_iter)
+                if n_iter % self.iters_per_logging == 0:
+                    print(f"Iteration: {n_iter} \tLoss: {loss.item()}")
+
+                if n_iter > 0 and n_iter % self.iters_per_ckpt == 0:
+                    checkpoint_name = f"{n_iter}.pkl"
+                    torch.save(
+                        {
+                            "model_state_dict": self.net.state_dict(),
+                            "optimizer_state_dict": optimizer.state_dict(),
+                        },
+                        os.path.join(self.output_directory, checkpoint_name),
+                    )
+                    print(f"Model at iteration {n_iter} is saved")
+                    current_time = datetime.datetime.now()
+                    print("Current time:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
 
 
 if __name__ == "__main__":
@@ -203,6 +205,11 @@ if __name__ == "__main__":
         default="config/SSSDS4.json",
         help="JSON file for configuration",
     )
+
+    # Check if multiple GPUs are available
+    if torch.cuda.device_count() > 1:
+        print("Using", torch.cuda.device_count(), "GPUs!")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     args = parser.parse_args()
 
@@ -233,18 +240,9 @@ if __name__ == "__main__":
     config["train_config"]["writer"] = writer
     train_config = config["train_config"]  # training parameters
 
-    global trainset_config
-    trainset_config = config["trainset_config"]  # to load trainset
+    training_data_load = np.load(config["trainset_config"]["train_data_path"])
+    diffusion_hyperparams = calc_diffusion_hyperparams(**config["diffusion_config"])
 
-    global diffusion_config
-    diffusion_config = config["diffusion_config"]  # basic hyperparameters
-
-    global diffusion_hyperparams
-    diffusion_hyperparams = calc_diffusion_hyperparams(
-        **diffusion_config
-    )  # dictionary of all diffusion hyperparameters
-
-    global model_config
     if train_config["use_model"] in (0, 2):
         model_config = config["wavenet_config"]
     elif train_config["use_model"] == 1:
@@ -253,11 +251,13 @@ if __name__ == "__main__":
         raise KeyError(
             f"Please enter correct model number, but got {train_config['use_model']}"
         )
-
+    net = MODELS[train_config["use_model"]](**model_config, device=device).to(device)
     current_time = datetime.datetime.now()
     print("Current time:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
 
-    train(**train_config)
+    DiffusionTrainer(
+        training_data_load, diffusion_hyperparams, net, device, **train_config
+    ).train()
 
     current_time = datetime.datetime.now()
     print("Current time:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
