@@ -1,6 +1,5 @@
 import argparse
 import json
-import logging
 import os
 
 import numpy as np
@@ -8,17 +7,10 @@ import torch
 
 from sssd.training.model_specs import MODELS
 from sssd.training.trainer import DiffusionTrainer
+from sssd.utils.logger import setup_logger
 from sssd.utils.util import calc_diffusion_hyperparams, display_current_time
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("training.log"),
-        logging.StreamHandler(),
-    ],
-)
-logger = logging.getLogger(__name__)
+LOGGER = setup_logger()
 
 
 def fetch_args():
@@ -67,7 +59,7 @@ def setup_output_directory(config):
     if not os.path.isdir(output_directory):
         os.makedirs(output_directory)
         os.chmod(output_directory, 0o775)
-    logger.info("Output directory %s", output_directory)
+    LOGGER.info("Output directory %s", output_directory)
     return output_directory
 
 
@@ -104,10 +96,10 @@ if __name__ == "__main__":
 
     with open(args.config) as f:
         config = json.load(f)
-    logger.info(config)
+    LOGGER.info(config)
 
     if torch.cuda.device_count() > 1:
-        logger.info("Using %s GPUs!", torch.cuda.device_count())
+        LOGGER.info("Using %s GPUs!", torch.cuda.device_count())
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     run_job(config, device, args.batch_size)
