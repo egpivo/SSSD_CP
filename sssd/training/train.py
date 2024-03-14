@@ -42,6 +42,10 @@ def load_and_split_data(training_data_load, batch_num, batch_size, device):
     return torch.from_numpy(training_data).to(device, dtype=torch.float32)
 
 
+def print_current_time():
+    print(f"Current time: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+
 class DiffusionTrainer:
     """
     Train Diffusion Models
@@ -60,7 +64,6 @@ class DiffusionTrainer:
     only_generate_missing (int):    0: All sample diffusion,  1: Only apply diffusion to missing portions of the signal
     masking (str):                  'mnr': Missing not at random, 'bm': Blackout missing, 'rm': Random missing
     missing_k (int):                K missing time steps for each feature across the sample length
-    writer (SummaryWriter):         TensorBoard SummaryWriter for logging
     batch_size (int):               Size of each training batch
     """
 
@@ -79,7 +82,6 @@ class DiffusionTrainer:
         only_generate_missing,
         masking,
         missing_k,
-        writer,
         batch_size=80,
         **kwargs,
     ):
@@ -96,8 +98,22 @@ class DiffusionTrainer:
         self.only_generate_missing = only_generate_missing
         self.masking = masking
         self.missing_k = missing_k
-        self.writer = writer
+        self.writer = SummaryWriter(f"{output_directory}/log")
         self.batch_size = batch_size
+
+        if self.masking not in MASK_FN:
+            raise KeyError(f"Please enter a correct masking, but got {self.masking}")
+
+        self._update_diffusion_hyperparams()
+        self._load_checkpoint()
+        self.optimizer = torch.optim.Adam(self.net.parameters(), lr=self.learning_rate)
+
+    def _update_diffusion_hyperparams(self):
+        for key in self.diffusion_hyperparams:
+            if key != "T":
+                self.diffusion_hyperparams[key] = self.diffusion_hyperparams[key].to(
+                    self.device
+                )
 
     def _load_checkpoint(self, optimizer):
         if self.ckpt_iter == "max":
@@ -137,18 +153,6 @@ class DiffusionTrainer:
         return training_data, batch_num
 
     def train(self):
-        if self.masking not in MASK_FN:
-            raise KeyError(f"Please enter a correct masking, but got {self.masking}")
-
-        for key in self.diffusion_hyperparams:
-            if key != "T":
-                self.diffusion_hyperparams[key] = self.diffusion_hyperparams[key].to(
-                    self.device
-                )
-
-        optimizer = torch.optim.Adam(self.net.parameters(), lr=self.learning_rate)
-
-        self._load_checkpoint()
         training_data, batch_num = self._prepare_training_data()
 
         n_iter_start = (
@@ -173,7 +177,7 @@ class DiffusionTrainer:
 
                 assert batch.size() == mask.size() == loss_mask.size()
 
-                optimizer.zero_grad()
+                self.optimizer.zero_grad()
                 loss = training_loss(
                     net=self.net,
                     loss_fn=nn.MSELoss(),
@@ -184,7 +188,7 @@ class DiffusionTrainer:
                 )
 
                 loss.backward()
-                optimizer.step()
+                self.optimizer.step()
 
                 self.writer.add_scalar("Train/Loss", loss.item(), n_iter)
                 if n_iter % self.iters_per_logging == 0:
@@ -195,13 +199,12 @@ class DiffusionTrainer:
                     torch.save(
                         {
                             "model_state_dict": self.net.state_dict(),
-                            "optimizer_state_dict": optimizer.state_dict(),
+                            "optimizer_state_dict": self.optimizer.state_dict(),
                         },
                         os.path.join(self.output_directory, checkpoint_name),
                     )
                     print(f"Model at iteration {n_iter} is saved")
-                    current_time = datetime.datetime.now()
-                    print("Current time:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
+                    print_current_time()
 
 
 if __name__ == "__main__":
@@ -244,28 +247,20 @@ if __name__ == "__main__":
     config["train_config"]["output_directory"] = output_directory
 
     # Set TensorBoard directory
-    writer = SummaryWriter(f"{output_directory}/log")
-    config["train_config"]["writer"] = writer
-    train_config = config["train_config"]  # training parameters
-
     training_data_load = np.load(config["trainset_config"]["train_data_path"])
     diffusion_hyperparams = calc_diffusion_hyperparams(**config["diffusion_config"])
-
-    if train_config["use_model"] in (0, 2):
+    use_model = config["train_config"]["use_model"]
+    if use_model in (0, 2):
         model_config = config["wavenet_config"]
-    elif train_config["use_model"] == 1:
+    elif use_model == 1:
         model_config = config["sashimi_config"]
     else:
-        raise KeyError(
-            f"Please enter correct model number, but got {train_config['use_model']}"
-        )
-    net = MODELS[train_config["use_model"]](**model_config, device=device).to(device)
-    current_time = datetime.datetime.now()
-    print("Current time:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
+        raise KeyError(f"Please enter correct model number, but got {use_model}")
+    net = MODELS[use_model](**model_config, device=device).to(device)
+    print_current_time()
 
     DiffusionTrainer(
-        training_data_load, diffusion_hyperparams, net, device, **train_config
+        training_data_load, diffusion_hyperparams, net, device, **config["train_config"]
     ).train()
 
-    current_time = datetime.datetime.now()
-    print("Current time:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
+    print_current_time()
