@@ -1,5 +1,6 @@
 import os
 import random
+from datetime import datetime
 
 import numpy as np
 import torch
@@ -311,3 +312,7 @@ def get_mask_forecast(sample, k):
         ] = 0  # mask[:,channel] = mask[:,channel,:] select one channel
 
     return mask
+
+
+def display_current_time():
+    print(f"Current time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")

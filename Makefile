@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: clean install
+.PHONY: clean install conda-env train-mix
 
 clean: clean-pyc clean-build
 
@@ -13,3 +13,10 @@ clean-build:
 
 install: clean
 	@$(SHELL) envs/conda/build_conda_env.sh
+
+conda-env: install
+	@eval "$$(conda shell.bash hook)" && \
+	conda activate sssd
+
+train-mix: conda-env
+	python sssd/train.py -c config/config_SSSDS4-NYISO-3-mix.json
