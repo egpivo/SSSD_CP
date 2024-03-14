@@ -99,18 +99,7 @@ class DiffusionTrainer:
         self.writer = writer
         self.batch_size = batch_size
 
-    def train(self):
-        if self.masking not in MASK_FN:
-            raise KeyError(f"Please enter a correct masking, but got {self.masking}")
-
-        for key in self.diffusion_hyperparams:
-            if key != "T":
-                self.diffusion_hyperparams[key] = self.diffusion_hyperparams[key].to(
-                    self.device
-                )
-
-        optimizer = torch.optim.Adam(self.net.parameters(), lr=self.learning_rate)
-
+    def _load_checkpoint(self, optimizer):
         if self.ckpt_iter == "max":
             self.ckpt_iter = find_max_epoch(self.output_directory)
         if self.ckpt_iter >= 0:
@@ -136,12 +125,31 @@ class DiffusionTrainer:
                 "No valid checkpoint model found, start training from initialization."
             )
 
+    def _prepare_training_data(self):
         training_size = self.training_data_load.shape[0]
         batch_num = training_size // self.batch_size
+        print(batch_num)
 
         training_data = load_and_split_data(
             self.training_data_load, batch_num, self.batch_size, self.device
         )
+        print("Data loaded")
+        return training_data, batch_num
+
+    def train(self):
+        if self.masking not in MASK_FN:
+            raise KeyError(f"Please enter a correct masking, but got {self.masking}")
+
+        for key in self.diffusion_hyperparams:
+            if key != "T":
+                self.diffusion_hyperparams[key] = self.diffusion_hyperparams[key].to(
+                    self.device
+                )
+
+        optimizer = torch.optim.Adam(self.net.parameters(), lr=self.learning_rate)
+
+        self._load_checkpoint()
+        training_data, batch_num = self._prepare_training_data()
 
         n_iter_start = (
             self.ckpt_iter + 2 if self.ckpt_iter == -1 else self.ckpt_iter + 1
