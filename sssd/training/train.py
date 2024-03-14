@@ -9,28 +9,13 @@ import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
-from sssd.imputers.DiffWaveImputer import DiffWaveImputer
-from sssd.imputers.SSSDS4Imputer import SSSDS4Imputer
-from sssd.imputers.SSSDSAImputer import SSSDSAImputer
+from sssd.training.model_specs import MASK_FN, MODELS
 from sssd.utils.util import (
     calc_diffusion_hyperparams,
     display_current_time,
     find_max_epoch,
-    get_mask_bm,
-    get_mask_forecast,
-    get_mask_mnr,
-    get_mask_rm,
     training_loss,
 )
-
-MASK_FN = {
-    "rm": get_mask_rm,
-    "mnr": get_mask_mnr,
-    "bm": get_mask_bm,
-    "forecast": get_mask_forecast,
-}
-
-MODELS = {0: DiffWaveImputer, 1: SSSDSAImputer, 2: SSSDS4Imputer}
 
 logging.basicConfig(
     level=logging.INFO,
