@@ -19,7 +19,7 @@
 ## Implementation
 0. Activate Conda env.: `source activate sssd`
 1. Train the model: `python sssd/train.py -c config/config_SSSDS4-NYISO-3-mix.json`
-2. Generate one prediction for each sample in test data: `python sssd/inferenece/inference.py -c config/config_SSSDS4-NYISO-3-mix.json --num_samples=803`
+2. Generate one prediction for each sample in test data: `python sssd/inference/inference.py -c config/config_SSSDS4-NYISO-3-mix.json --num_samples=803`
 3. Generate 10 predictions for each sample in test data: `python sssd/inference/inference_multiples.py -c config/config_SSSDS4-NYISO-3-mix.json`
 
 

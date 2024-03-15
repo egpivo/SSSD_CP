@@ -65,7 +65,7 @@ def std_normal(size, device):
 
 
 def calc_diffusion_step_embedding(
-    diffusion_steps, diffusion_step_embed_dim_in, device="cuda"
+    diffusion_steps, diffusion_step_embed_dim_in, device="cpu"
 ):
     """
     Embed a diffusion step $t$ into a higher dimensional space
