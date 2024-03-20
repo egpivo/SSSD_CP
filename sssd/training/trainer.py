@@ -90,11 +90,11 @@ class DiffusionTrainer:
                     self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
                 self.logger.info(
-                    "Successfully loaded model at iteration %s", self.ckpt_iter
+                    f"Successfully loaded model at iteration {self.ckpt_iter}"
                 )
             except Exception as e:
                 self.ckpt_iter = -1
-                self.logger.error("No valid checkpoint model found. Error: %s", e)
+                self.logger.error(f"No valid checkpoint model found. Error: {e}")
         else:
             self.ckpt_iter = -1
             self.logger.info(
