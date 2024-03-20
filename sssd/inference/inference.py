@@ -65,10 +65,14 @@ class DiffusionGenerator:
 
     def _prepare_output_directory(self, output_directory, local_path, ckpt_iter):
         """Prepare the output directory to save generated samples."""
+        if ckpt_iter == "max":
+            ckpt_iter_str = "max"
+        else:
+            ckpt_iter_str = f"imputation_multiple_{int(ckpt_iter) // 1000}k"
         output_directory = os.path.join(
             output_directory,
             local_path,
-            f"imputation_multiple_{int(ckpt_iter) // 1000}k",
+            ckpt_iter_str,
         )
         os.makedirs(output_directory, exist_ok=True)
         os.chmod(output_directory, 0o775)
