@@ -16,6 +16,23 @@ LOGGER = setup_logger()
 class DiffusionGenerator:
     """
     Generate data based on ground truth.
+
+    Parameters:
+    -----------
+    net (torch.nn.Module):         The neural network model
+    device (torch.device):         The device to run the model on (e.g., 'cuda' or 'cpu')
+    diffusion_hyperparams (dict):  Dictionary of diffusion hyperparameters
+    local_path (str):              Local path format for the model
+    testing_data (np.ndarray):     Numpy array containing testing data
+    output_directory (str):        Path to save generated samples
+    num_samples (int):             Number of samples to generate (default is 4)
+    ckpt_path (str):               Checkpoint directory
+    ckpt_iter (int or 'max'):      Pretrained checkpoint to load; 'max' selects the maximum iteration
+    masking (str):                  Type of masking: 'mnr' (missing not at random), 'bm' (black-out), 'rm' (random missing)
+    missing_k (int):               Number of missing time points for each channel across the length
+    only_generate_missing (int):   Whether to generate only missing portions of the signal:
+                                    0 (all sample diffusion), 1 (generate missing portions only)
+    logger (Optional[logging.Logger]): Logger object for logging messages (default is None)
     """
 
     def __init__(
