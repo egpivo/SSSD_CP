@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
-from sssd.training.model_specs import MASK_FN
+from sssd.core.model_specs import MASK_FN
 from sssd.training.utils import load_and_split_data
 from sssd.utils.logger import setup_logger
 from sssd.utils.util import find_max_epoch, training_loss
@@ -54,6 +54,7 @@ class DiffusionTrainer:
         logger: Optional[logging.Logger] = None,
     ) -> None:
         self.training_data_load = training_data_load
+
         self.diffusion_hyperparams = diffusion_hyperparams
         self.net = nn.DataParallel(net).to(device)
         self.device = device
@@ -74,13 +75,6 @@ class DiffusionTrainer:
         if self.masking not in MASK_FN:
             raise KeyError(f"Please enter a correct masking, but got {self.masking}")
 
-    def _update_diffusion_hyperparams(self):
-        for key in self.diffusion_hyperparams:
-            if key != "T":
-                self.diffusion_hyperparams[key] = self.diffusion_hyperparams[key].to(
-                    self.device
-                )
-
     def _load_checkpoint(self):
         if self.ckpt_iter == "max":
             self.ckpt_iter = find_max_epoch(self.output_directory)
@@ -96,11 +90,11 @@ class DiffusionTrainer:
                     self.optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
 
                 self.logger.info(
-                    "Successfully loaded model at iteration %s", self.ckpt_iter
+                    f"Successfully loaded model at iteration {self.ckpt_iter}"
                 )
             except Exception as e:
                 self.ckpt_iter = -1
-                self.logger.error("No valid checkpoint model found. Error: %s", e)
+                self.logger.error(f"No valid checkpoint model found. Error: {e}")
         else:
             self.ckpt_iter = -1
             self.logger.info(
@@ -157,7 +151,6 @@ class DiffusionTrainer:
         return loss
 
     def train(self):
-        self._update_diffusion_hyperparams()
         self._load_checkpoint()
         training_data, batch_num = self._prepare_training_data()
 

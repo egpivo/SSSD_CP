@@ -65,7 +65,7 @@ def std_normal(size, device):
 
 
 def calc_diffusion_step_embedding(
-    diffusion_steps, diffusion_step_embed_dim_in, device="cuda"
+    diffusion_steps, diffusion_step_embed_dim_in, device="cpu"
 ):
     """
     Embed a diffusion step $t$ into a higher dimensional space
@@ -93,7 +93,7 @@ def calc_diffusion_step_embedding(
     return diffusion_step_embed
 
 
-def calc_diffusion_hyperparams(T, beta_0, beta_T):
+def calc_diffusion_hyperparams(T, beta_0, beta_T, device):
     """
     Compute diffusion process hyperparameters
 
@@ -129,6 +129,11 @@ def calc_diffusion_hyperparams(T, beta_0, beta_T):
         Sigma,
     )
     diffusion_hyperparams = _dh
+
+    for key in diffusion_hyperparams:
+        if key != "T":
+            diffusion_hyperparams[key] = diffusion_hyperparams[key].to(device)
+
     return diffusion_hyperparams
 
 

@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: clean install conda-env train-mix
+.PHONY: clean install conda-env train-mix inference-mix
 
 clean: clean-pyc clean-build
 
@@ -20,3 +20,6 @@ conda-env: install
 
 train-mix: conda-env
 	python sssd/train.py -c config/config_SSSDS4-NYISO-3-mix.json
+
+inference-mix: conda-env
+	python sssd/infer.py -c config/config_SSSDS4-NYISO-3-mix.json

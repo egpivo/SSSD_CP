@@ -9,9 +9,9 @@ import torch
 import torch.nn as nn
 from sklearn.metrics import mean_squared_error
 
-from sssd.imputers.DiffWaveImputer import DiffWaveImputer
-from sssd.imputers.SSSDS4Imputer import SSSDS4Imputer
-from sssd.imputers.SSSDSAImputer import SSSDSAImputer
+from sssd.core.imputers.DiffWaveImputer import DiffWaveImputer
+from sssd.core.imputers.SSSDS4Imputer import SSSDS4Imputer
+from sssd.core.imputers.SSSDSAImputer import SSSDSAImputer
 from sssd.utils.util import (
     calc_diffusion_hyperparams,
     find_max_epoch,

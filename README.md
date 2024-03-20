@@ -16,13 +16,13 @@
 
 - Note that the cleaned data is created following the scripts in `notebooks/dataset_script/nyiso-csv-to-pickle.ipynb` and `notebooks/dataset_script/nyiso-load-pickle-to-npy.ipynb`.
 
-## Implementation
-0. Activate Conda env.: `source activate sssd`
-1. Train the model: `python sssd/train.py -c config/config_SSSDS4-NYISO-3-mix.json`
-2. Generate one prediction for each sample in test data: `python sssd/inferenece/inference.py -c config/config_SSSDS4-NYISO-3-mix.json --num_samples=803`
+## Example: `config_SSSDS4-NYISO-3-mix.json`
+1. Train a model: `make train-mix`
+2. Generate one prediction for each sample in test data: `make inference-mix`
 3. Generate 10 predictions for each sample in test data: `python sssd/inference/inference_multiples.py -c config/config_SSSDS4-NYISO-3-mix.json`
 
 
 ## Suggestion
 1. Use `CUDA_VISIBLE_DEVICES` to specify the number of GPUs. Both training and inference require the same number of GPUs.
 2. Use the sample size as the parameter `--num_samples` in the inference section.
+  - e.g., `python sssd/infer.py -c config/config_SSSDS4-NYISO-3-mix.json --num_samples=803`

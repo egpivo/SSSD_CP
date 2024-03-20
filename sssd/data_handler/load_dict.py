@@ -4,7 +4,7 @@ import os
 
 import torch
 
-from sssd.imputers.SSSDS4Imputer import SSSDS4Imputer
+from sssd.core.imputers.SSSDS4Imputer import SSSDS4Imputer
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
