@@ -1,6 +1,6 @@
 import argparse
 import json
-from typing import Optional
+from typing import Union
 
 import torch
 import torch.nn as nn
@@ -40,7 +40,7 @@ def fetch_args() -> argparse.Namespace:
 
 
 def run_job(
-    config: dict, device: torch.device, num_samples: int, ckpt_iter: Optional[str, int]
+    config: dict, device: torch.device, num_samples: int, ckpt_iter: Union[str, int]
 ) -> None:
 
     testing_data = load_testing_data(
