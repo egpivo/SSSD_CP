@@ -39,15 +39,15 @@ class DiffusionGenerator:
         self.diffusion_hyperparams = diffusion_hyperparams
         self.local_path = local_path
         self.testing_data = testing_data
-        self.output_directory = self._prepare_output_directory(
-            output_directory, local_path, ckpt_iter
-        )
         self.num_samples = num_samples
         self.masking = masking
         self.missing_k = missing_k
         self.only_generate_missing = only_generate_missing
         self.logger = logger or LOGGER
 
+        self.output_directory = self._prepare_output_directory(
+            output_directory, local_path, ckpt_iter
+        )
         self._load_checkpoint(ckpt_path, ckpt_iter)
 
     def _load_checkpoint(self, ckpt_path, ckpt_iter):
