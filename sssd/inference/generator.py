@@ -16,23 +16,6 @@ LOGGER = setup_logger()
 class DiffusionGenerator:
     """
     Generate data based on ground truth.
-
-    Parameters:
-    -----------
-    net (torch.nn.Module):         The neural network model
-    device (torch.device):         The device to run the model on (e.g., 'cuda' or 'cpu')
-    diffusion_hyperparams (dict):  Dictionary of diffusion hyperparameters
-    local_path (str):              Local path format for the model
-    testing_data (np.ndarray):     Numpy array containing testing data
-    output_directory (str):        Path to save generated samples
-    num_samples (int):             Number of samples to generate (default is 4)
-    ckpt_path (str):               Checkpoint directory
-    ckpt_iter (int or 'max'):      Pretrained checkpoint to load; 'max' selects the maximum iteration
-    masking (str):                  Type of masking: 'mnr' (missing not at random), 'bm' (black-out), 'rm' (random missing)
-    missing_k (int):               Number of missing time points for each channel across the length
-    only_generate_missing (int):   Whether to generate only missing portions of the signal:
-                                    0 (all sample diffusion), 1 (generate missing portions only)
-    logger (Optional[logging.Logger]): Logger object for logging messages (default is None)
     """
 
     def __init__(
@@ -106,10 +89,25 @@ class DiffusionGenerator:
             .to(self.device, dtype=torch.float32)
         )
 
+    def _save_data(
+        self,
+        generated_audio: np.ndarray,
+        batch: np.ndarray,
+        mask: np.ndarray,
+        index: int,
+    ) -> None:
+        """Save generated_audio, batch, and mask data arrays."""
+        data_names = ["imputation", "original", "mask"]
+        data_arrays = [generated_audio, batch, mask]
+
+        for data, name in zip(data_arrays, data_names):
+            filename = f"{name}{index}.npy"
+            np.save(os.path.join(self.output_directory, filename), data)
+
     def generate(self) -> list:
         """Generate samples using the given neural network model."""
         all_mses = []
-        for i, batch in enumerate(self.testing_data):
+        for index, batch in enumerate(self.testing_data):
             mask = self._update_mask(batch)
             batch = batch.permute(0, 2, 1)
             sample_length = batch.size(2)
@@ -127,19 +125,10 @@ class DiffusionGenerator:
             generated_audio = generated_audio.detach().cpu().numpy()
             batch = batch.detach().cpu().numpy()
             mask = mask.detach().cpu().numpy()
-
-            outfile = f"imputation{i}.npy"
-            np.save(os.path.join(self.output_directory, outfile), generated_audio)
-
-            outfile = f"original{i}.npy"
-            np.save(os.path.join(self.output_directory, outfile), batch)
-
-            outfile = f"mask{i}.npy"
-            np.save(os.path.join(self.output_directory, outfile), mask)
-
             mse = mean_squared_error(
                 generated_audio[~mask.astype(bool)], batch[~mask.astype(bool)]
             )
             all_mses.append(mse)
+            self._save_data(generated_audio, batch, mask, index)
 
         return all_mses
