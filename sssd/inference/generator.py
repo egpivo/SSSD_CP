@@ -1,19 +1,14 @@
-import argparse
-import datetime
-import json
 import logging
 import os
 from typing import Optional
 
 import numpy as np
 import torch
-import torch.nn as nn
 from sklearn.metrics import mean_squared_error
 
-from sssd.core.model_specs import MASK_FN, MODEL_PATH_FORMAT, setup_model
-from sssd.inference.utils import load_testing_data
+from sssd.core.model_specs import MASK_FN
 from sssd.utils.logger import setup_logger
-from sssd.utils.util import calc_diffusion_hyperparams, find_max_epoch, sampling
+from sssd.utils.util import find_max_epoch, sampling
 
 LOGGER = setup_logger()
 
@@ -123,75 +118,3 @@ class DiffusionGenerator:
             all_mse.append(mse)
 
         return all_mse
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "-c",
-        "--config",
-        type=str,
-        default="config.json",
-        help="Path to the JSON file containing the configuration",
-    )
-    parser.add_argument(
-        "-n",
-        "--num_samples",
-        type=int,
-        default=1,
-        help="Number of utterances to be generated (default is 1)",
-    )
-    parser.add_argument(
-        "-ckpt_iter",
-        "--ckpt_iter",
-        default="max",
-        help='Which checkpoint to use; assign a number or "max"',
-    )
-    args = parser.parse_args()
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    # Parse configs
-    with open(args.config) as f:
-        config = json.load(f)
-
-    testing_data = load_testing_data(
-        config["trainset_config"]["test_data_path"], args.num_samples
-    )
-    local_path = MODEL_PATH_FORMAT.format(
-        T=config["diffusion_config"]["T"],
-        beta_0=config["diffusion_config"]["beta_0"],
-        beta_T=config["diffusion_config"]["beta_T"],
-    )
-
-    diffusion_hyperparams = calc_diffusion_hyperparams(
-        **config["diffusion_config"], device=device
-    )
-
-    current_time = datetime.datetime.now()
-    print("Current time:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
-
-    net = setup_model(config, device)
-
-    # Check if multiple GPUs are available
-    if torch.cuda.device_count() > 0:
-        print("Using", torch.cuda.device_count(), "GPUs!")
-        net = nn.DataParallel(net)
-
-    DiffusionGenerator(
-        net=net,
-        device=device,
-        diffusion_hyperparams=diffusion_hyperparams,
-        testing_data=testing_data,
-        local_path=local_path,
-        output_directory=config["gen_config"]["output_directory"],
-        ckpt_path=config["gen_config"]["ckpt_path"],
-        ckpt_iter=args.ckpt_iter,
-        num_samples=args.num_samples,
-        masking=config["train_config"]["masking"],
-        missing_k=config["train_config"]["missing_k"],
-        only_generate_missing=config["train_config"]["only_generate_missing"],
-    ).generate()
-
-    current_time = datetime.datetime.now()
-    print("Current time:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
