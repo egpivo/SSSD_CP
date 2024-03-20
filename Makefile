@@ -22,4 +22,4 @@ train-mix: conda-env
 	python sssd/train.py -c config/config_SSSDS4-NYISO-3-mix.json
 
 inference-mix: conda-env
-	python sssd/inference.py -c config/config_SSSDS4-NYISO-3-mix.json
+	python sssd/infer.py -c config/config_SSSDS4-NYISO-3-mix.json

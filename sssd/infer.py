@@ -7,6 +7,7 @@ import torch.nn as nn
 
 from sssd.core.model_specs import MODEL_PATH_FORMAT, setup_model
 from sssd.inference.generator import DiffusionGenerator
+from sssd.inference.utils import load_testing_data
 from sssd.utils.logger import setup_logger
 from sssd.utils.util import calc_diffusion_hyperparams, display_current_time
 
@@ -61,7 +62,7 @@ def run_job(
     if torch.cuda.device_count() > 0:
         net = nn.DataParallel(net)
 
-    DiffusionGenerator(
+    mse = DiffusionGenerator(
         net=net,
         device=device,
         diffusion_hyperparams=diffusion_hyperparams,
@@ -76,6 +77,7 @@ def run_job(
         only_generate_missing=config["train_config"]["only_generate_missing"],
     ).generate()
 
+    LOGGER.info(f"Total MSE: {mse}")
     display_current_time()
 
 
