@@ -77,7 +77,7 @@ def run_job(
         only_generate_missing=config["train_config"]["only_generate_missing"],
     ).generate()
 
-    LOGGER.info(f"Total MSE: {mse}")
+    LOGGER.info(f"Average MSE: {sum(mse) / len(mse)}")
     display_current_time()
 
 

@@ -14,20 +14,41 @@ LOGGER = setup_logger()
 
 
 class DiffusionGenerator:
+    """
+    Generate data based on ground truth.
+
+    Parameters:
+    -----------
+    net (torch.nn.Module):         The neural network model
+    device (torch.device):         The device to run the model on (e.g., 'cuda' or 'cpu')
+    diffusion_hyperparams (dict):  Dictionary of diffusion hyperparameters
+    local_path (str):              Local path format for the model
+    testing_data (np.ndarray):     Numpy array containing testing data
+    output_directory (str):        Path to save generated samples
+    num_samples (int):             Number of samples to generate (default is 4)
+    ckpt_path (str):               Checkpoint directory
+    ckpt_iter (int or 'max'):      Pretrained checkpoint to load; 'max' selects the maximum iteration
+    masking (str):                  Type of masking: 'mnr' (missing not at random), 'bm' (black-out), 'rm' (random missing)
+    missing_k (int):               Number of missing time points for each channel across the length
+    only_generate_missing (int):   Whether to generate only missing portions of the signal:
+                                    0 (all sample diffusion), 1 (generate missing portions only)
+    logger (Optional[logging.Logger]): Logger object for logging messages (default is None)
+    """
+
     def __init__(
         self,
-        net,
-        device,
-        diffusion_hyperparams,
-        local_path,
-        testing_data,
-        output_directory,
-        num_samples,
-        ckpt_path,
-        ckpt_iter,
-        masking,
-        missing_k,
-        only_generate_missing,
+        net: torch.nn.Module,
+        device: torch.device,
+        diffusion_hyperparams: dict,
+        local_path: str,
+        testing_data: np.ndarray,
+        output_directory: str,
+        num_samples: int,
+        ckpt_path: str,
+        ckpt_iter: str,
+        masking: str,
+        missing_k: int,
+        only_generate_missing: int,
         logger: Optional[logging.Logger] = None,
     ):
         self.net = net
@@ -46,7 +67,7 @@ class DiffusionGenerator:
         )
         self._load_checkpoint(ckpt_path, ckpt_iter)
 
-    def _load_checkpoint(self, ckpt_path, ckpt_iter):
+    def _load_checkpoint(self, ckpt_path: str, ckpt_iter: str) -> None:
         """Load a checkpoint for the given neural network model."""
         ckpt_path = os.path.join(ckpt_path, self.local_path)
         if ckpt_iter == "max":
@@ -56,40 +77,44 @@ class DiffusionGenerator:
             checkpoint = torch.load(model_path, map_location="cpu")
             self.net.load_state_dict(checkpoint["model_state_dict"])
             self.logger.info(f"Successfully loaded model at iteration {ckpt_iter}")
-        except:
-            raise Exception("No valid model found")
+        except FileNotFoundError as e:
+            raise FileNotFoundError(f"Model file not found at {model_path}") from e
+        except Exception as e:
+            raise Exception(f"Failed to load model: {e}")
 
-    def _prepare_output_directory(self, output_directory, local_path, ckpt_iter):
+    def _prepare_output_directory(
+        self, output_directory: str, local_path: str, ckpt_iter: str
+    ) -> str:
         """Prepare the output directory to save generated samples."""
-        if ckpt_iter == "max":
-            ckpt_iter_str = "max"
-        else:
-            ckpt_iter_str = f"imputation_multiple_{int(ckpt_iter) // 1000}k"
-        output_directory = os.path.join(
-            output_directory,
-            local_path,
-            ckpt_iter_str,
+        ckpt_iter_str = (
+            "max"
+            if ckpt_iter == "max"
+            else f"imputation_multiple_{int(ckpt_iter) // 1000}k"
         )
+        output_directory = os.path.join(output_directory, local_path, ckpt_iter_str)
         os.makedirs(output_directory, exist_ok=True)
         os.chmod(output_directory, 0o775)
-        self.logger.info("Output directory: %s", output_directory)
+        self.logger.info(f"Output directory: {output_directory}")
         return output_directory
 
-    def generate(self):
+    def _update_mask(self, batch: torch.Tensor) -> torch.Tensor:
+        """Update mask based on the given batch."""
+        transposed_mask = MASK_FN[self.masking](batch[0], self.missing_k)
+        return (
+            transposed_mask.permute(1, 0)
+            .repeat(batch.size()[0], 1, 1)
+            .to(self.device, dtype=torch.float32)
+        )
+
+    def generate(self) -> list:
         """Generate samples using the given neural network model."""
-        all_mse = []
+        all_mses = []
         for i, batch in enumerate(self.testing_data):
-            transposed_mask = MASK_FN[self.masking](batch[0], self.missing_k)
-            mask = (
-                transposed_mask.permute(1, 0)
-                .repeat(batch.size()[0], 1, 1)
-                .to(self.device, dtype=torch.float32)
-            )
-
+            mask = self._update_mask(batch)
             batch = batch.permute(0, 2, 1)
-
             sample_length = batch.size(2)
             sample_channels = batch.size(1)
+
             generated_audio = sampling(
                 self.net,
                 (self.num_samples, sample_channels, sample_length),
@@ -115,6 +140,6 @@ class DiffusionGenerator:
             mse = mean_squared_error(
                 generated_audio[~mask.astype(bool)], batch[~mask.astype(bool)]
             )
-            all_mse.append(mse)
+            all_mses.append(mse)
 
-        return all_mse
+        return all_mses
