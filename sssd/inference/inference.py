@@ -171,8 +171,7 @@ if __name__ == "__main__":
     with open(args.config) as f:
         config = json.load(f)
 
-    train_config = config["train_config"]
-    testing_data = np.load(train_config["trainset_config"]["test_data_path"])
+    testing_data = np.load(config["trainset_config"]["test_data_path"])
 
     local_path = MODEL_PATH_FORMAT.format(
         T=config["diffusion_config"]["T"],
@@ -204,9 +203,9 @@ if __name__ == "__main__":
         ckpt_path=config["gen_config"]["ckpt_path"],
         ckpt_iter=args.ckpt_iter,
         num_samples=args.num_samples,
-        masking=train_config["masking"],
-        missing_k=train_config["missing_k"],
-        only_generate_missing=train_config["only_generate_missing"],
+        masking=config["train_config"]["masking"],
+        missing_k=config["train_config"]["missing_k"],
+        only_generate_missing=config["train_config"]["only_generate_missing"],
     )
 
     current_time = datetime.datetime.now()
