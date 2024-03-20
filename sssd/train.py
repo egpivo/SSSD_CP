@@ -88,8 +88,8 @@ if __name__ == "__main__":
         config = json.load(f)
     LOGGER.info(config)
 
-    if torch.cuda.device_count() > 1:
-        LOGGER.info("Using %s GPUs!", torch.cuda.device_count())
+    if torch.cuda.device_count() > 0:
+        LOGGER.info(f"Using {torch.cuda.device_count()} GPUs!")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     run_job(config, device, args.batch_size)
