@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 from sklearn.metrics import mean_squared_error
 
-from sssd.core.model_specs import MASK_FN, setup_model
+from sssd.core.model_specs import MASK_FN, MODEL_PATH_FORMAT, setup_model
 from sssd.utils.util import (
     calc_diffusion_hyperparams,
     find_max_epoch,
@@ -22,71 +22,64 @@ def generate(
     net,
     device,
     diffusion_hyperparams,
+    local_path,
+    testing_data,
     output_directory,
     num_samples,
     ckpt_path,
-    data_path,
     ckpt_iter,
-    use_model,
     masking,
     missing_k,
     only_generate_missing,
 ):
 
     """
-    Generate data based on ground truth
+    Generate data based on ground truth.
 
     Parameters:
-    output_directory (str):           save generated speeches to this path
-    num_samples (int):                number of samples to generate, default is 4
-    ckpt_path (str):                  checkpoint path
-    ckpt_iter (int or 'max'):         the pretrained checkpoint to be loaded;
-                                      automitically selects the maximum iteration if 'max' is selected
-    data_path (str):                  path to NYISO, numpy array.
-    use_model (int):                  0:DiffWave. 1:SSSDSA. 2:SSSDS4.
-    masking (str):                    'mnr': missing not at random, 'bm': black-out, 'rm': random missing
-    only_generate_missing (int):      0:all sample diffusion.  1:only apply diffusion to missing portions of the signal
-    missing_k (int)                   k missing time points for each channel across the length.
+    - net (torch.nn.Module): The neural network model.
+    - device (torch.device): The device to run the model on (e.g., "cuda" or "cpu").
+    - diffusion_hyperparams (dict): Dictionary of diffusion hyperparameters.
+    - local_path (str): Local path format for the model.
+    - testing_data (numpy.ndarray): Numpy array containing testing data.
+    - output_directory (str): Path to save generated samples.
+    - num_samples (int): Number of samples to generate (default is 4).
+    - ckpt_path (str): Checkpoint directory.
+    - ckpt_iter (int or 'max'): Pretrained checkpoint to load; 'max' selects the maximum iteration.
+    - masking (str): Type of masking: 'mnr' (missing not at random), 'bm' (black-out), 'rm' (random missing).
+    - only_generate_missing (int): Whether to generate only missing portions of the signal:
+                                    0 (all sample diffusion), 1 (generate missing portions only).
+    - missing_k (int): Number of missing time points for each channel across the length.
     """
 
-    # generate experiment (local) path
-    local_path = "T{}_beta0{}_betaT{}".format(
-        diffusion_config["T"], diffusion_config["beta_0"], diffusion_config["beta_T"]
-    )
-
+    # Print network size
     print_size(net)
 
-    # load checkpoint
+    # Load checkpoint
     ckpt_path = os.path.join(ckpt_path, local_path)
     if ckpt_iter == "max":
         ckpt_iter = find_max_epoch(ckpt_path)
-    model_path = os.path.join(ckpt_path, "{}.pkl".format(ckpt_iter))
+    model_path = os.path.join(ckpt_path, f"{ckpt_iter}.pkl")
     try:
         checkpoint = torch.load(model_path, map_location="cpu")
-        print("checkpoint")
-        # net.load_state_dict(checkpoint['model_state_dict'], strict=False)
+        print("Checkpoint loaded")
         net.load_state_dict(checkpoint["model_state_dict"])
-        print("Successfully loaded model at iteration {}".format(ckpt_iter))
+        print(f"Successfully loaded model at iteration {ckpt_iter}")
     except:
         raise Exception("No valid model found")
 
-    # Get shared output_directory ready
+    # Create output directory
     output_directory = os.path.join(
         output_directory,
         local_path,
-        "imputaiton_multiple_" + str(round(int(ckpt_iter) / 1000)) + "k",
+        f"imputation_multiple_{int(ckpt_iter) // 1000}k",
     )
-    if not os.path.isdir(output_directory):
-        os.makedirs(output_directory)
-        os.chmod(output_directory, 0o775)
-    print("output directory", output_directory, flush=True)
+    os.makedirs(output_directory, exist_ok=True)
+    os.chmod(output_directory, 0o775)
+    print("Output directory:", output_directory)
 
-    ### Custom data loading and reshaping ###
-
-    testing_data = np.load(trainset_config["test_data_path"])
-    testing_data = np.split(
-        testing_data, testing_data.shape[0] / num_samples, 0
-    )  # (data, 分4組, 0) batch size = num_samples = 272 為了創造 batch，除不盡可用 np.array_split
+    # Load testing data
+    testing_data = np.split(testing_data, testing_data.shape[0] / num_samples, 0)
     testing_data = np.array(testing_data)
     testing_data = torch.from_numpy(testing_data).float().cuda()
     print("Data loaded")
@@ -122,9 +115,7 @@ def generate(
         torch.cuda.synchronize()
 
         print(
-            "generated {} utterances of random_digit at iteration {} in {} seconds".format(
-                num_samples, ckpt_iter, int(start.elapsed_time(end) / 1000)
-            )
+            f"Generated {num_samples} utterances at iteration {ckpt_iter} in {int(start.elapsed_time(end) / 1000)} seconds"
         )
 
         generated_audio = generated_audio.detach().cpu().numpy()
@@ -132,18 +123,15 @@ def generate(
         mask = mask.detach().cpu().numpy()
 
         outfile = f"imputation{i}.npy"
-        new_out = os.path.join(output_directory, outfile)
-        np.save(new_out, generated_audio)
+        np.save(os.path.join(output_directory, outfile), generated_audio)
 
         outfile = f"original{i}.npy"
-        new_out = os.path.join(output_directory, outfile)
-        np.save(new_out, batch)
+        np.save(os.path.join(output_directory, outfile), batch)
 
         outfile = f"mask{i}.npy"
-        new_out = os.path.join(output_directory, outfile)
-        np.save(new_out, mask)
+        np.save(os.path.join(output_directory, outfile), mask)
 
-        print("saved generated samples at iteration %s" % ckpt_iter)
+        print(f"Saved generated samples at iteration {ckpt_iter}")
 
         mse = mean_squared_error(
             generated_audio[~mask.astype(bool)], batch[~mask.astype(bool)]
@@ -160,14 +148,14 @@ if __name__ == "__main__":
         "--config",
         type=str,
         default="config.json",
-        help="JSON file for configuration",
+        help="Path to the JSON file containing the configuration",
     )
     parser.add_argument(
         "-n",
         "--num_samples",
         type=int,
         default=1,
-        help="Number of utterances to be generated",
+        help="Number of utterances to be generated (default is 1)",
     )
     parser.add_argument(
         "-ckpt_iter",
@@ -176,19 +164,24 @@ if __name__ == "__main__":
         help='Which checkpoint to use; assign a number or "max"',
     )
     args = parser.parse_args()
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Parse configs
     with open(args.config) as f:
         config = json.load(f)
 
-    gen_config = config["gen_config"]
     train_config = config["train_config"]
-    trainset_config = config["trainset_config"]
-    diffusion_config = config["diffusion_config"]
+    testing_data = np.load(train_config["trainset_config"]["test_data_path"])
+
+    local_path = MODEL_PATH_FORMAT.format(
+        T=config["diffusion_config"]["T"],
+        beta_0=config["diffusion_config"]["beta_0"],
+        beta_T=config["diffusion_config"]["beta_T"],
+    )
 
     diffusion_hyperparams = calc_diffusion_hyperparams(
-        **diffusion_config, device=device
+        **config["diffusion_config"], device=device
     )
 
     current_time = datetime.datetime.now()
@@ -198,18 +191,19 @@ if __name__ == "__main__":
 
     # Check if multiple GPUs are available
     if torch.cuda.device_count() > 0:
-        print("Using ", torch.cuda.device_count(), " GPUs!")
+        print("Using", torch.cuda.device_count(), "GPUs!")
         net = nn.DataParallel(net)
 
     generate(
         net,
         device,
         diffusion_hyperparams,
-        **gen_config,
+        testing_data=testing_data,
+        local_path=local_path,
+        output_directory=config["gen_config"]["output_directory"],
+        ckpt_path=config["gen_config"]["ckpt_path"],
         ckpt_iter=args.ckpt_iter,
         num_samples=args.num_samples,
-        use_model=train_config["use_model"],
-        data_path=trainset_config["test_data_path"],
         masking=train_config["masking"],
         missing_k=train_config["missing_k"],
         only_generate_missing=train_config["only_generate_missing"],

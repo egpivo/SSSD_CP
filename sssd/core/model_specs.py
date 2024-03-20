@@ -13,6 +13,7 @@ MASK_FN = {
 }
 
 MODELS = {0: DiffWaveImputer, 1: SSSDSAImputer, 2: SSSDS4Imputer}
+MODEL_PATH_FORMAT = "T{T}_beta0{beta_0}_betaT{beta_T}"
 
 
 def setup_model(config: dict, device: torch.device) -> torch.nn.Module:

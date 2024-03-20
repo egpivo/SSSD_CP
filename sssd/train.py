@@ -5,7 +5,7 @@ import os
 import numpy as np
 import torch
 
-from sssd.core.model_specs import setup_model
+from sssd.core.model_specs import MODEL_PATH_FORMAT, setup_model
 from sssd.training.trainer import DiffusionTrainer
 from sssd.utils.logger import setup_logger
 from sssd.utils.util import calc_diffusion_hyperparams, display_current_time
@@ -34,10 +34,10 @@ def fetch_args() -> argparse.Namespace:
 
 def setup_output_directory(config: dict) -> str:
     # Build output directory
-    local_path = "T{}_beta0{}_betaT{}".format(
-        config["diffusion_config"]["T"],
-        config["diffusion_config"]["beta_0"],
-        config["diffusion_config"]["beta_T"],
+    local_path = MODEL_PATH_FORMAT.format(
+        T=config["diffusion_config"]["T"],
+        beta_0=config["diffusion_config"]["beta_0"],
+        beta_T=config["diffusion_config"]["beta_T"],
     )
     output_directory = os.path.join(
         config["train_config"]["output_directory"], local_path
