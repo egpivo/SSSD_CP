@@ -9,22 +9,18 @@ import torch
 import torch.nn as nn
 from sklearn.metrics import mean_squared_error
 
-from sssd.imputers.DiffWaveImputer import DiffWaveImputer
-from sssd.imputers.SSSDS4Imputer import SSSDS4Imputer
-from sssd.imputers.SSSDSAImputer import SSSDSAImputer
+from sssd.core.model_specs import MASK_FN, setup_model
 from sssd.utils.util import (
     calc_diffusion_hyperparams,
     find_max_epoch,
-    get_mask_bm,
-    get_mask_forecast,
-    get_mask_mnr,
-    get_mask_rm,
     print_size,
     sampling,
 )
 
 
 def generate(
+    net,
+    device,
     output_directory,
     num_samples,
     ckpt_path,
@@ -62,25 +58,7 @@ def generate(
         if key != "T":
             diffusion_hyperparams[key] = diffusion_hyperparams[key].cuda()
 
-    # predefine model
-    if use_model == 0:
-        net = DiffWaveImputer(**model_config).cuda()
-    elif use_model == 1:
-        net = SSSDSAImputer(**model_config).cuda()
-    elif use_model == 2:
-        net = SSSDS4Imputer(**model_config).cuda()
-    else:
-        print("Model chosen not available.")
     print_size(net)
-
-    # Check if multiple GPUs are available
-    if torch.cuda.device_count() > 1:
-        print("Using ", torch.cuda.device_count(), " GPUs!")
-        net = nn.DataParallel(net)
-
-    # Move the model to the GPU(s)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    net.to(device)
 
     # load checkpoint
     ckpt_path = os.path.join(ckpt_path, local_path)
@@ -120,29 +98,12 @@ def generate(
     all_mse = []
 
     for i, batch in enumerate(testing_data):
-
-        if masking == "mnr":
-            mask_T = get_mask_mnr(batch[0], missing_k)
-            mask = mask_T.permute(1, 0)
-            mask = mask.repeat(batch.size()[0], 1, 1)
-            mask = mask.type(torch.float).cuda()
-
-        elif masking == "bm":
-            mask_T = get_mask_bm(batch[0], missing_k)
-            mask = mask_T.permute(1, 0)
-            mask = mask.repeat(batch.size()[0], 1, 1)
-            mask = mask.type(torch.float).cuda()
-
-        elif masking == "rm":
-            mask_T = get_mask_rm(batch[0], missing_k)
-            mask = mask_T.permute(1, 0)
-            mask = mask.repeat(batch.size()[0], 1, 1).float().cuda()
-
-        elif masking == "forecast":
-            mask_T = get_mask_forecast(batch[0], missing_k)
-            mask = mask_T.permute(1, 0)
-            mask = mask.repeat(batch.size()[0], 1, 1)
-            mask = mask.type(torch.float).cuda()
+        transposed_mask = MASK_FN[masking](batch[0], missing_k)
+        mask = (
+            transposed_mask.permute(1, 0)
+            .repeat(batch.size()[0], 1, 1)
+            .to(device, dtype=torch.float32)
+        )
 
         batch = batch.permute(0, 2, 1)
 
@@ -252,7 +213,18 @@ if __name__ == "__main__":
     current_time = datetime.datetime.now()
     print("當前時間:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
 
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    net = setup_model(config, device)
+
+    # Check if multiple GPUs are available
+    if torch.cuda.device_count() > 0:
+        print("Using ", torch.cuda.device_count(), " GPUs!")
+        net = nn.DataParallel(net)
+
     generate(
+        net,
+        device,
         **gen_config,
         ckpt_iter=args.ckpt_iter,
         num_samples=args.num_samples,

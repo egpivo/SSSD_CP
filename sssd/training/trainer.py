@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
-from sssd.training.model_specs import MASK_FN
+from sssd.core.model_specs import MASK_FN
 from sssd.training.utils import load_and_split_data
 from sssd.utils.logger import setup_logger
 from sssd.utils.util import find_max_epoch, training_loss

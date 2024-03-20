@@ -5,7 +5,7 @@ import os
 import numpy as np
 import torch
 
-from sssd.training.model_specs import MODELS
+from sssd.core.model_specs import setup_model
 from sssd.training.trainer import DiffusionTrainer
 from sssd.utils.logger import setup_logger
 from sssd.utils.util import calc_diffusion_hyperparams, display_current_time
@@ -30,19 +30,6 @@ def fetch_args() -> argparse.Namespace:
         help="Batch size",
     )
     return parser.parse_args()
-
-
-def setup_model(config: dict, device: torch.device) -> torch.nn.Module:
-    use_model = config["train_config"]["use_model"]
-    if use_model in (0, 2):
-        model_config = config["wavenet_config"]
-    elif use_model == 1:
-        model_config = config["sashimi_config"]
-    else:
-        raise KeyError(
-            "Please enter correct model number, but got {}".format(use_model)
-        )
-    return MODELS[use_model](**model_config, device=device).to(device)
 
 
 def setup_output_directory(config: dict) -> str:

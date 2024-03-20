@@ -3,7 +3,7 @@ import math
 import torch
 import torch.nn as nn
 
-from sssd.imputers.S4Model import S4Layer
+from sssd.core.imputers.S4Model import S4Layer
 from sssd.utils.util import calc_diffusion_step_embedding
 
 
