@@ -53,7 +53,9 @@ def setup_output_directory(config: dict) -> str:
 def run_job(config: dict, device: torch.device, batch_size: int) -> None:
     output_directory = setup_output_directory(config)
     training_data_load = np.load(config["trainset_config"]["train_data_path"])
-    diffusion_hyperparams = calc_diffusion_hyperparams(**config["diffusion_config"])
+    diffusion_hyperparams = calc_diffusion_hyperparams(
+        **config["diffusion_config"], device=device
+    )
     net = setup_model(config, device)
 
     display_current_time()

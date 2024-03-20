@@ -93,7 +93,7 @@ def calc_diffusion_step_embedding(
     return diffusion_step_embed
 
 
-def calc_diffusion_hyperparams(T, beta_0, beta_T):
+def calc_diffusion_hyperparams(T, beta_0, beta_T, device):
     """
     Compute diffusion process hyperparameters
 
@@ -129,6 +129,11 @@ def calc_diffusion_hyperparams(T, beta_0, beta_T):
         Sigma,
     )
     diffusion_hyperparams = _dh
+
+    for key in diffusion_hyperparams:
+        if key != "T":
+            diffusion_hyperparams[key] = diffusion_hyperparams[key].to(device)
+
     return diffusion_hyperparams
 
 

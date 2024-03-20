@@ -21,6 +21,7 @@ from sssd.utils.util import (
 def generate(
     net,
     device,
+    diffusion_hyperparams,
     output_directory,
     num_samples,
     ckpt_path,
@@ -52,11 +53,6 @@ def generate(
     local_path = "T{}_beta0{}_betaT{}".format(
         diffusion_config["T"], diffusion_config["beta_0"], diffusion_config["beta_T"]
     )
-
-    # map diffusion hyperparameters to gpu
-    for key in diffusion_hyperparams:
-        if key != "T":
-            diffusion_hyperparams[key] = diffusion_hyperparams[key].cuda()
 
     print_size(net)
 
@@ -180,40 +176,23 @@ if __name__ == "__main__":
         help='Which checkpoint to use; assign a number or "max"',
     )
     args = parser.parse_args()
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Parse configs. Globals nicer in this case
+    # Parse configs
     with open(args.config) as f:
-        data = f.read()
-    config = json.loads(data)
-    print(config)
+        config = json.load(f)
 
     gen_config = config["gen_config"]
+    train_config = config["train_config"]
+    trainset_config = config["trainset_config"]
+    diffusion_config = config["diffusion_config"]
 
-    train_config = config["train_config"]  # training parameters
-
-    global trainset_config
-    trainset_config = config["trainset_config"]  # to load trainset
-
-    global diffusion_config
-    diffusion_config = config["diffusion_config"]  # basic hyperparameters
-
-    global diffusion_hyperparams
     diffusion_hyperparams = calc_diffusion_hyperparams(
-        **diffusion_config
-    )  # dictionary of all diffusion hyperparameters
-
-    global model_config
-    if train_config["use_model"] == 0:
-        model_config = config["wavenet_config"]
-    elif train_config["use_model"] == 1:
-        model_config = config["sashimi_config"]
-    elif train_config["use_model"] == 2:
-        model_config = config["wavenet_config"]
+        **diffusion_config, device=device
+    )
 
     current_time = datetime.datetime.now()
-    print("當前時間:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print("Current time:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
 
     net = setup_model(config, device)
 
@@ -225,6 +204,7 @@ if __name__ == "__main__":
     generate(
         net,
         device,
+        diffusion_hyperparams,
         **gen_config,
         ckpt_iter=args.ckpt_iter,
         num_samples=args.num_samples,
@@ -236,4 +216,4 @@ if __name__ == "__main__":
     )
 
     current_time = datetime.datetime.now()
-    print("當前時間:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
+    print("Current time:", current_time.strftime("%Y-%m-%d %H:%M:%S"))
