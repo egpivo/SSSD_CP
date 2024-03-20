@@ -11,6 +11,7 @@ import torch.nn as nn
 from sklearn.metrics import mean_squared_error
 
 from sssd.core.model_specs import MASK_FN, MODEL_PATH_FORMAT, setup_model
+from sssd.inference.utils import load_testing_data
 from sssd.utils.logger import setup_logger
 from sssd.utils.util import calc_diffusion_hyperparams, find_max_epoch, sampling
 
@@ -154,8 +155,9 @@ if __name__ == "__main__":
     with open(args.config) as f:
         config = json.load(f)
 
-    testing_data = np.load(config["trainset_config"]["test_data_path"])
-
+    testing_data = load_testing_data(
+        config["trainset_config"]["test_data_path"], args.num_samples
+    )
     local_path = MODEL_PATH_FORMAT.format(
         T=config["diffusion_config"]["T"],
         beta_0=config["diffusion_config"]["beta_0"],
