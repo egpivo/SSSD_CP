@@ -1,8 +1,6 @@
 import os
-from datetime import datetime, timedelta
 
 import numpy as np
-import torch
 
 
 def read_multiple_imputations(folder_path, missing_k):
@@ -122,26 +120,3 @@ def coverage_rate(L, U, true):
         true = true data, shape: (2209, 1, 24)
     """
     return np.sum(np.logical_and(true > L, true < U), axis=0) / true.shape[0]
-
-
-def generate_date_from_seq(value):
-    """
-    goal: what is the date of given number of obs
-    output: date
-    input: a value (obs)
-    """
-    # start_date = datetime.strptime("2019-01-08", "%Y-%m-%d")
-    start_date = datetime.strptime("2016-10-20", "%Y-%m-%d")
-    days_offset = value
-    target_date = start_date + timedelta(days=days_offset)
-    formatted_date = target_date.strftime("%Y/%m/%d")
-
-    return formatted_date
-
-
-def load_testing_data(test_data_path, num_samples):
-    """Load and prepare testing data for generation."""
-    testing_data = np.load(test_data_path)
-    testing_data = np.split(testing_data, testing_data.shape[0] / num_samples, 0)
-    testing_data = np.array(testing_data)
-    return torch.from_numpy(testing_data).float().cuda()

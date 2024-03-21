@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Optional
+from typing import Optional, Union
 
 import numpy as np
 import torch
@@ -8,7 +8,7 @@ from sklearn.metrics import mean_squared_error
 
 from sssd.core.model_specs import MASK_FN
 from sssd.utils.logger import setup_logger
-from sssd.utils.util import find_max_epoch, sampling
+from sssd.utils.utils import find_max_epoch, sampling
 
 LOGGER = setup_logger()
 
@@ -38,7 +38,7 @@ class DiffusionGenerator:
     def __init__(
         self,
         net: torch.nn.Module,
-        device: torch.device,
+        device: Union[torch.device, str],
         diffusion_hyperparams: dict,
         local_path: str,
         testing_data: np.ndarray,
@@ -137,6 +137,7 @@ class DiffusionGenerator:
                 cond=batch,
                 mask=mask,
                 only_generate_missing=self.only_generate_missing,
+                device=self.device,
             )
 
             generated_audio = generated_audio.detach().cpu().numpy()
