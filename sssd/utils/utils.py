@@ -122,7 +122,7 @@ def sampling(
     cond: torch.Tensor,
     mask: torch.Tensor,
     only_generate_missing: int = 0,
-    device: str = "cpu",
+    device: Union[torch.device, str] = "cpu",
 ) -> torch.Tensor:
     """
     Perform the complete sampling step according to p(x_0|x_T) = \prod_{t=1}^T p_{\theta}(x_{t-1}|x_t).

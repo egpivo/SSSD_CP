@@ -19,11 +19,11 @@ conda-env: install
 	@eval "$$(conda shell.bash hook)" && \
 	conda activate sssd
 
-test:
+test: install
 	@$(EXECUTABLE) pytest --cov=sssd
 
 train-mix: conda-env
-	python scrips/train.py -c config/config_SSSDS4-NYISO-3-mix.json
+	python scripts/train.py -c config/config_SSSDS4-NYISO-3-mix.json
 
 inference-mix: conda-env
-	python scrips/infer.py -c config/config_SSSDS4-NYISO-3-mix.json
+	python scripts/infer.py -c config/config_SSSDS4-NYISO-3-mix.json
