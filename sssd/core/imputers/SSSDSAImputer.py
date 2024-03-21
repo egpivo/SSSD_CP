@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from einops import rearrange
 
 from sssd.core.imputers.S4Model import S4, LinearActivation
-from sssd.utils.util import calc_diffusion_step_embedding
+from sssd.core.utils import calc_diffusion_step_embedding
 
 
 def swish(x):

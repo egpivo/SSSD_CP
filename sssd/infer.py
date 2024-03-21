@@ -6,10 +6,10 @@ import torch
 import torch.nn as nn
 
 from sssd.core.model_specs import MODEL_PATH_FORMAT, setup_model
+from sssd.data.utils import load_testing_data
 from sssd.inference.generator import DiffusionGenerator
-from sssd.inference.utils import load_testing_data
 from sssd.utils.logger import setup_logger
-from sssd.utils.util import calc_diffusion_hyperparams, display_current_time
+from sssd.utils.utils import calc_diffusion_hyperparams, display_current_time
 
 LOGGER = setup_logger()
 
@@ -55,7 +55,7 @@ def run_job(
     diffusion_hyperparams = calc_diffusion_hyperparams(
         **config["diffusion_config"], device=device
     )
-    display_current_time()
+    LOGGER.info(display_current_time())
     net = setup_model(config, device)
 
     # Check if multiple GPUs are available
@@ -78,7 +78,7 @@ def run_job(
     ).generate()
 
     LOGGER.info(f"Average MSE: {sum(mse) / len(mse)}")
-    display_current_time()
+    LOGGER.info(display_current_time())
 
 
 if __name__ == "__main__":

@@ -4,41 +4,6 @@ import pandas as pd
 from statsmodels.tsa.seasonal import STL
 
 
-def printsth(sth):
-    # print(sth)
-    print("tina")
-
-
-def merge_all_time(df):
-    """
-    補上所有時間點，創造應該補值的row
-    df: 包含 'Date', 'Zone', 'Load' 的 dataframe
-
-    output: a data frame with same columns. The number of rows is hours_df.shape[0]*11
-    """
-    # 創造所有的 hour 時間點
-    hours_df = pd.DataFrame(
-        {"Date": pd.date_range(start=df["Date"].min(), end=df["Date"].max(), freq="1H")}
-    )
-
-    zones = df["Zone"].unique()
-
-    result_all_time = pd.DataFrame()
-    for zone in zones:
-
-        # one zone in one loop
-        load_zone = df.loc[
-            df["Zone"] == zone,
-        ]
-
-        # merge to hourly hours
-        result = pd.merge(hours_df, load_zone, on="Date", how="left")
-        result["Zone"] = zone
-
-        result_all_time = pd.concat([result_all_time, result], axis=0)
-    return result_all_time
-
-
 def vis_na(result, figsize_width, figsize_height):
     """
     present a heatmap of NA, rows are days and columns are hours of each date

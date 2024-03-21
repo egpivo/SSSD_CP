@@ -8,7 +8,7 @@ import torch
 from sssd.core.model_specs import MODEL_PATH_FORMAT, setup_model
 from sssd.training.trainer import DiffusionTrainer
 from sssd.utils.logger import setup_logger
-from sssd.utils.util import calc_diffusion_hyperparams, display_current_time
+from sssd.utils.utils import calc_diffusion_hyperparams, display_current_time
 
 LOGGER = setup_logger()
 
@@ -58,7 +58,7 @@ def run_job(config: dict, device: torch.device, batch_size: int) -> None:
     )
     net = setup_model(config, device)
 
-    display_current_time()
+    LOGGER.info(display_current_time())
     trainer = DiffusionTrainer(
         training_data_load=training_data_load,
         diffusion_hyperparams=diffusion_hyperparams,
@@ -78,7 +78,7 @@ def run_job(config: dict, device: torch.device, batch_size: int) -> None:
     )
     trainer.train()
 
-    display_current_time()
+    LOGGER.info(display_current_time())
 
 
 if __name__ == "__main__":

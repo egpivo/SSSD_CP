@@ -8,7 +8,7 @@ from sklearn.metrics import mean_squared_error
 
 from sssd.core.model_specs import MASK_FN
 from sssd.utils.logger import setup_logger
-from sssd.utils.util import find_max_epoch, sampling
+from sssd.utils.utils import find_max_epoch, sampling
 
 LOGGER = setup_logger()
 

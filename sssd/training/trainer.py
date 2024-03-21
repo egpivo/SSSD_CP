@@ -7,9 +7,10 @@ import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 
 from sssd.core.model_specs import MASK_FN
-from sssd.training.utils import load_and_split_data
+from sssd.data.utils import load_and_split_training_data
+from sssd.training.utils import training_loss
 from sssd.utils.logger import setup_logger
-from sssd.utils.util import find_max_epoch, training_loss
+from sssd.utils.utils import find_max_epoch
 
 LOGGER = setup_logger()
 
@@ -104,7 +105,7 @@ class DiffusionTrainer:
     def _prepare_training_data(self):
         training_size = self.training_data_load.shape[0]
         batch_num = training_size // self.batch_size
-        training_data = load_and_split_data(
+        training_data = load_and_split_training_data(
             self.training_data_load, batch_num, self.batch_size, self.device
         )
         self.logger.info("Data loaded with batch num - %s", batch_num)
@@ -161,7 +162,7 @@ class DiffusionTrainer:
 
         for n_iter in range(n_iter_start, self.n_iters + 1):
             if n_iter % batch_num == 0:
-                training_data = load_and_split_data(
+                training_data = load_and_split_training_data(
                     self.training_data_load, batch_num, self.batch_size, self.device
                 )
 
