@@ -49,9 +49,7 @@ build() {
     CONDA_ENV="sssd"
   fi
 
-  if [ "x${CONDA_HOME}" == "xx" ]; then
-    CONDA_HOME=${CONDA_PATH}
-  fi
+  CONDA_HOME=$(dirname $(dirname $(which conda)))
 
   # Will return `CONDA_ENV_DIR`
   echo -e "${FG_YELLOW}Checking Conda Env: '${CONDA_ENV}'${FG_RESET}"

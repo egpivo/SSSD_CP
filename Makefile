@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 EXECUTABLE := poetry run
 
-.PHONY: clean install conda-env test train-mix inference-mix
+.PHONY: clean install conda-env test diffusion-mix
 
 clean: clean-pyc clean-build
 
@@ -22,8 +22,5 @@ conda-env: install
 test: install
 	@$(EXECUTABLE) pytest --cov=sssd
 
-train-mix: conda-env
-	python scripts/train.py -c config/config_SSSDS4-NYISO-3-mix.json
-
-inference-mix: conda-env
-	python scripts/infer.py -c config/config_SSSDS4-NYISO-3-mix.json
+diffusion-mix: install
+	@$(SHELL) scripts/diffusion_process.sh --config config/config_SSSDS4-NYISO-3-mix.json

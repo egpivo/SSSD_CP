@@ -75,6 +75,7 @@ install_python_package() {
   fi
 
   echo -e "${FG_YELLOW}Installing python package${FG_RESET}"
+  poetry lock --no-update
   poetry install
   poetry build
   if [ -d "${PWD}"/dist/ ]; then
