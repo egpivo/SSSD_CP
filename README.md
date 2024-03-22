@@ -17,8 +17,7 @@
 - Note that the cleaned data is created following the scripts in `notebooks/dataset_script/nyiso-csv-to-pickle.ipynb` and `notebooks/dataset_script/nyiso-load-pickle-to-npy.ipynb`.
 
 ## Example: `config_SSSDS4-NYISO-3-mix.json`
-1. Train a model: `make train-mix`
-2. Generate one prediction for each sample in test data: `make inference-mix`
+1. Execution a diffusion process : `make diffusion-mix`
 3. Generate 10 predictions for each sample in test data: `python sssd/inference/inference_multiples.py -c config/config_SSSDS4-NYISO-3-mix.json`
 
 
