@@ -1,4 +1,6 @@
+# Use the specified base image
 FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
+
 LABEL authors="Joseph Wang <egpivo@gmail.com>"
 
 ENV POETRY_HOME=/root/.poetry \
@@ -11,18 +13,35 @@ ENV POETRY_HOME=/root/.poetry \
 # Set the working directory in the container
 WORKDIR /sssd
 
+# Install necessary system dependencies
 RUN apt-get update && \
     apt-get install -y make libsndfile1 && \
     apt-get install gcc -y && \
     rm -rf /var/lib/apt/lists/*
 
+# Install poetry
+RUN pip install --no-cache-dir poetry==${POETRY_VERSION} && \
+    poetry config installer.max-workers 10
+
+# Copy only the necessary files
+COPY pyproject.toml poetry.lock ./
+
+# Install project dependencies
+RUN poetry install --no-root
+
+# Switch to a smaller base image
+FROM python:3.10-slim
+
+# Set the working directory
+WORKDIR /sssd
+
+# Copy installed dependencies from the previous stage
+COPY --from=0 /usr/local/lib/python3.10/site-packages/ /usr/local/lib/python3.10/site-packages/
+
+# Copy the rest of the project files
 COPY . .
 
-RUN pip install --no-cache-dir poetry==${POETRY_VERSION} && \
-    poetry config installer.max-workers 10 && \
-    poetry install --only=main --no-root && \
-    poetry build
-
+# Install project
 RUN pip install dist/*.tar.gz
 
 # Set the entrypoint to bash
