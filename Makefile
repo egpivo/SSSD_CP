@@ -3,7 +3,7 @@ EXECUTABLE := poetry run
 
 .PHONY: clean install conda-env test diffusion-mix
 
-clean: clean-pyc clean-build
+clean: clean-pyc clean-build clean-test-coverage
 
 clean-pyc:
 	@find . -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -delete
@@ -11,6 +11,10 @@ clean-pyc:
 clean-build:
 	@rm -fr build/ dist/ .eggs/
 	@find . -name '*.egg-info' -o -name '*.egg' -exec rm -fr {} +
+
+clean-test-coverage:
+	@rm -f .coverage
+	@rm -rf .pytest_cache
 
 install: clean
 	@$(SHELL) envs/conda/build_conda_env.sh
