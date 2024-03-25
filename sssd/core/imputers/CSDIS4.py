@@ -1980,7 +1980,7 @@ class Custom_Train_Dataset(Dataset):
         self.gt_masks = []
         path = f"{path_save}data_train_random_points" + str(missing_ratio_or_k) + ".pk"
 
-        if not os.path.isfile(path):  # if datasetfile is none, create
+        if not os.path.isfile(path):
             for sample in series:
                 if masking == "rm":
                     sample = sample.detach().cpu().numpy()
@@ -2055,7 +2055,7 @@ class Custom_Impute_Dataset(Dataset):
         self.gt_masks = []
         path = f"{path_save}data_to_impute_missing" + ".pk"
 
-        if not os.path.isfile(path):  # if datasetfile is none, create
+        if not os.path.isfile(path):
             for sample in series:
 
                 sample = sample.detach().cpu().numpy()
@@ -2395,30 +2395,6 @@ class CSDIS4Imputer:
             scaler=1,
             path_save="",
         )
-
-        # 1) de-standardizating conditional data points
-        # standardization =   value - mean_channel / std_dev_channel
-        # reverse standardization = (imputed_value * std_dev_channel) + mean_channel
-        # channels = self.series_impute.shape[2]
-        # means_and_stds = np.load(self.path_means_stds)
-        # means = means_and_stds[0:channels]
-        # stds = means_and_stds[channels:]
-
-        # d_sample_n_generated = [] # S, N_I, L, C  when samples loop finish
-        # for sample_n_generated in imputations:
-        #    d_generated_one = []                  # N_I, L, C when generated loop finish
-        #    for generated_one in sample_n_generated:
-        #        t_generated = np.transpose(generated_one,(1,0)) # C,L
-        #        for index, mean, std, channel in zip(range(len(means)), means, stds, t_generated): # index, means, stds = len(channels)
-        #            t_generated[index] =  (t_generated[index] * std) + mean
-        #        d_generated_one.append(np.transpose(t_generated, (1,0))) # L,C
-        #    d_sample_n_generated.append(d_generated_one)
-
-        # imputations = np.array(d_sample_n_generated)
-
-        # 2) imputing the de-standarizated values to the desired area (masking)
-
-        ## Multiple samples
 
         indx_imputation = ~mask.astype(bool)
 
