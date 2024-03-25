@@ -11,6 +11,7 @@ import opt_einsum as oe
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import wandb
 from einops import rearrange, repeat
 from pytorch_lightning.utilities import rank_zero_only
 from scipy import special as ss

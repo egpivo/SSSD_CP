@@ -473,7 +473,7 @@ class ConcatDatasetTimeseriesDatasetCrops(torch.utils.data.ConcatDataset):
     """ConcatDataset that handles id mapping correctly (to allow to aggregate predictions)"""
 
     def __init__(self, datasets):
-        super(ConcatDatasetTimeseriesCrops, self).__init__(datasets)
+        super(ConcatDatasetTimeseriesDatasetCrops, self).__init__(datasets)
         idmaps = []
         for dataset_idx, ds in enumerate(self.datasets):
             idmap = ds.get_id_mapping()
