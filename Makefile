@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 EXECUTABLE := poetry run
 
-.PHONY: clean install conda-env test diffusion-mix
+.PHONY: clean install conda-env test diffusion-mix clean-docker
 
 clean: clean-pyc clean-build clean-test-coverage
 
@@ -16,6 +16,9 @@ clean-test-coverage:
 	@rm -f .coverage
 	@rm -rf .pytest_cache
 
+clean-docker:
+	@docker system prune -f
+
 install: clean
 	@$(SHELL) envs/conda/build_conda_env.sh
 
@@ -28,3 +31,6 @@ test: install
 
 diffusion-mix: install
 	@$(SHELL) scripts/diffusion_process.sh --config config/config_SSSDS4-NYISO-3-mix.json
+
+docker-run:
+	@docker run -d sssd scripts/diffusion_process.sh --config=config_SSSDS4-NYISO-3-mix.json

@@ -1,5 +1,5 @@
 # Use the specified base image
-FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime AS base
+FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
 
 LABEL authors="Joseph Wang <egpivo@gmail.com>"
 
@@ -23,32 +23,13 @@ RUN apt-get update && \
 RUN pip install --no-cache-dir poetry==${POETRY_VERSION} && \
     poetry config installer.max-workers 10
 
-# Copy only the necessary files
-COPY pyproject.toml poetry.lock ./
+COPY . ./
 
 # Install project dependencies
-RUN poetry install --no-root
-
-# Second stage: final environment with CUDA support
-FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
-
-# Set the working directory
-WORKDIR /sssd
-
-# Ensure the directory exists before copying
-RUN mkdir -p /tmp/site-packages
-
-# Copy installed dependencies from the first stage to a temporary directory
-COPY --from=base /usr/local/lib/python3.10/site-packages/ /tmp/site-packages/
-
-# Copy installed dependencies from the temporary directory to the final location
-RUN cp -r /tmp/site-packages/* /usr/local/lib/python3.10/site-packages/
-
-# Copy the rest of the project files
-COPY . .
+RUN poetry install --no-root && poetry build
 
 # Install project
 RUN pip install dist/*.tar.gz
 
 # Set the entrypoint to bash
-ENTRYPOINT ["/bin/bash"]
+ENTRYPOINT ["/bin/bash", "scripts/diffusion_process.sh", "--config", "config/config_SSSDS4-NYISO-3-mix.json"]

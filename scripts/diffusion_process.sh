@@ -71,8 +71,13 @@ if [[ -n "$NUM_SAMPLES" ]]; then
 fi
 
 # Initialize Conda environment
-. "${PACKAGE_BASE_PATH}/envs/conda/build_conda_env.sh" --conda_env ${CONDA_ENV}
-source activate ${CONDA_ENV}
+if command -v conda &>/dev/null; then
+    echo "Conda is installed."
+    . "${PACKAGE_BASE_PATH}/envs/conda/build_conda_env.sh" --conda_env ${CONDA_ENV}
+  source activate ${CONDA_ENV}
+else
+    echo -e "${FG_RED}"Conda is not installed."${FG_RESET}"
+fi
 
 # Execute training
 echo -e "${FG_YELLOW}[Execution - Training]${FG_RESET}"

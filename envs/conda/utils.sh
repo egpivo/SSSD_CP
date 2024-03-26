@@ -64,7 +64,7 @@ retry_to_find_conda_env_path() {
 install_python_package() {
   local TARGET_PROJECT_DIR=$1
 
-  pushd "${TARGET_PROJECT_DIR}"
+  pushd "${TARGET_PROJECT_DIR}" || exit
 
   if [ -d "${PWD}"/dist/ ]; then
     FILE_COUNT=$(ls "${PWD}/dist/*" 2>/dev/null | wc -l)
@@ -85,5 +85,5 @@ install_python_package() {
     echo -e "${FG_RED}Failed to install python package${FG_RESET}"
   fi
 
-  popd
+  popd || exit
 }
