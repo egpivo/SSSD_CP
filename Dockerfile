@@ -1,5 +1,5 @@
 # Use the specified base image
-FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
+FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime AS base
 
 LABEL authors="Joseph Wang <egpivo@gmail.com>"
 
@@ -29,14 +29,20 @@ COPY pyproject.toml poetry.lock ./
 # Install project dependencies
 RUN poetry install --no-root
 
-# Switch to a smaller base image
-FROM python:3.10-slim
+# Second stage: final environment with CUDA support
+FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
 
 # Set the working directory
 WORKDIR /sssd
 
-# Copy installed dependencies from the previous stage
-COPY --from=0 /usr/local/lib/python3.10/site-packages/ /usr/local/lib/python3.10/site-packages/
+# Ensure the directory exists before copying
+RUN mkdir -p /tmp/site-packages
+
+# Copy installed dependencies from the first stage to a temporary directory
+COPY --from=base /usr/local/lib/python3.10/site-packages/ /tmp/site-packages/
+
+# Copy installed dependencies from the temporary directory to the final location
+RUN cp -r /tmp/site-packages/* /usr/local/lib/python3.10/site-packages/
 
 # Copy the rest of the project files
 COPY . .
