@@ -71,7 +71,7 @@ if [[ -n "$NUM_SAMPLES" ]]; then
 fi
 
 # Initialize Conda environment
-if command -v conda &>/dev/null; then
+if [ -x "$(command -v conda)" ]; then
     echo "Conda is installed."
     . "${PACKAGE_BASE_PATH}/envs/conda/build_conda_env.sh" --conda_env ${CONDA_ENV}
   source activate ${CONDA_ENV}

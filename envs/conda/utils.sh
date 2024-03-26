@@ -20,6 +20,12 @@ find_conda_env_path() {
 
   initialize_conda
   IFS=' ' read -r -a CONDA_INFO <<<"$(conda env list | grep "${ENV_NAME}")"
+
+  if [ ${#CONDA_INFO[@]} -eq 0 ]; then
+    echo -e "${FG_RED}No Conda environment found matching '${ENV_NAME}'${FG_RESET}"
+    return "${ERROR_EXITCODE}"
+  fi
+
   AVAILABLE_ENV_NAME="${CONDA_INFO[0]}"
 
   if [[ "x${AVAILABLE_ENV_NAME}x" != "x${ENV_NAME}x" ]]; then
@@ -33,6 +39,7 @@ find_conda_env_path() {
     CONDA_ENV_DIR="${CONDA_INFO[1]}"
   fi
 }
+
 
 initialize_conda_env() {
   local CONDA_ENV=$1
