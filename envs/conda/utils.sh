@@ -7,12 +7,35 @@ source "${CONDA_DIR}/conda_env_info.sh"
 source "${COLOR_MAP_PATH}"
 source "${EXIT_CODE_PATH}"
 
+
 initialize_conda() {
-  source $(conda info --base)/etc/profile.d/conda.sh
-  if [ "$?" == "${ERROR_EXITCODE}" ]; then
-    source "/opt/miniconda2/etc/profile.d/conda.sh"
+  local CONDA_BASE=$(conda info --base)
+  local CONDA_DIRS=(
+    "$CONDA_BASE"
+    "/opt/conda"
+    "/opt/miniconda"
+    "/opt/miniconda2"
+    "/opt/miniconda3"
+  )
+
+  local IS_CONDA_FOUND=false
+  for dir in "${CONDA_DIRS[@]}"; do
+    if [ -f "$dir/etc/profile.d/conda.sh" ]; then
+      CONDA_BASE="$dir"
+      IS_CONDA_FOUND=true
+      break
+    fi
+  done
+
+  if ! $IS_CONDA_FOUND; then
+    echo -e "${FG_RED}No Conda environment found matching${FG_RESET}"  >&2
+    return ${ERROR_EXITCODE}
   fi
+
+  echo -e "${FG_YELLOW}Intializing conda${FG_RESET}"
+  source "$CONDA_BASE/etc/profile.d/conda.sh"
 }
+
 
 find_conda_env_path() {
   # Will return `CONDA_ENV_DIR`
