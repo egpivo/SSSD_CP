@@ -37,6 +37,7 @@ torch = [
 ]
 statsmodels = "^0.14.1"
 pytorch-lightning = "^2.2.1"
+tensorboard = "^2.16.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^22.3.0"
