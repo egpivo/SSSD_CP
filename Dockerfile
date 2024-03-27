@@ -1,17 +1,32 @@
-FROM pytorch/pytorch:latest
+# Use the specified base image
+FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime
 
-# mkdir
-WORKDIR /app
+LABEL authors="Joseph Wang <egpivo@gmail.com>"
 
-# 複製本機的 train.py 到容器的 /app 目錄下
-COPY . /app/
+ENV POETRY_HOME=/root/.poetry \
+    POETRY_VERSION=1.8.0 \
+    POETRY_NO_INTERACTION=1 \
+    POETRY_VIRTUALENVS_IN_PROJECT=1 \
+    POETRY_VIRTUALENVS_CREATE=1 \
+    POETRY_CACHE_DIR=/tmp/poetry_cache
 
-# pip install matplot
-RUN pip install --no-cache-dir --upgrade pip && \
- pip install pandas numpy scikit-learn matplotlib torch
+# Set the working directory in the container
+WORKDIR /sssd
 
-# 將 sssd 目錄中的所有內容複製到容器的 /app 目錄中
-COPY sssd/ .
+# Install necessary system dependencies
+RUN apt-get update && \
+    apt-get install -y make libsndfile1 && \
+    apt-get install gcc -y && \
+    rm -rf /var/lib/apt/lists/*
 
-# ENTRYPOINT /bin/bash
-CMD ["python", "train.py"]
+# Install poetry
+RUN pip install --no-cache-dir poetry==${POETRY_VERSION} && \
+    poetry config installer.max-workers 10
+
+COPY . ./
+
+# Build Conda
+RUN bash envs/conda/build_conda_env.sh
+
+# Set the entrypoint to bash
+ENTRYPOINT ["/bin/bash", "scripts/diffusion_process.sh", "--config", "config/config_SSSDS4-NYISO-3-mix.json"]

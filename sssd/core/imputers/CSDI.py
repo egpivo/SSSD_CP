@@ -8,6 +8,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import wandb
 from torch.optim import Adam
 from torch.utils.data import DataLoader, Dataset
 from tqdm import tqdm
@@ -693,7 +694,7 @@ class Custom_Train_Dataset(Dataset):
     def __init__(
         self,
         series,
-        path_save,
+        path,
         use_index_list=None,
         missing_ratio_or_k=0.0,
         masking="rm",
@@ -707,7 +708,7 @@ class Custom_Train_Dataset(Dataset):
         self.observed_masks = []
         self.gt_masks = []
 
-        if not os.path.isfile(path):  # if datasetfile is none, create
+        if not os.path.isfile(path):
             for sample in series:
                 if masking == "rm":
                     sample = sample.detach().cpu().numpy()
@@ -758,7 +759,7 @@ class Custom_Train_Dataset(Dataset):
 
 
 class Custom_Impute_Dataset(Dataset):
-    def __init__(self, series, mask, use_index_list=None, path_save=""):
+    def __init__(self, series, mask, use_index_list=None, path=""):
         self.series = series
         self.n_channels = series.size(2)
         self.length = series.size(1)
@@ -768,7 +769,7 @@ class Custom_Impute_Dataset(Dataset):
         self.observed_masks = []
         self.gt_masks = []
 
-        if not os.path.isfile(path):  # if datasetfile is none, create
+        if not os.path.isfile(path):
             for sample in series:
 
                 sample = sample.detach().cpu().numpy()

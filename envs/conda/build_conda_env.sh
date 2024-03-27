@@ -75,7 +75,6 @@ build() {
     conda install -c conda-forge hdf5 -y
   fi
 
-
   # Installation
   echo -e "${FG_YELLOW}Installing package ${FG_RESET}"
   install_python_package "${PACKAGE_BASE_PATH}"

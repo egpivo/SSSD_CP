@@ -1,4 +1,7 @@
 # SSSD
+<p align="center">
+  <a href="https://codecov.io/gh/egpivo/SSSD_CP"> <img src="https://codecov.io/gh/egpivo/SSSD_CP/graph/badge.svg?token=gtKjUUupSz"/> </a>
+</p>
 
 ## Prerequisite
 - [Miniconda installation](https://docs.anaconda.com/free/miniconda/miniconda-install/)
