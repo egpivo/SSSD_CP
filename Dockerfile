@@ -25,11 +25,8 @@ RUN pip install --no-cache-dir poetry==${POETRY_VERSION} && \
 
 COPY . ./
 
-# Install project dependencies
-RUN poetry install --no-root && poetry build
-
-# Install project
-RUN pip install dist/*.tar.gz
+# Build Conda
+RUN bash envs/conda/build_conda_env.sh
 
 # Set the entrypoint to bash
 ENTRYPOINT ["/bin/bash", "scripts/diffusion_process.sh", "--config", "config/config_SSSDS4-NYISO-3-mix.json"]

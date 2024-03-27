@@ -33,4 +33,4 @@ diffusion-mix: install
 	@$(SHELL) scripts/diffusion_process.sh --config config/config_SSSDS4-NYISO-3-mix.json
 
 docker-run:
-	@docker run -d sssd scripts/diffusion_process.sh --config=config_SSSDS4-NYISO-3-mix.json
+	@docker run -d sssd-image scripts/diffusion_process.sh --config=config_SSSDS4-NYISO-3-mix.json

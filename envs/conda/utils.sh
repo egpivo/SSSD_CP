@@ -43,6 +43,8 @@ find_conda_env_path() {
 
   initialize_conda
   IFS=' ' read -r -a CONDA_INFO <<<"$(conda env list | grep "${ENV_NAME}")"
+  # Debugging: Print CONDA_INFO array
+  echo "DEBUG: CONDA_INFO array: ${CONDA_INFO[@]}"
 
   if [ ${#CONDA_INFO[@]} -eq 0 ]; then
     echo -e "${FG_RED}No Conda environment found matching '${ENV_NAME}'${FG_RESET}"

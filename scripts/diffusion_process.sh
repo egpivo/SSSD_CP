@@ -73,7 +73,7 @@ fi
 # Initialize Conda environment
 if [ -x "$(command -v conda)" ]; then
     echo "Conda is installed."
-    . "${PACKAGE_BASE_PATH}/envs/conda/build_conda_env.sh" --conda_env ${CONDA_ENV}
+    bash "${PACKAGE_BASE_PATH}/envs/conda/build_conda_env.sh" --conda_env ${CONDA_ENV}
   source activate ${CONDA_ENV}
 else
     echo -e "${FG_RED}"Conda is not installed."${FG_RESET}"
