@@ -61,6 +61,7 @@ done
 
 
 # Function to pack Conda environment as a zip file
+# Function to pack Conda environment as a zip file
 pack_conda_env_zip() {
     local CONDA_ENV="$1"
     local DESTINATION="$2"
@@ -68,21 +69,39 @@ pack_conda_env_zip() {
 
     echo -e "${FG_YELLOW}Packing Conda environment '${CONDA_ENV}' as '${CONDA_ENV}.zip'${FG_RESET}"
 
+    # Check if the Conda environment directory exists
+    if [ ! -d "${CONDA_ENV_DIR}" ]; then
+        echo "${FG_RED}Error: Conda environment directory '${CONDA_ENV_DIR}' not found.${FG_RESET}"
+        exit 1
+    fi
+
     # Navigate to the Conda environment directory
-    pushd "${CONDA_ENV_DIR}" > /dev/null || exit 1
+    if ! pushd "${CONDA_ENV_DIR}" > /dev/null; then
+        echo "${FG_RED}Error: Failed to navigate to Conda environment directory '${CONDA_ENV_DIR}'.${FG_RESET}"
+        exit 1
+    fi
 
     # Create the destination directory if it doesn't exist
     mkdir -p "${DESTINATION}"
 
     # Pack the Conda environment as a zip file
-    zip -urq "${CONDA_ENV}.zip" .
+    if ! zip -urq "${CONDA_ENV}.zip" .; then
+        echo "${FG_RED}Error: Failed to pack Conda environment into '${CONDA_ENV}.zip'.${FG_RESET}"
+        exit 1
+    fi
 
     # Move the zip file to the destination directory
-    mv "${CONDA_ENV_DIR}/${CONDA_ENV}.zip" "${DESTINATION}/"
-    echo -e "${FG_YELLOW}Moved '${CONDA_ENV_DIR}/${CONDA_ENV}.zip' to '${DESTINATION}'${FG_RESET}"
+    if ! mv "${CONDA_ENV}.zip" "${DESTINATION}/"; then
+        echo "${FG_RED}Error: Failed to move '${CONDA_ENV}.zip' to '${DESTINATION}'.${FG_RESET}"
+        exit 1
+    fi
+    echo -e "${FG_YELLOW}Moved '${CONDA_ENV}.zip' to '${DESTINATION}'${FG_RESET}"
 
     # Return to the original directory
-    popd > /dev/null || exit 1
+    if ! popd > /dev/null; then
+        echo "${FG_RED}Error: Failed to return to the original directory.${FG_RESET}"
+        exit 1
+    fi
 }
 
 # Will update $CONDA_ENV_DIR
