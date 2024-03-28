@@ -12,12 +12,15 @@ COPY . ./
 # Build Conda environment
 RUN bash envs/conda/build_conda_env.sh
 
-# Pack Conda environment
+# Pack Conda environment to sssd.zip (assuming it's generated in /sssd directory)
 RUN bash envs/conda/pack_conda_env.sh
 
 
 # Stage 2: Final production image
 FROM continuumio/miniconda3:latest
+
+# Install unzip utility
+RUN apt-get update && apt-get install -y unzip
 
 # Set the working directory in the container
 WORKDIR /sssd
