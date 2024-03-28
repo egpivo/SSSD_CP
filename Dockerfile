@@ -12,30 +12,22 @@ COPY . ./
 # Build Conda environment
 RUN bash envs/conda/build_conda_env.sh
 
-# Pack Conda environment to sssd.tar.gz (assuming it's generated in /sssd directory)
-RUN bash envs/conda/pack_conda_env.sh --target_project_dir /sssd
-
+# Find Conda environment directory and set it as a build argument
+RUN CONDA_ENV_DIR=$(bash envs/conda/utils.sh find_conda_env_path sssd) \
+    && echo "CONDA_ENV_DIR=$CONDA_ENV_DIR" >> /root/.conda_env_dir
 
 # Stage 2: Final production image
 FROM continuumio/miniconda3:latest
 
-# Install tar utility
-RUN apt-get update && apt-get install -y tar
-
 # Set the working directory in the container
 WORKDIR /sssd
 
-# Copy the tar.gz Conda environment from the builder stage
-COPY --from=builder /sssd/sssd.tar.gz .
+# Copy the Conda environment directory from the build argument
+ARG CONDA_ENV_DIR
+COPY --from=builder $CONDA_ENV_DIR /root/.conda/envs/sssd
 
-# Extract the Conda environment and set up
-RUN mkdir -p /root/.conda/envs/sssd \
-    && tar -xzf sssd.tar.gz -C /root/.conda/envs/sssd \
-    && rm sssd.tar.gz \
-    && echo "source activate sssd" >> ~/.bashrc
-
-# Copy the project files
-COPY . ./
+# Set up Conda environment
+RUN echo "source activate sssd" >> ~/.bashrc
 
 # Set the entrypoint
 ENTRYPOINT ["/bin/bash", "scripts/diffusion_process.sh", "--config", "config/config_SSSDS4-NYISO-3-mix.json"]

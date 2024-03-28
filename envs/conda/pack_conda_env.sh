@@ -2,7 +2,7 @@
 #
 # Pack Conda Environment
 #
-# This script packs a Conda environment into a tar file.
+# This script packs a Conda environment into a zip file.
 #
 # Usage:
 #   pack_conda_env.sh [OPTIONS]
@@ -60,13 +60,14 @@ while [[ $# -gt 0 ]]; do
 done
 
 
-# Function to pack Conda environment as a tar.gz file
-pack_conda_env_tar() {
+# Function to pack Conda environment as a zip file
+# Function to pack Conda environment as a zip file
+pack_conda_env_zip() {
     local CONDA_ENV="$1"
     local DESTINATION="$2"
     local CONDA_ENV_DIR="$3"
 
-    echo -e "${FG_YELLOW}Packing Conda environment '${CONDA_ENV}' as '${CONDA_ENV}.tar.gz'${FG_RESET}"
+    echo -e "${FG_YELLOW}Packing Conda environment '${CONDA_ENV}' as '${CONDA_ENV}.zip'${FG_RESET}"
 
     # Check if the Conda environment directory exists
     if [ ! -d "${CONDA_ENV_DIR}" ]; then
@@ -83,26 +84,25 @@ pack_conda_env_tar() {
     # Create the destination directory if it doesn't exist
     mkdir -p "${DESTINATION}"
 
-    # Pack the Conda environment as a tar.gz file
-    if ! tar -czf "${CONDA_ENV}.tar.gz" .; then
-        echo "${FG_RED}Error: Failed to pack Conda environment into '${CONDA_ENV}.tar.gz'.${FG_RESET}"
+    # Pack the Conda environment as a zip file
+    if ! zip -urq "${CONDA_ENV}.zip" .; then
+        echo "${FG_RED}Error: Failed to pack Conda environment into '${CONDA_ENV}.zip'.${FG_RESET}"
         exit 1
     fi
 
-    # Move the tar.gz file to the destination directory
-    if ! mv "${CONDA_ENV}.tar.gz" "${DESTINATION}/"; then
-        echo "${FG_RED}Error: Failed to move '${CONDA_ENV}.tar.gz' to '${DESTINATION}'.${FG_RESET}"
+    # Move the zip file to the destination directory
+    if ! mv "${CONDA_ENV}.zip" "${DESTINATION}/"; then
+        echo "${FG_RED}Error: Failed to move '${CONDA_ENV}.zip' to '${DESTINATION}'.${FG_RESET}"
         exit 1
     fi
-    echo -e "${FG_YELLOW}Moved '${CONDA_ENV}.tar.gz' to '${DESTINATION}'${FG_RESET}"
+    echo -e "${FG_YELLOW}Moved '${CONDA_ENV}.zip' to '${DESTINATION}'${FG_RESET}"
 
     # Return to the original directory
     if ! popd > /dev/null; then
-        echo "${FG_RED}Error: Failed to return to the original directory.${FG_RESET}"
+        echo "${FG_RED}Error: Failed to return to the original directory.'${FG_RESET}"
         exit 1
     fi
 }
-
 
 # Will update $CONDA_ENV_DIR
 find_conda_env_path "${CONDA_ENV}"

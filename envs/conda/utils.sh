@@ -61,6 +61,8 @@ find_conda_env_path() {
   else
     CONDA_ENV_DIR="${CONDA_INFO[1]}"
   fi
+  # DO NOT REMOVE
+  echo "${CONDA_ENV_DIR}"
 }
 
 
