@@ -59,8 +59,6 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Resolve paths
-CONDA_ENV_DIR="${TARGET_PROJECT_DIR}/${CONDA_ENV}"
 
 # Function to pack Conda environment as a zip file
 pack_conda_env_zip() {
@@ -71,7 +69,7 @@ pack_conda_env_zip() {
     echo -e "${FG_YELLOW}Packing Conda environment '${CONDA_ENV}' as '${CONDA_ENV}.zip'${FG_RESET}"
 
     # Navigate to the Conda environment directory
-    pushd "$CONDA_ENV_DIR" > /dev/null || exit 1
+    pushd "${CONDA_ENV_DIR}" > /dev/null || exit 1
 
     # Create the destination directory if it doesn't exist
     mkdir -p "${DESTINATION}"
@@ -80,12 +78,14 @@ pack_conda_env_zip() {
     zip -urq "${CONDA_ENV}.zip" .
 
     # Move the zip file to the destination directory
-    mv "${DESTINATION}/${CONDA_ENV}.zip" "${DESTINATION}"
-    echo -e "${FG_YELLOW}Moved '${DESTINATION}/${CONDA_ENV}.zip' to '${DESTINATION}'${FG_RESET}"
+    mv "${CONDA_ENV_DIR}/${CONDA_ENV}.zip" "${DESTINATION}/"
+    echo -e "${FG_YELLOW}Moved '${CONDA_ENV_DIR}/${CONDA_ENV}.zip' to '${DESTINATION}'${FG_RESET}"
 
     # Return to the original directory
     popd > /dev/null || exit 1
 }
 
+# Will update $CONDA_ENV_DIR
+find_conda_env_path "${CONDA_ENV}"
 # Pack the Conda environment
-pack_conda_env_zip "${CONDA_ENV}" "$DESTINATION" "$CONDA_ENV_DIR"
+pack_conda_env_zip "${CONDA_ENV}" "${DESTINATION}" "${CONDA_ENV_DIR}"
