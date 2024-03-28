@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 EXECUTABLE := poetry run
 
-.PHONY: clean install conda-env test diffusion-mix clean-docker docker-build docker-run
+.PHONY: clean install activate-conda-env test run-diffusion-mix clean-docker build-docker run-docker
 
 clean: clean-pyc clean-build clean-test-coverage
 
@@ -22,18 +22,18 @@ clean-docker:
 install: clean
 	$(EXECUTABLE) poetry install
 
-conda-env: install
+activate-conda-env: install
 	eval "$$(conda shell.bash hook)" && \
 	conda activate sssd
 
 test: install
 	$(EXECUTABLE) pytest --cov=sssd
 
-diffusion-mix: install
+run-diffusion-mix: install
 	$(EXECUTABLE) scripts/diffusion_process.sh --config config/config_SSSDS4-NYISO-3-mix.json
 
-docker-build:
+build-docker:
 	docker build -t sssd-image .
 
-docker-run:
+run-docker:
 	docker run --gpus all -d sssd-image
