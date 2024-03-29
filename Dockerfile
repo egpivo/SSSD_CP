@@ -33,6 +33,8 @@ WORKDIR /sssd
 # Copy the Conda environment directory from the build argument
 ARG CONDA_ENV_DIR
 COPY --from=builder $CONDA_ENV_DIR /root/.conda/envs/sssd
+COPY --from=builder scripts/diffusion_process.sh scripts/
+COPY --from=builder config/config_SSSDS4-NYISO-3-mix.json config/
 
 # Set up Conda environment
 RUN echo "source activate sssd" >> ~/.bashrc
