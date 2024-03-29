@@ -1,8 +1,9 @@
 # SSSD
 <p align="center">
-  <a href="https://github.com/egpivo/SSSD_CP/actions"><img src="https://github.com/egpivo/SSSD_CP/workflows/CI/badge.svg"/></a>
+  <a href="https://github.com/egpivo/SSSD_CP/actions"><img src="https://github.com/egpivo/SSSD_CP/workflows/Test/badge.svg"/></a>
   <a href="https://codecov.io/gh/egpivo/SSSD_CP"> <img src="https://codecov.io/gh/egpivo/SSSD_CP/graph/badge.svg?token=gtKjUUupSz"/> </a>
 </p>
+
 
 ## Prerequisite
 - [Miniconda installation](https://docs.anaconda.com/free/miniconda/miniconda-install/)
