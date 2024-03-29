@@ -6,9 +6,6 @@ LABEL authors="Joseph Wang <egpivo@gmail.com>"
 # Set the working directory in the container
 WORKDIR /sssd
 
-# Copy the project files
-COPY . ./
-
 # Build Conda environment
 RUN bash envs/conda/build_conda_env.sh
 
