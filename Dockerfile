@@ -18,7 +18,7 @@ COPY pyproject.toml pyproject.toml
 RUN bash envs/conda/build_conda_env.sh && \
     CONDA_ENV_DIR=$(bash envs/conda/utils.sh find_conda_env_path sssd) \
     && echo "CONDA_ENV_DIR=$CONDA_ENV_DIR" >> /root/.conda_env_dir && \
-    rm -rf scripts/ config/ envs/conda/ sssd/pyproject.toml && \
+    rm -rf envs/conda/ sssd/pyproject.toml && \
     apt-get clean && \
     apt-get autoclean && \
     apt-get autoremove -y && \
