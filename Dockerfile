@@ -13,6 +13,7 @@ COPY envs/conda/ envs/conda/
 COPY bin/ bin/
 COPY sssd/ sssd/
 COPY pyproject.toml pyproject.toml
+COPY README.md README.md
 
 # Build Conda environment and cleanup unnecessary files
 RUN bash envs/conda/build_conda_env.sh && \

@@ -33,7 +33,7 @@ run-diffusion-mix: install
 	$(EXECUTABLE) scripts/diffusion_process.sh --config config/config_SSSDS4-NYISO-3-mix.json
 
 build-docker:
-	docker build -t sssd-image .
+	docker build -t sssd .
 
 run-docker:
-	docker run --gpus all -d sssd-image
+	docker run --gpus all -d sssd
