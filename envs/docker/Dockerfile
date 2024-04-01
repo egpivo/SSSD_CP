@@ -7,11 +7,9 @@ LABEL authors="Joseph Wang <egpivo@gmail.com>"
 WORKDIR /sssd
 
 # Copy only necessary project files and Conda environment setup
-COPY scripts/diffusion_process.sh scripts/
-COPY config/config_SSSDS4-NYISO-3-mix.json config/
-COPY envs/conda/ envs/conda/
-COPY bin/ bin/
-COPY sssd/ sssd/
+COPY envs/conda envs/conda/
+COPY bin bin/
+COPY sssd sssd/
 COPY pyproject.toml pyproject.toml
 COPY README.md README.md
 
