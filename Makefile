@@ -40,10 +40,10 @@ run-diffusion-mix: install
 
 ## Docker commands
 build-docker:
-	docker build -t sssd:latest -f envs/docker/Dockerfile .
+	docker build -t $(DOCKER_USERNAME)/sssd:latest -f envs/docker/Dockerfile .
 
 push-docker:
-	docker tag sssd:latest $(DOCKER_USERNAME)/sssd:latest
+	docker tag $(DOCKER_USERNAME)/sssd:latest $(DOCKER_USERNAME)/sssd:latest
 	docker push $(DOCKER_USERNAME)/sssd:latest
 
 run-docker:
