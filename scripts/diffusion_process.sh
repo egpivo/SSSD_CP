@@ -83,8 +83,8 @@ if [ -x "$(command -v conda)" ]; then
     bash "${PACKAGE_BASE_PATH}/envs/conda/build_conda_env.sh" --conda_env ${CONDA_ENV}
   else
     echo -e "${FG_GREEN}Conda environment update is not requested.${FG_RESET}"
-  source activate ${CONDA_ENV}
   fi
+    source activate ${CONDA_ENV}
 else
   echo -e "${FG_RED}"Conda is not installed."${FG_RESET}"
 fi

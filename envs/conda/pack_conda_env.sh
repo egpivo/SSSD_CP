@@ -61,7 +61,6 @@ done
 
 
 # Function to pack Conda environment as a zip file
-# Function to pack Conda environment as a zip file
 pack_conda_env_zip() {
     local CONDA_ENV="$1"
     local DESTINATION="$2"
