@@ -7,6 +7,7 @@ LABEL authors="Joseph Wang <egpivo@gmail.com>"
 WORKDIR /sssd
 
 # Copy only necessary project files and Conda environment setup
+COPY scripts/diffusion_process.sh scripts/
 COPY envs/conda envs/conda/
 COPY bin bin/
 COPY sssd sssd/
