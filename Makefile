@@ -47,7 +47,7 @@ push-docker:
 	docker push $(DOCKER_USERNAME)/sssd:latest
 
 run-docker:
-	docker-compose up -d
+	docker compose up -d
 
 ## Help
 help:

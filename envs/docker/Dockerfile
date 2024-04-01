@@ -7,7 +7,7 @@ LABEL authors="Joseph Wang <egpivo@gmail.com>"
 WORKDIR /sssd
 
 # Copy only necessary project files and Conda environment setup
-COPY scripts/diffusion_process.sh scripts/
+COPY scripts/diffusion_process.sh scripts/diffusion_process.sh
 COPY envs/conda envs/conda/
 COPY bin bin/
 COPY sssd sssd/
@@ -33,6 +33,7 @@ WORKDIR /sssd
 # Copy the Conda environment directory from the build argument
 ARG CONDA_ENV_DIR
 COPY --from=builder $CONDA_ENV_DIR /root/.conda/envs/sssd
+COPY --from=builder /sssd/scripts/diffusion_process.sh /root/.conda/envs/sssd
 
 # Set up Conda environment
 RUN echo "source activate sssd" >> ~/.bashrc
