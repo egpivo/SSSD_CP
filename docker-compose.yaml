@@ -10,3 +10,4 @@ services:
       - 8001:8080
     environment:
       PORT: 8080
+      CONFIG_FILE: "config_SSSDS4-NYISO-3-mix.json"  # Specify the new config file here
