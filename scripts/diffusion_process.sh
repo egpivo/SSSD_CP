@@ -8,10 +8,12 @@
 #    - Optional
 #       - -b/--batch_size: batch size
 #       - -n/--num_samples: number of samples
+#       - -u/--update_conda_env: flag to update Conda environment
 #
 # - Examples
 #       - Execute the script: ./diffusion_process.sh -c config/config_SSSDS4-NYISO-3-mix.json
 #       - Execute the script with batch size and number of samples: ./diffusion_process.sh -c config/config_SSSDS4-NYISO-3-mix.json -b 32 -n 1000
+#       - Execute the script with Conda environment update: ./diffusion_process.sh -c config/config_SSSDS4-NYISO-3-mix.json -u
 #
 
 set -euo pipefail
@@ -25,6 +27,7 @@ CONDA_ENV="sssd"
 CONFIG=""
 BATCH_SIZE=""
 NUM_SAMPLES=""
+DOES_UPDATE_CONDA_ENV="false"  # Default value for updating Conda environment
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -40,6 +43,9 @@ while [[ $# -gt 0 ]]; do
     -n|--num_samples)
       NUM_SAMPLES="$2"
       shift
+      ;;
+    -u|--update_conda_env)
+      DOES_UPDATE_CONDA_ENV="true"
       ;;
     *)
       ;;
@@ -70,13 +76,17 @@ if [[ -n "$NUM_SAMPLES" ]]; then
   INFERENCE_JOB_COMMANDS+=(--batch_size "$NUM_SAMPLES")
 fi
 
-# Initialize Conda environment
+# Initialize Conda environment if specified
 if [ -x "$(command -v conda)" ]; then
-    echo "Conda is installed."
+  if [[ "$DOES_UPDATE_CONDA_ENV" == "true" ]]; then
+    echo -e "${FG_YELLOW}Updating Conda environment - sssd${FG_RESET}"
     bash "${PACKAGE_BASE_PATH}/envs/conda/build_conda_env.sh" --conda_env ${CONDA_ENV}
+  else
+    echo -e "${FG_GREEN}Conda environment update is not requested.${FG_RESET}"
   source activate ${CONDA_ENV}
+  fi
 else
-    echo -e "${FG_RED}"Conda is not installed."${FG_RESET}"
+  echo -e "${FG_RED}"Conda is not installed."${FG_RESET}"
 fi
 
 # Execute training
