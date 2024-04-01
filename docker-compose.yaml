@@ -1,8 +1,7 @@
 version: "0.0.3"
 services:
   sssd:
-    build:
-      dockerfile: envs/docker/Dockerfile
+    image: egpivo/sssd:latest
     volumes:
       - ./datasets/:/home/worker/sssd/datasets
       - ./config/:/home/worker/sssd/config
@@ -11,3 +10,9 @@ services:
     environment:
       PORT: 8080
       CONFIG_FILE: "config_SSSDS4-NYISO-3-mix.json"  # Specify the new config file here
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
