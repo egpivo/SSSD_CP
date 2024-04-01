@@ -5,6 +5,7 @@ services:
     volumes:
       - ./datasets/:/home/worker/sssd/datasets
       - ./config/:/home/worker/sssd/config
+      - ./results:/home/worker/sssd/results
     ports:
       - 8001:8080
     environment:
