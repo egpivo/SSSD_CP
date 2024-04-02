@@ -1,7 +1,5 @@
-#
-# Please check envs/dockers/Dockerfile.local for the original version
-#
-FROM egpivo/sssd:latest AS builder
+# Stage 1: Build stage
+FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime AS builder
 
 LABEL authors="Joseph Wang <egpivo@gmail.com>"
 

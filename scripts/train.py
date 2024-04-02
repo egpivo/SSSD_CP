@@ -19,7 +19,7 @@ def fetch_args() -> argparse.Namespace:
         "-c",
         "--config",
         type=str,
-        default="config/SSSDS4.json",
+        default="configs/SSSDS4.json",
         help="JSON file for configuration",
     )
     parser.add_argument(
