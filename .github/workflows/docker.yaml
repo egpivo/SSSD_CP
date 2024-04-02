@@ -3,12 +3,12 @@ name: Publish Docker image
 on:
   push:
     branches:
-      - "main, develop, enhancement/create-docker-compose""
+      - "main, develop, enhancement/create-docker-compose"
     tags:
       - "v*"
   pull_request:
     branches:
-      - "main, develop
+      - "main, develop"
 
 jobs:
   push_to_registries:
