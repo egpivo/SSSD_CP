@@ -3,7 +3,7 @@ name: Publish Docker image
 on:
   push:
     branches:
-      - "main, develop, enhancement/create-docker-compose"
+      - "enhancement*"
     tags:
       - "v*"
   pull_request:
