@@ -8,7 +8,7 @@ on:
       - "v*"
   pull_request:
     branches:
-      - "main, develop"
+      - "main, develop, enhancement/create-docker-compose"
 
 jobs:
   push_to_registries:
