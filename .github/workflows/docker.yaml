@@ -3,12 +3,15 @@ name: Publish Docker image
 on:
   push:
     branches:
-      - "enhancement*"
+      - main
+      - develop
+      - 'enhancement*'
     tags:
-      - "v*"
+      - 'v*'
   pull_request:
     branches:
-      - "main, develop"
+      - main
+      - develop
 
 jobs:
   push_to_registries:
