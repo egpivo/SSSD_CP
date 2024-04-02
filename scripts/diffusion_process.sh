@@ -11,9 +11,9 @@
 #       - -u/--update_conda_env: flag to update Conda environment
 #
 # - Examples
-#       - Execute the script: ./diffusion_process.sh -c config/config_SSSDS4-NYISO-3-mix.json
-#       - Execute the script with batch size and number of samples: ./diffusion_process.sh -c config/config_SSSDS4-NYISO-3-mix.json -b 32 -n 1000
-#       - Execute the script with Conda environment update: ./diffusion_process.sh -c config/config_SSSDS4-NYISO-3-mix.json -u
+#       - Execute the script: ./diffusion_process.sh -c configs/config_SSSDS4-NYISO-3-mix.json
+#       - Execute the script with batch size and number of samples: ./diffusion_process.sh -c configs/config_SSSDS4-NYISO-3-mix.json -b 32 -n 1000
+#       - Execute the script with Conda environment update: ./diffusion_process.sh -c configs/config_SSSDS4-NYISO-3-mix.json -u
 #
 
 set -euo pipefail

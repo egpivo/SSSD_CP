@@ -4,7 +4,7 @@ services:
     image: egpivo/sssd:latest
     volumes:
       - ./datasets/:/sssd/datasets
-      - ./config/:/sssd/config
+      - ./configs/:/sssd/configs
       - ./results:/sssd/results
     ports:
       - 8001:8080

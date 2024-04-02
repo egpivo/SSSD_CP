@@ -57,5 +57,5 @@ You can also customize other environment variables or volume mappings in the doc
 2. Use the sample size as the parameter --num_samples in the inference section.
    - Example:
 ```bash
-python sssd/infer.py -c config/config_SSSDS4-NYISO-3-mix.json --num_samples=128
+python sssd/infer.py -c configs/config_SSSDS4-NYISO-3-mix.json --num_samples=128
 ``````
