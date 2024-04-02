@@ -7,7 +7,7 @@ LABEL authors="Joseph Wang <egpivo@gmail.com>"
 WORKDIR /sssd
 
 # Copy only necessary project files and Conda environment setup
-COPY scripts/diffusion_process.sh scripts/diffusion_process.sh
+COPY scripts/ scripts/
 COPY envs/conda envs/conda/
 COPY bin bin/
 COPY sssd sssd/
@@ -16,9 +16,6 @@ COPY README.md README.md
 
 # Build Conda environment and cleanup unnecessary files
 RUN bash envs/conda/build_conda_env.sh && \
-    CONDA_ENV_DIR=$(bash envs/conda/utils.sh find_conda_env_path sssd) \
-    && echo "CONDA_ENV_DIR=$CONDA_ENV_DIR" >> /root/.conda_env_dir && \
-    rm -rf envs/conda/ sssd/pyproject.toml && \
     apt-get clean && \
     apt-get autoclean && \
     apt-get autoremove -y && \
@@ -30,13 +27,16 @@ FROM continuumio/miniconda3:latest
 # Set the working directory in the container
 WORKDIR /sssd
 
-# Copy the Conda environment directory from the build argument
-ARG CONDA_ENV_DIR
-COPY --from=builder $CONDA_ENV_DIR /root/.conda/envs/sssd
-COPY --from=builder /sssd/scripts/diffusion_process.sh /root/.conda/envs/sssd
+# Copy the Conda environment directory from the build stage to the appropriate location
+COPY --from=builder /opt/conda/envs/sssd/ /opt/conda/envs/sssd/
 
 # Set up Conda environment
-RUN echo "source activate sssd" >> ~/.bashrc
+ENV PATH /opt/conda/envs/sssd/bin:$PATH
+RUN echo "conda activate sssd" >> ~/.bashrc
 
-# Set the entrypoint and pass the CONFIG_FILE environment variable
+# Copy necessary files from the build stage
+COPY --from=builder /sssd/bin bin/
+COPY --from=builder /sssd/scripts scripts/
+
+# Set the entrypoint
 ENTRYPOINT ["/bin/bash", "-c", "/bin/bash scripts/diffusion_process.sh --config $CONFIG_FILE"]
