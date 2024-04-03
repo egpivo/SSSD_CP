@@ -2,6 +2,8 @@
 <p align="left">
   <a href="https://github.com/egpivo/SSSD_CP/actions"><img src="https://github.com/egpivo/SSSD_CP/workflows/Test/badge.svg" alt="GitHub Actions"/></a>
   <a href="https://codecov.io/gh/egpivo/SSSD_CP"><img src="https://codecov.io/gh/egpivo/SSSD_CP/graph/badge.svg?token=gtKjUUupSz" alt="Codecov"/></a>
+  <a href="https://hub.docker.com/repository/docker/egpivo/sssd"><img src="https://img.shields.io/docker/automated/egpivo/sssd" alt="Docker build"/></a>
+  <a href="https://hub.docker.com/repository/docker/egpivo/sssd"><img src="https://img.shields.io/docker/v/egpivo/sssd/main" alt="Docker tag"/></a>
 </p>
 
 ## Prerequisites
@@ -16,7 +18,6 @@
    make install
    ```
 
-
 ## Docker Usage
 
 To utilize Docker for running the SSSD application, follow these steps:
@@ -27,17 +28,17 @@ To utilize Docker for running the SSSD application, follow these steps:
    ```
 
 2. Run Docker Container: After building the Docker image, execute the following command to run the Docker container:
-  ```bash
-  make run-docker
-  ```
+      ```bash
+      make run-docker
+      ```
 This command will start the SSSD application inside a Docker container. The configuration can be specified by modifying the docker-compose.yaml file. Ensure that the CONFIG_FILE environment variable in the `docker-compose.yaml` file points to the desired configuration file. By default, it is set to `config_SSSDS4-NYISO-3-mix.json`.
 
 You can also customize other environment variables or volume mappings in the docker-compose.yaml file as needed.
 
 3. Stopping Docker Container: To stop the Docker container, you can run:
-  ```bash
-  docker-compose down
-  ```
+      ```bash
+      docker-compose down
+      ```
 
 
 ## Dataset
@@ -56,6 +57,6 @@ You can also customize other environment variables or volume mappings in the doc
 1. Use `CUDA_VISIBLE_DEVICES` to specify the number of GPUs. Both training and inference require the same number of GPUs.
 2. Use the sample size as the parameter --num_samples in the inference section.
    - Example:
-```bash
-python sssd/infer.py -c configs/config_SSSDS4-NYISO-3-mix.json --num_samples=128
-``````
+        ```bash
+        python sssd/infer.py -c configs/config_SSSDS4-NYISO-3-mix.json --num_samples=128
+        ``````

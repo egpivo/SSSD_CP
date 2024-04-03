@@ -3,7 +3,8 @@
 #
 FROM egpivo/sssd:latest AS builder
 
-LABEL authors="Joseph Wang <egpivo@gmail.com>"
+LABEL authors="Joseph Wang <egpivo@gmail.com>" \
+      version="0.0.5"
 
 # Set the working directory in the container
 WORKDIR /sssd
