@@ -3,7 +3,7 @@
   <a href="https://github.com/egpivo/SSSD_CP/actions"><img src="https://github.com/egpivo/SSSD_CP/workflows/Test/badge.svg" alt="GitHub Actions"/></a>
   <a href="https://codecov.io/gh/egpivo/SSSD_CP"><img src="https://codecov.io/gh/egpivo/SSSD_CP/graph/badge.svg?token=gtKjUUupSz" alt="Codecov"/></a>
   <a href="https://hub.docker.com/repository/docker/egpivo/sssd"><img src="https://img.shields.io/docker/automated/egpivo/sssd" alt="Docker build"/></a>
-  <a href="https://hub.docker.com/repository/docker/egpivo/sssd"><img src="https://img.shields.io/docker/v/egpivo/sssd/main" alt="Docker tag"/></a>
+  <a href="https://hub.docker.com/repository/docker/egpivo/sssd"><img src="https://img.shields.io/docker/v/egpivo/sssd" alt="Docker tag"/></a>
 </p>
 
 ## Prerequisites
@@ -67,3 +67,8 @@
         ```bash
         python sssd/infer.py -c configs/config_SSSDS4-NYISO-3-mix.json --num_samples=128
         ``````
+
+
+## References
+- Alcaraz and Strodthoff (2023). [Diffusion-based Time Series Imputation and Forecasting with Structured State Space Models](https://arxiv.org/pdf/2208.09399.pdf)
+  - Repo: https://github.com/AI4HealthUOL/SSSD
