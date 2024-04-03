@@ -34,9 +34,9 @@ activate-conda-env: install
 test: install
 	$(EXECUTABLE) pytest --cov=sssd
 
-## Run diffusion mix
-run-diffusion-mix: install
-	$(EXECUTABLE) scripts/diffusion_process.sh --config configs/config_SSSDS4-NYISO-3-mix.json
+## Run diffusion with `configs/config_toy_example.json`
+run-toy_example: install
+	$(EXECUTABLE) scripts/diffusion_process.sh --config configs/config_toy_example.json
 
 ## Docker commands
 build-docker:
@@ -56,7 +56,7 @@ help:
 	@echo "install            : Install sssd with dependencies"
 	@echo "activate-conda-env : Activate Conda environment"
 	@echo "test               : Run tests"
-	@echo "run-diffusion-mix  : Run diffusion process with configs/config_SSSDS4-NYISO-3-mix.json locally"
+	@echo "run-toy_example  : Run diffusion process with configs/configs/config_toy_example.json locally"
 	@echo "build-docker       : Build Docker image"
 	@echo "push-docker        : Push Docker image to Docker Hub"
 	@echo "run-docker         : Run diffusion process in Docker container"

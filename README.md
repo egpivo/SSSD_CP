@@ -2,42 +2,13 @@
 <p align="left">
   <a href="https://github.com/egpivo/SSSD_CP/actions"><img src="https://github.com/egpivo/SSSD_CP/workflows/Test/badge.svg" alt="GitHub Actions"/></a>
   <a href="https://codecov.io/gh/egpivo/SSSD_CP"><img src="https://codecov.io/gh/egpivo/SSSD_CP/graph/badge.svg?token=gtKjUUupSz" alt="Codecov"/></a>
+  <a href="https://hub.docker.com/repository/docker/egpivo/sssd"><img src="https://img.shields.io/docker/automated/egpivo/sssd" alt="Docker build"/></a>
+  <a href="https://hub.docker.com/repository/docker/egpivo/sssd"><img src="https://img.shields.io/docker/v/egpivo/sssd/main" alt="Docker tag"/></a>
 </p>
 
 ## Prerequisites
 - [Local Environment] [Install Miniconda](https://docs.anaconda.com/free/miniconda/miniconda-install/)
 - [Docker] [Install Docker](https://docs.docker.com/get-docker/)
-
-
-
-## Environment Installation
-- Install `sssd` Conda env by
-   ```bash
-   make install
-   ```
-
-
-## Docker Usage
-
-To utilize Docker for running the SSSD application, follow these steps:
-
-1. **Build Docker Image**: Run the following command to build the Docker image tagged as `sssd:latest`:
-   ```bash
-   make build-docker
-   ```
-
-2. Run Docker Container: After building the Docker image, execute the following command to run the Docker container:
-  ```bash
-  make run-docker
-  ```
-This command will start the SSSD application inside a Docker container. The configuration can be specified by modifying the docker-compose.yaml file. Ensure that the CONFIG_FILE environment variable in the `docker-compose.yaml` file points to the desired configuration file. By default, it is set to `config_SSSDS4-NYISO-3-mix.json`.
-
-You can also customize other environment variables or volume mappings in the docker-compose.yaml file as needed.
-
-3. Stopping Docker Container: To stop the Docker container, you can run:
-  ```bash
-  docker-compose down
-  ```
 
 
 ## Dataset
@@ -46,16 +17,53 @@ You can also customize other environment variables or volume mappings in the doc
 
    Note that the cleaned data is created following the scripts in `notebooks/dataset_script/nyiso-csv-to-pickle.ipynb` and `notebooks/dataset_script/nyiso-load-pickle-to-npy.ipynb`.
 
-## Example: `config_SSSDS4-NYISO-3-mix.json`
-- To execute a diffusion process:
+## Usage
+0. Download data from `google drive` or `S3` to `datasets/`
+   - `S3`:
+     - Enter the AWS credentials
+     - Enter`aws s3 sync s3://sssd-cp/datasets/ /{repo}/datasets`
+1. Run the process locally:
+    ```shell
+    bash scripts/diffusion_process.sh --config {CONFIG_FILE_PATH}
+    ```
+   - Example: `CONFIG_FILE_PATH=configs/config_toy_example.json`
+
+2. Run in a container:
+   - Adjust `CONFIG_FILE` in `docker-compose.yaml`
+   - Trigger
+       ```shell
+       make run-docker
+       ```
+     ![img.png](docs/images/img.png)
+
+####  Useful Commands
+
+1. Stopping Docker Container: To stop the Docker container,
+    ```bash
+    docker compose down
+    ```
+   ![img.png](docs/images/img_5.png)
+2. Check a Docker container status
    ```bash
-   make run-diffusion-mix
+   docker compose ps
    ```
+   ![img_2.png](docs/images/img_2.png)
+3. Check a Docker container logs
+   ```bash
+   docker compose logs
+   ```
+   ![img_1.png](docs/images/img_1.png)
+
+4. Clean Docker cache
+   ```bash
+   docker system prune -f
+   ```
+   ![img_4.png](docs/images/img_4.png)
 
 ## Suggestions
 1. Use `CUDA_VISIBLE_DEVICES` to specify the number of GPUs. Both training and inference require the same number of GPUs.
 2. Use the sample size as the parameter --num_samples in the inference section.
    - Example:
-```bash
-python sssd/infer.py -c configs/config_SSSDS4-NYISO-3-mix.json --num_samples=128
-``````
+        ```bash
+        python sssd/infer.py -c configs/config_SSSDS4-NYISO-3-mix.json --num_samples=128
+        ``````
