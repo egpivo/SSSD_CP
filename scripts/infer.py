@@ -76,9 +76,9 @@ def run_job(
     data_names = ["imputation", "original", "mask"]
 
     if trials > 1:
-        directory = 'config["gen_config"]["output_directory"]_{trial}'
+        directory = f'config["gen_config"]["output_directory"]_{{trial}}'
     else:
-        directory = 'config["gen_config"]["output_directory"]'
+        directory = f'config["gen_config"]["output_directory"]'
 
     for trial in range(1, trials + 1):
         LOGGER.info("The {trial}th inference trail")
