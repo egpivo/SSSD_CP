@@ -2,18 +2,20 @@
 #
 # Execute a diffusion process by training and generation
 #
-# - Parameters
-#    - Mandatory
-#       - -c/--config: configuration path
-#    - Optional
-#       - -b/--batch_size: batch size
-#       - -n/--num_samples: number of samples
-#       - -u/--update_conda_env: flag to update Conda environment
+# Parameters:
+#    - Mandatory:
+#        - -c/--config: configuration path
+#    - Optional:
+#        - -b/--batch_size: batch size
+#        - -n/--num_samples: number of samples
+#        - -t/--trials: number of trials in the inference stage
+#        - -u/--update_conda_env: flag to update Conda environment
 #
-# - Examples
-#       - Execute the script: ./diffusion_process.sh -c configs/config_SSSDS4-NYISO-3-mix.json
-#       - Execute the script with batch size and number of samples: ./diffusion_process.sh -c configs/config_SSSDS4-NYISO-3-mix.json -b 32 -n 1000
-#       - Execute the script with Conda environment update: ./diffusion_process.sh -c configs/config_SSSDS4-NYISO-3-mix.json -u
+# Examples:
+#    - Execute the script: ./diffusion_process.sh -c configs/config_SSSDS4-NYISO-3-mix.json
+#    - Execute the script with batch size and number of samples: ./diffusion_process.sh -c configs/config_SSSDS4-NYISO-3-mix.json -b 32 -n 1000
+#    - Execute the script with 2 trials: ./diffusion_process.sh -c configs/config_SSSDS4-NYISO-3-mix.json -t 2
+#    - Execute the script with Conda environment update: ./diffusion_process.sh -c configs/config_SSSDS4-NYISO-3-mix.json -u
 #
 
 set -euo pipefail
@@ -27,6 +29,7 @@ CONDA_ENV="sssd"
 CONFIG=""
 BATCH_SIZE=""
 NUM_SAMPLES=""
+TRIALS=1
 DOES_UPDATE_CONDA_ENV="false"  # Default value for updating Conda environment
 
 # Parse command line arguments
@@ -42,6 +45,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     -n|--num_samples)
       NUM_SAMPLES="$2"
+      shift
+      ;;
+    -t|--trials)
+      TRIALS="$2"
       shift
       ;;
     -u|--update_conda_env)
@@ -71,6 +78,7 @@ fi
 INFERENCE_JOB_COMMANDS=(
   "${DIR}/infer.py"
   --config "${CONFIG}"
+  --trials "${TRIALS}"
 )
 if [[ -n "$NUM_SAMPLES" ]]; then
   INFERENCE_JOB_COMMANDS+=(--batch_size "$NUM_SAMPLES")
@@ -86,7 +94,7 @@ if [ -x "$(command -v conda)" ]; then
   fi
     source activate ${CONDA_ENV}
 else
-  echo -e "${FG_RED}"Conda is not installed."${FG_RESET}"
+  echo -e "${FG_RED}Conda is not installed.${FG_RESET}"
 fi
 
 # Execute training
