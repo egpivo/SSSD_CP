@@ -2,7 +2,7 @@
 FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime AS builder
 
 LABEL authors="Joseph Wang <egpivo@gmail.com>"\
-      version="0.0.5"
+      version="0.0.6"
 
 # Set the working directory in the container
 WORKDIR /sssd
