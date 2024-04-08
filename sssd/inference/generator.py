@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Optional, Union
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 import torch
@@ -49,6 +49,7 @@ class DiffusionGenerator:
         masking: str,
         missing_k: int,
         only_generate_missing: int,
+        saved_data_names: List[str] = ["imputation", "original", "mask"],
         logger: Optional[logging.Logger] = None,
     ):
         self.net = net
@@ -65,6 +66,7 @@ class DiffusionGenerator:
         self.output_directory = self._prepare_output_directory(
             output_directory, local_path, ckpt_iter
         )
+        self.saved_data_names = saved_data_names
         self._load_checkpoint(ckpt_path, ckpt_iter)
 
     def _load_checkpoint(self, ckpt_path: str, ckpt_iter: str) -> None:
@@ -108,18 +110,15 @@ class DiffusionGenerator:
 
     def _save_data(
         self,
-        generated_audio: np.ndarray,
-        batch: np.ndarray,
-        mask: np.ndarray,
+        results: Dict[str, np.ndarray],
         index: int,
     ) -> None:
         """Save generated_audio, batch, and mask data arrays."""
-        data_names = ["imputation", "original", "mask"]
-        data_arrays = [generated_audio, batch, mask]
 
-        for data, name in zip(data_arrays, data_names):
-            filename = f"{name}{index}.npy"
-            np.save(os.path.join(self.output_directory, filename), data)
+        for name, data in results.items():
+            if name in self.saved_data_names:
+                filename = f"{name}{index}.npy"
+                np.save(os.path.join(self.output_directory, filename), data)
 
     def generate(self) -> list:
         """Generate samples using the given neural network model."""
@@ -147,6 +146,11 @@ class DiffusionGenerator:
                 generated_audio[~mask.astype(bool)], batch[~mask.astype(bool)]
             )
             all_mses.append(mse)
-            self._save_data(generated_audio, batch, mask, index)
+            results = {
+                "imputation": generated_audio,
+                "original": batch,
+                "mask": mask,
+            }
+            self._save_data(results, index)
 
         return all_mses

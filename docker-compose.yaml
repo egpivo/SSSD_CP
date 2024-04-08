@@ -1,4 +1,4 @@
-version: "0.0.5"
+version: "0.0.6"
 services:
   sssd:
     image: egpivo/sssd:latest
@@ -11,6 +11,7 @@ services:
     environment:
       PORT: 8080
       CONFIG_FILE: "config_toy_example.json"  # Specify the new config file here, located in the configs/ directory
+      TRIALS: 2 # inference trials
     deploy:
       resources:
         reservations:

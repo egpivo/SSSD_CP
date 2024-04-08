@@ -2,7 +2,7 @@
 FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime AS builder
 
 LABEL authors="Joseph Wang <egpivo@gmail.com>"\
-      version="0.0.5"
+      version="0.0.6"
 
 # Set the working directory in the container
 WORKDIR /sssd
@@ -40,4 +40,4 @@ COPY --from=builder /sssd/bin bin/
 COPY --from=builder /sssd/scripts scripts/
 
 # Set the entrypoint
-ENTRYPOINT ["/bin/bash", "-c", "/bin/bash scripts/diffusion_process.sh --config configs/$CONFIG_FILE"]
+ENTRYPOINT ["/bin/bash", "-c", "/bin/bash scripts/diffusion_process.sh --config configs/$CONFIG_FILE --trials ${TRIALS}"]
