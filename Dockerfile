@@ -42,4 +42,4 @@ COPY --from=builder /sssd/bin bin/
 COPY --from=builder /sssd/scripts scripts/
 
 # Set the entrypoint
-ENTRYPOINT ["/bin/bash", "-c", "/bin/bash scripts/diffusion_process.sh --config configs/$CONFIG_FILE --trails ${TRIALS}"]
+ENTRYPOINT ["/bin/bash", "-c", "/bin/bash scripts/diffusion_process.sh --config configs/$CONFIG_FILE --trials ${TRIALS}"]
