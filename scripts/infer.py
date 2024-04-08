@@ -74,11 +74,10 @@ def run_job(
         net = nn.DataParallel(net)
 
     data_names = ["imputation", "original", "mask"]
+    directory = config["gen_config"]["output_directory"]
 
     if trials > 1:
-        directory = f'config["gen_config"]["output_directory"]_{{trial}}'
-    else:
-        directory = f'config["gen_config"]["output_directory"]'
+        directory += "_{trial}"
 
     for trial in range(1, trials + 1):
         LOGGER.info("The {trial}th inference trail")
