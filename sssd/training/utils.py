@@ -32,28 +32,31 @@ def training_loss(
     _dh = diffusion_hyperparams
     T, Alpha_bar = _dh["T"], _dh["Alpha_bar"]
 
-    audio, cond, mask, loss_mask = X
+    time_series, cond, mask, loss_mask = X
 
-    B, C, L = audio.shape  # B is batchsize, C=1, L is audio length
-    diffusion_steps = torch.randint(T, size=(B, 1, 1)).to(
-        device
-    )  # randomly sample diffusion steps from 1~T
+    # B is batch size, C=1, L is time_series length
+    B, C, L = time_series.shape
 
-    z = std_normal(audio.shape, device)
+    diffusion_steps = torch.randint(T, size=(B, 1, 1)).to(device)
+    z = std_normal(time_series.shape, device)
     if only_generate_missing:
-        z = audio * mask.float() + z * (1 - mask).float()
-    transformed_X = (
-        torch.sqrt(Alpha_bar[diffusion_steps]) * audio
+        z = time_series * mask.float() + z * (1 - mask).float()
+
+    # Compute x_t from q(x_t|x_0)
+    transformed_series = (
+        torch.sqrt(Alpha_bar[diffusion_steps]) * time_series
         + torch.sqrt(1 - Alpha_bar[diffusion_steps]) * z
-    )  # compute x_t from q(x_t|x_0)
+    )
+
+    # Predict \epsilon according to \epsilon_\theta
     epsilon_theta = net(
         (
-            transformed_X,
+            transformed_series,
             cond,
             mask,
             diffusion_steps.view(B, 1),
         )
-    )  # predict \epsilon according to \epsilon_\theta
+    )
 
     if only_generate_missing:
         return loss_fn(epsilon_theta[loss_mask], z[loss_mask])

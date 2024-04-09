@@ -90,15 +90,13 @@ def calc_diffusion_hyperparams(
         )  # \tilde{\beta}_t = \beta_t * (1-\bar{\alpha}_{t-1}) / (1-\bar{\alpha}_t)
     Sigma = torch.sqrt(Beta_tilde)  # \sigma_t^2  = \tilde{\beta}_t
 
-    diffusion_hyperparams = {
+    return {
         "T": T,
         "Beta": Beta.to(device),
         "Alpha": Alpha.to(device),
         "Alpha_bar": Alpha_bar.to(device),
         "Sigma": Sigma.to(device),
     }
-
-    return diffusion_hyperparams
 
 
 def std_normal(size: Tuple[int], device: str) -> torch.Tensor:

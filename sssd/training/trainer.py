@@ -108,7 +108,7 @@ class DiffusionTrainer:
         training_data = load_and_split_training_data(
             self.training_data_load, batch_num, self.batch_size, self.device
         )
-        self.logger.info("Data loaded with batch num - %s", batch_num)
+        self.logger.info(f"Data loaded with batch num - {batch_num}")
         return training_data, batch_num
 
     def _save_model(self, n_iter):
