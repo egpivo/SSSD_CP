@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from sssd.data.ar_generator import ArDataGenerator
+from sssd.data.ar_generator import ArDataGenerator, SeasonalityGenerator
 
 
 def test_generate():
@@ -63,3 +63,21 @@ def test_generate_invalid_season_period():
         _ = ArDataGenerator(
             coefficients, n_sample, std=std, seed=seed, season_period=season_period
         )
+
+
+def test_generate_sine_seasonality():
+    generator = SeasonalityGenerator(n_samples=100, season_period=12, seed=42)
+    seasonality = generator.generate_sine_seasonality()
+
+    assert isinstance(seasonality, np.ndarray)
+    assert len(seasonality) == 100
+    assert np.allclose(seasonality, np.sin(2 * np.pi * np.arange(100) / 12))
+
+
+def test_generate_cosine_seasonality():
+    generator = SeasonalityGenerator(n_samples=120, season_period=24, seed=42)
+    seasonality = generator.generate_cosine_seasonality()
+
+    assert isinstance(seasonality, np.ndarray)
+    assert len(seasonality) == 120
+    assert np.allclose(seasonality, np.cos(2 * np.pi * np.arange(120) / 24))
