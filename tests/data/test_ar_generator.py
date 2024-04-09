@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from sssd.data.ar_generator import ArDataGenerator
 
@@ -18,3 +19,12 @@ def test_generate():
         print("Actual output:", output)
         print("Expected output:", expected_output)
         raise
+
+
+def test_generate_invalid_coefficients():
+    coefficients = [1.2, 0.3, 0.4]
+    n_sample = 5
+    seed = 1
+
+    with pytest.raises(ValueError):
+        ArDataGenerator(coefficients, n_sample, seed)
