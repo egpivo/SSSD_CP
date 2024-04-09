@@ -3,6 +3,54 @@ from statsmodels.tools.validation import array_like
 from statsmodels.tsa.arima_process import ArmaProcess
 
 
+class SeasonalityGenerator:
+    """
+    Generates seasonal components for time series data.
+
+    Args:
+        n_samples (int): Number of samples in the time series.
+        season_period (int): Period of the seasonality component.
+        seed (int, optional): Seed for random number generation. Defaults to None.
+
+    Examples
+    --------
+    >>> generator = SeasonalityGenerator(n_samples=12, season_period=3, seed=42)
+    >>> seasonality = generator.generate_cosine_seasonality()
+    array([ 1. , -0.5, -0.5,  1. , -0.5, -0.5,  1. , -0.5, -0.5,  1. , -0.5,
+       -0.5])
+    """
+
+    def __init__(self, n_samples: int, season_period: int, seed: int = None) -> None:
+        """
+        Initialize the seasonality generator with the number of samples, seasonality period, and seed.
+        """
+        self.n_samples = n_samples
+        self.season_period = season_period
+        self.seed = seed
+
+    def generate_sine_seasonality(self) -> np.array:
+        """
+        Generate seasonality using a sine function.
+
+        Returns:
+            np.array: Seasonality component.
+        """
+        if self.seed:
+            np.random.seed(self.seed)
+        return np.sin(2 * np.pi * np.arange(self.n_samples) / self.season_period)
+
+    def generate_cosine_seasonality(self) -> np.array:
+        """
+        Generate seasonality using a cosine function.
+
+        Returns:
+            np.array: Seasonality component.
+        """
+        if self.seed:
+            np.random.seed(self.seed)
+        return np.cos(2 * np.pi * np.arange(self.n_samples) / self.season_period)
+
+
 class ArDataGenerator:
     """
     Generates autoregressive (AR) time series data.
@@ -13,6 +61,7 @@ class ArDataGenerator:
         std (float, optional): Standard deviation of the generated samples. Must be greater than zero. Defaults to 1.
         seed (int, optional): Seed for random number generation. Defaults to None.
         season_period (int, optional): Period of the seasonality component. If provided, seasonality is added to the generated data. Defaults to None.
+        seasonality_method (str, optional): Method to generate seasonality ("sine" or "cosine"). Defaults to "sine".
 
     Examples
     --------
@@ -28,9 +77,10 @@ class ArDataGenerator:
         std: float = 1,
         seed: int = None,
         season_period: int = None,
+        seasonality_method: str = "sine",
     ) -> None:
         """
-        Initialize the AR data generator with given coefficients, number of samples, standard deviation, and seasonality period.
+        Initialize the AR data generator with given coefficients, number of samples, standard deviation, seasonality period, and seed.
         """
         self._validate_inputs(n_sample, coefficients, std, season_period)
 
@@ -40,6 +90,7 @@ class ArDataGenerator:
         self.std = std
         self.seed = seed
         self.season_period = season_period
+        self.seasonality_method = seasonality_method
 
     @staticmethod
     def _validate_inputs(
@@ -59,6 +110,13 @@ class ArDataGenerator:
         if season_period is not None and season_period <= 0:
             raise ValueError("Seasonality period must be a positive integer.")
 
+    def _generate_seasonality(self):
+        generator = SeasonalityGenerator(self.n_sample, self.season_period, self.seed)
+        if self.seasonality_method == "sine":
+            return generator.generate_sine_seasonality()
+        elif self.seasonality_method == "cosine":
+            return generator.generate_cosine_seasonality()
+
     def generate(self) -> np.array:
         """
         Generate AR time series data with optional seasonality.
@@ -74,9 +132,7 @@ class ArDataGenerator:
         )
 
         if self.season_period:
-            seasonality = np.sin(
-                2 * np.pi * np.arange(self.n_sample) / self.season_period
-            )
+            seasonality = self._generate_seasonality()
             ar_process += seasonality
 
         return ar_process
