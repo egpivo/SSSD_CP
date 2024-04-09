@@ -19,21 +19,22 @@ class DiffusionTrainer:
     """
     Train Diffusion Models
 
-    Parameters:
-    -----------
-    output_directory (str):         Save model checkpoints to this path
-    ckpt_iter (int or 'max'):       The pretrained checkpoint to be loaded;
-                                    automatically selects the maximum iteration if 'max' is selected
-    n_iters (int):                  Number of iterations to train
-    iters_per_ckpt (int):           Number of iterations to save checkpoint,
-                                    default is 10k, for models with residual_channel=64 this number can be larger
-    iters_per_logging (int):        Number of iterations to save training log and compute validation loss, default is 100
-    learning_rate (float):          Learning rate
-    use_model (int):                0: DiffWave, 1: SSSDSA, 2: SSSDS4
-    only_generate_missing (int):    0: All sample diffusion,  1: Only apply diffusion to missing portions of the signal
-    masking (str):                  'mnr': Missing not at random, 'bm': Blackout missing, 'rm': Random missing
-    missing_k (int):                K missing time steps for each feature across the sample length
-    batch_size (int):               Size of each training batch
+    Args:
+        training_data_load (Any): The training data to be loaded
+        diffusion_hyperparams (Dict[str, Any]): Hyperparameters for the diffusion process
+        net (nn.Module): The neural network model to be trained
+        device (torch.device): The device to be used for training
+        output_directory (str): Directory to save model checkpoints
+        ckpt_iter (Optional[int]): The checkpoint iteration to be loaded; 'max' selects the maximum iteration
+        n_iters (int): Number of iterations to train
+        iters_per_ckpt (int): Number of iterations to save checkpoint
+        iters_per_logging (int): Number of iterations to save training log and compute validation loss
+        learning_rate (float): Learning rate for training
+        only_generate_missing (int): Option to generate missing portions of the signal only
+        masking (str): Type of masking strategy: 'mnr' for Missing Not at Random, 'bm' for Blackout Missing, 'rm' for Random Missing
+        missing_k (int): K missing time steps for each feature across the sample length
+        batch_size (int): Size of each training batch
+        logger (Optional[logging.Logger]): Logger object for logging, defaults to None
     """
 
     def __init__(
@@ -43,7 +44,7 @@ class DiffusionTrainer:
         net: nn.Module,
         device: torch.device,
         output_directory: str,
-        ckpt_iter: Optional[int],
+        ckpt_iter: Optional[int, str],
         n_iters: int,
         iters_per_ckpt: int,
         iters_per_logging: int,
@@ -55,7 +56,6 @@ class DiffusionTrainer:
         logger: Optional[logging.Logger] = None,
     ) -> None:
         self.training_data_load = training_data_load
-
         self.diffusion_hyperparams = diffusion_hyperparams
         self.net = nn.DataParallel(net).to(device)
         self.device = device
@@ -108,7 +108,7 @@ class DiffusionTrainer:
         training_data = load_and_split_training_data(
             self.training_data_load, batch_num, self.batch_size, self.device
         )
-        self.logger.info("Data loaded with batch num - %s", batch_num)
+        self.logger.info(f"Data loaded with batch num - {batch_num}")
         return training_data, batch_num
 
     def _save_model(self, n_iter):
