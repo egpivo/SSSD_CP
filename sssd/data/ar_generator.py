@@ -1,5 +1,6 @@
+from typing import Union
+
 import numpy as np
-from statsmodels.tools.validation import array_like
 from statsmodels.tsa.arima_process import ArmaProcess
 
 
@@ -62,22 +63,24 @@ class ArDataGenerator:
         seed (int, optional): Seed for random number generation. Defaults to None.
         season_period (int, optional): Period of the seasonality component. If provided, seasonality is added to the generated data. Defaults to None.
         seasonality_method (str, optional): Method to generate seasonality ("sine" or "cosine"). Defaults to "sine".
+        detrend (bool, optional): Whether to remove the mean trend from the generated data. Defaults to False.
 
     Examples
     --------
     >>> from sssd.data.ar_generator import ArDataGenerator
-    >>> ArDataGenerator([0.1, 0.2, 0.3], n_sample=3, std=1, seed=1, season_period=12).generate()
+    >>> ArDataGenerator([0.1, 0.2, 0.3], n_sample=3, std=1, seed=1, season_period=2).generate()
     array([1.62434536, -0.44932188, -0.2482348])
     """
 
     def __init__(
         self,
-        coefficients: array_like,
+        coefficients: Union[list, np.ndarray],
         n_sample: int,
         std: float = 1,
         seed: int = None,
         season_period: int = None,
         seasonality_method: str = "sine",
+        detrend: bool = False,
     ) -> None:
         """
         Initialize the AR data generator with given coefficients, number of samples, standard deviation, seasonality period, and seed.
@@ -91,10 +94,14 @@ class ArDataGenerator:
         self.seed = seed
         self.season_period = season_period
         self.seasonality_method = seasonality_method
+        self.detrend = detrend
 
     @staticmethod
     def _validate_inputs(
-        n_sample: int, coefficients: array_like, std: float, season_period: int
+        n_sample: int,
+        coefficients: Union[list, np.ndarray],
+        std: float,
+        season_period: int,
     ) -> None:
         """
         Validate input parameters.
@@ -107,22 +114,26 @@ class ArDataGenerator:
         if std <= 0:
             raise ValueError("Standard deviation (std) must be greater than zero.")
 
-        if season_period is not None and season_period <= 0:
-            raise ValueError("Seasonality period must be a positive integer.")
+        if season_period is not None and (
+            season_period <= 0 or season_period >= n_sample
+        ):
+            raise ValueError(
+                "Seasonality period must be a positive integer less than n_sample."
+            )
 
-    def _generate_seasonality(self):
+    def _generate_seasonality(self) -> np.ndarray:
         generator = SeasonalityGenerator(self.n_sample, self.season_period, self.seed)
         if self.seasonality_method == "sine":
             return generator.generate_sine_seasonality()
         elif self.seasonality_method == "cosine":
             return generator.generate_cosine_seasonality()
 
-    def generate(self) -> np.array:
+    def generate(self) -> np.ndarray:
         """
         Generate AR time series data with optional seasonality.
 
         Returns:
-            np.array: Generated time series data.
+            np.ndarray: Generated time series data.
         """
         if self.seed:
             np.random.seed(self.seed)
@@ -134,5 +145,8 @@ class ArDataGenerator:
         if self.season_period:
             seasonality = self._generate_seasonality()
             ar_process += seasonality
+
+        if self.detrend:
+            ar_process -= ar_process.mean(axis=0)
 
         return ar_process
