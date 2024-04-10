@@ -76,7 +76,7 @@ class DiffusionTrainer:
         if self.masking not in MASK_FN:
             raise KeyError(f"Please enter a correct masking, but got {self.masking}")
 
-    def _load_checkpoint(self):
+    def _load_checkpoint(self) -> None:
         if self.ckpt_iter == "max":
             self.ckpt_iter = find_max_epoch(self.output_directory)
         if self.ckpt_iter >= 0:
@@ -102,13 +102,12 @@ class DiffusionTrainer:
                 "No valid checkpoint model found, start training from initialization."
             )
 
-    def _prepare_training_data(self):
+    def _create_training_dataloader(self) -> DataLoader:
         dataset = TensorDataset(torch.from_numpy(self.training_data_load))
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
-        self.logger.info(f"Data loaded with batch size - {self.batch_size}")
         return dataloader
 
-    def _save_model(self, n_iter):
+    def _save_model(self, n_iter) -> None:
         if n_iter > 0 and n_iter % self.iters_per_ckpt == 0:
             torch.save(
                 {
@@ -118,7 +117,7 @@ class DiffusionTrainer:
                 os.path.join(self.output_directory, f"{n_iter}.pkl"),
             )
 
-    def _update_mask(self, batch):
+    def _update_mask(self, batch) -> None:
         transposed_mask = MASK_FN[self.masking](batch[0], self.missing_k)
         return (
             transposed_mask.permute(1, 0)
@@ -126,8 +125,8 @@ class DiffusionTrainer:
             .to(self.device, dtype=torch.float32)
         )
 
-    def _train_per_epoch(self, training_data):
-        for batch in training_data:
+    def _train_per_epoch(self) -> torch.Tensor:
+        for batch in self._create_training_dataloader():
             mask = self._update_mask(batch)
             loss_mask = ~mask.bool()
 
@@ -148,9 +147,8 @@ class DiffusionTrainer:
 
         return loss
 
-    def train(self):
+    def train(self) -> None:
         self._load_checkpoint()
-        training_data = self._prepare_training_data()
 
         n_iter_start = (
             self.ckpt_iter + 2 if self.ckpt_iter == -1 else self.ckpt_iter + 1
@@ -158,8 +156,7 @@ class DiffusionTrainer:
         self.logger.info(f"Start the {n_iter_start} iteration")
 
         for n_iter in range(n_iter_start, self.n_iters + 1):
-            loss = self._train_per_epoch(training_data)
-
+            loss = self._train_per_epoch()
             self.writer.add_scalar("Train/Loss", loss.item(), n_iter)
             if n_iter % self.iters_per_logging == 0:
                 self.logger.info(f"Iteration: {n_iter} \tLoss: { loss.item()}")
