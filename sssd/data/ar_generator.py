@@ -63,7 +63,7 @@ class ArDataGenerator:
         seed (int, optional): Seed for random number generation. Defaults to None.
         season_period (int, optional): Period of the seasonality component. If provided, seasonality is added to the generated data. Defaults to None.
         seasonality_method (str, optional): Method to generate seasonality ("sine" or "cosine"). Defaults to "sine".
-        does_remove_mean_trend (bool, optional): Whether to remove the mean trend from the generated data. Defaults to False.
+        detrend (bool, optional): Whether to remove the mean trend from the generated data. Defaults to False.
 
     Examples
     --------
@@ -80,7 +80,7 @@ class ArDataGenerator:
         seed: int = None,
         season_period: int = None,
         seasonality_method: str = "sine",
-        does_remove_mean_trend: bool = False,
+        detrend: bool = False,
     ) -> None:
         """
         Initialize the AR data generator with given coefficients, number of samples, standard deviation, seasonality period, and seed.
@@ -94,7 +94,7 @@ class ArDataGenerator:
         self.seed = seed
         self.season_period = season_period
         self.seasonality_method = seasonality_method
-        self.does_remove_mean_trend = does_remove_mean_trend
+        self.detrend = detrend
 
     @staticmethod
     def _validate_inputs(
@@ -146,7 +146,7 @@ class ArDataGenerator:
             seasonality = self._generate_seasonality()
             ar_process += seasonality
 
-        if self.does_remove_mean_trend:
+        if self.detrend:
             ar_process -= ar_process.mean(axis=0)
 
         return ar_process

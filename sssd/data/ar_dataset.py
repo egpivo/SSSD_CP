@@ -17,6 +17,7 @@ class ArDataset(Dataset):
         std_list (List[float], optional): List of standard deviations for the generated samples. If not provided, defaults to 1.
         season_period_list (List[int], optional): List of periods for the seasonality component for each AR process. If not provided, no seasonality is added.
         seed (int, optional): Seed for random number generation. Defaults to None.
+        detrend (bool, optional): Whether to detrend the generated data. Defaults to False.
 
     Examples
     --------
@@ -26,7 +27,7 @@ class ArDataset(Dataset):
     >>> std_list = [1, 0.8]
     >>> season_period_list = [12, 6]
     >>> seed = 123
-    >>> dataset = ArDataset(coefficients_list, n_sample, std_list, season_period_list, seed=seed)
+    >>> dataset = ArDataset(coefficients_list, n_sample, std_list, season_period_list, seed=seed, detrend=False)
     >>> next(iter(dataset))
     tensor([[-1.0856],
         [-0.8685]])
@@ -42,6 +43,7 @@ class ArDataset(Dataset):
         std_list: List[float] = None,
         season_period_list: List[int] = None,
         seed: int = None,
+        detrend: bool = False,
     ) -> None:
         self.n_processes = len(coefficients_list)
         self.coefficients_list = coefficients_list
@@ -49,6 +51,7 @@ class ArDataset(Dataset):
         self.std_list = std_list or [1] * self.n_processes
         self.season_period_list = season_period_list or [None] * self.n_processes
         self.seed = seed
+        self.detrend = detrend
 
         self.data = self._generate_data()
 
@@ -70,6 +73,7 @@ class ArDataset(Dataset):
                 std=std,
                 season_period=season_period,
                 seed=self.seed,
+                detrend=self.detrend,
             )
             data.append(generator.generate()[:, np.newaxis])
         return np.stack(data, axis=1).reshape(self.n_sample, self.n_processes, 1)
