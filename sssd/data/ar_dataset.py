@@ -43,11 +43,11 @@ class ArDataset(Dataset):
         season_period_list: List[int] = None,
         seed: int = None,
     ) -> None:
-        self.num_processes = len(coefficients_list)
+        self.n_processes = len(coefficients_list)
         self.coefficients_list = coefficients_list
         self.n_sample = n_sample
-        self.std_list = std_list or [1] * self.num_processes
-        self.season_period_list = season_period_list or [None] * self.num_processes
+        self.std_list = std_list or [1] * self.n_processes
+        self.season_period_list = season_period_list or [None] * self.n_processes
         self.seed = seed
 
         self.data = self._generate_data()
@@ -57,7 +57,7 @@ class ArDataset(Dataset):
         Generate AR time series data.
 
         Returns:
-            np.ndarray: Generated time series data with shape (n_sample, num_processes, 1).
+            np.ndarray: Generated time series data with shape (n_sample, n_processes, 1).
         """
 
         data = []
@@ -72,7 +72,7 @@ class ArDataset(Dataset):
                 seed=self.seed,
             )
             data.append(generator.generate()[:, np.newaxis])
-        return np.stack(data, axis=1).reshape(self.n_sample, self.num_processes, 1)
+        return np.stack(data, axis=1).reshape(self.n_sample, self.n_processes, 1)
 
     def __len__(self) -> int:
         """
