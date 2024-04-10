@@ -1,13 +1,13 @@
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.tensorboard import SummaryWriter
 
 from sssd.core.model_specs import MASK_FN
-from sssd.data.utils import load_and_split_training_data
 from sssd.training.utils import training_loss
 from sssd.utils.logger import setup_logger
 from sssd.utils.utils import find_max_epoch
@@ -44,7 +44,7 @@ class DiffusionTrainer:
         net: nn.Module,
         device: torch.device,
         output_directory: str,
-        ckpt_iter: Optional[int, str],
+        ckpt_iter: Optional[Union[int, str]],
         n_iters: int,
         iters_per_ckpt: int,
         iters_per_logging: int,
@@ -103,13 +103,10 @@ class DiffusionTrainer:
             )
 
     def _prepare_training_data(self):
-        training_size = self.training_data_load.shape[0]
-        batch_num = training_size // self.batch_size
-        training_data = load_and_split_training_data(
-            self.training_data_load, batch_num, self.batch_size, self.device
-        )
-        self.logger.info(f"Data loaded with batch num - {batch_num}")
-        return training_data, batch_num
+        dataset = TensorDataset(torch.from_numpy(self.training_data_load))
+        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
+        self.logger.info(f"Data loaded with batch size - {self.batch_size}")
+        return dataloader
 
     def _save_model(self, n_iter):
         if n_iter > 0 and n_iter % self.iters_per_ckpt == 0:
@@ -153,7 +150,7 @@ class DiffusionTrainer:
 
     def train(self):
         self._load_checkpoint()
-        training_data, batch_num = self._prepare_training_data()
+        training_data = self._prepare_training_data()
 
         n_iter_start = (
             self.ckpt_iter + 2 if self.ckpt_iter == -1 else self.ckpt_iter + 1
@@ -161,11 +158,6 @@ class DiffusionTrainer:
         self.logger.info(f"Start the {n_iter_start} iteration")
 
         for n_iter in range(n_iter_start, self.n_iters + 1):
-            if n_iter % batch_num == 0:
-                training_data = load_and_split_training_data(
-                    self.training_data_load, batch_num, self.batch_size, self.device
-                )
-
             loss = self._train_per_epoch(training_data)
 
             self.writer.add_scalar("Train/Loss", loss.item(), n_iter)
