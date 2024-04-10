@@ -28,7 +28,11 @@ class ArDataset(Dataset):
     >>> seed = 123
     >>> dataset = ArDataset(coefficients_list, n_sample, std_list, season_period_list, seed=seed)
     >>> next(iter(dataset))
-    tensor([-1.0856, -0.8685])
+    tensor([[-1.0856],
+        [-0.8685]])
+    >>> data = dataset._generate_data()
+    >>> print("Shape of generated data:", data.shape)
+    Shape of generated data: (120, 2, 1)
     """
 
     def __init__(
@@ -60,15 +64,15 @@ class ArDataset(Dataset):
         for coefficients, std, season_period in zip(
             self.coefficients_list, self.std_list, self.season_period_list
         ):
-            ar_gen = ArDataGenerator(
+            generator = ArDataGenerator(
                 coefficients=coefficients,
                 n_sample=self.n_sample,
                 std=std,
                 season_period=season_period,
                 seed=self.seed,
             )
-            data.append(ar_gen.generate()[:, np.newaxis])
-        return np.concatenate(data, axis=1)
+            data.append(generator.generate()[:, np.newaxis])
+        return np.stack(data, axis=1).reshape(self.n_sample, self.num_processes, 1)
 
     def __len__(self) -> int:
         """
