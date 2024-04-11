@@ -24,13 +24,6 @@ def fetch_args() -> argparse.Namespace:
         help="Path to the JSON file containing the configuration",
     )
     parser.add_argument(
-        "-n",
-        "--num_samples",
-        type=int,
-        default=1,
-        help="Number of utterances to be generated (default is 1)",
-    )
-    parser.add_argument(
         "-ckpt_iter",
         "--ckpt_iter",
         default="max",
@@ -54,17 +47,15 @@ def run_job(
     trials: int,
 ) -> None:
 
-    testing_data = load_testing_data(
-        config["trainset_config"]["test_data_path"], args.num_samples
-    )
+    testing_data = load_testing_data(config["data"]["test_data_path"], args.num_samples)
     local_path = MODEL_PATH_FORMAT.format(
-        T=config["diffusion_config"]["T"],
-        beta_0=config["diffusion_config"]["beta_0"],
-        beta_T=config["diffusion_config"]["beta_T"],
+        T=config["diffusion"]["T"],
+        beta_0=config["diffusion"]["beta_0"],
+        beta_T=config["diffusion"]["beta_T"],
     )
 
     diffusion_hyperparams = calc_diffusion_hyperparams(
-        **config["diffusion_config"], device=device
+        **config["diffusion"], device=device
     )
     LOGGER.info(display_current_time())
     net = setup_model(config, device)
@@ -74,7 +65,7 @@ def run_job(
         net = nn.DataParallel(net)
 
     data_names = ["imputation", "original", "mask"]
-    directory = config["gen_config"]["output_directory"]
+    directory = config["generation"]["output_directory"]
 
     if trials > 1:
         directory += "_{trial}"
@@ -90,12 +81,12 @@ def run_job(
             testing_data=testing_data,
             local_path=local_path,
             output_directory=directory.format(trial=trial) if trials > 1 else directory,
-            ckpt_path=config["gen_config"]["ckpt_path"],
+            ckpt_path=config["generation"]["ckpt_path"],
             ckpt_iter=ckpt_iter,
             num_samples=num_samples,
-            masking=config["train_config"]["masking"],
-            missing_k=config["train_config"]["missing_k"],
-            only_generate_missing=config["train_config"]["only_generate_missing"],
+            masking=config["training"]["masking"],
+            missing_k=config["training"]["missing_k"],
+            only_generate_missing=config["training"]["only_generate_missing"],
             saved_data_names=saved_data_names,
         ).generate()
 
@@ -115,5 +106,5 @@ if __name__ == "__main__":
     # Parse configs
     with open(args.config) as f:
         config = json.load(f)
-
-    run_job(config, device, args.num_samples, args.ckpt_iter, args.trials)
+    num_samples = config["common"]["test_batch_size"]
+    run_job(config, device, num_samples, args.ckpt_iter, args.trials)

@@ -6,14 +6,11 @@
 #    - Mandatory:
 #        - -c/--config: configuration path
 #    - Optional:
-#        - -b/--batch_size: batch size
-#        - -n/--num_samples: number of samples
 #        - -t/--trials: number of trials in the inference stage
 #        - -u/--update_conda_env: flag to update Conda environment
 #
 # Examples:
 #    - Execute the script: ./diffusion_process.sh -c configs/config_SSSDS4-NYISO-3-mix.json
-#    - Execute the script with batch size and number of samples: ./diffusion_process.sh -c configs/config_SSSDS4-NYISO-3-mix.json -b 32 -n 1000
 #    - Execute the script with 2 trials: ./diffusion_process.sh -c configs/config_SSSDS4-NYISO-3-mix.json -t 2
 #    - Execute the script with Conda environment update: ./diffusion_process.sh -c configs/config_SSSDS4-NYISO-3-mix.json -u
 #
@@ -27,8 +24,6 @@ source "${PACKAGE_BASE_PATH}/bin/exit_code.sh"
 CONDA_ENV="sssd"
 
 CONFIG=""
-BATCH_SIZE=""
-NUM_SAMPLES=""
 TRIALS=1
 DOES_UPDATE_CONDA_ENV="false"  # Default value for updating Conda environment
 
@@ -37,14 +32,6 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     -c|--config)
       CONFIG="$2"
-      shift
-      ;;
-    -b|--batch_size)
-      BATCH_SIZE="$2"
-      shift
-      ;;
-    -n|--num_samples)
-      NUM_SAMPLES="$2"
       shift
       ;;
     -t|--trials)
@@ -71,18 +58,12 @@ TRAINING_JOB_COMMANDS=(
   "${DIR}/train.py"
   --config "${CONFIG}"
 )
-if [[ -n "$BATCH_SIZE" ]]; then
-  TRAINING_JOB_COMMANDS+=(--batch_size "$BATCH_SIZE")
-fi
 
 INFERENCE_JOB_COMMANDS=(
   "${DIR}/infer.py"
   --config "${CONFIG}"
   --trials "${TRIALS}"
 )
-if [[ -n "$NUM_SAMPLES" ]]; then
-  INFERENCE_JOB_COMMANDS+=(--batch_size "$NUM_SAMPLES")
-fi
 
 # Initialize Conda environment if specified
 if [ -x "$(command -v conda)" ]; then

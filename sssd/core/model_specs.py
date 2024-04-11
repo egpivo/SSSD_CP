@@ -17,9 +17,9 @@ MODEL_PATH_FORMAT = "T{T}_beta0{beta_0}_betaT{beta_T}"
 
 
 def setup_model(config: dict, device: torch.device) -> torch.nn.Module:
-    use_model = config["train_config"]["use_model"]
+    use_model = config["training"]["use_model"]
     if use_model in (0, 2):
-        model_config = config["wavenet_config"]
+        model_config = config["wavenet"]
     elif use_model == 1:
         model_config = config["sashimi_config"]
     else:
