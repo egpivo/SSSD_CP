@@ -87,7 +87,7 @@ def load_and_split_training_data(
             "Batch size exceeds the total number of samples in the training data"
         )
 
-    indices = random.sample(range(training_data_load.shape[0]), batch_num * batch_size)
+    indices = random.sample(range(total_samples), batch_num * batch_size)
     training_data = training_data_load[indices]
     training_data = np.split(training_data, batch_num, 0)
     training_data = np.array(training_data)

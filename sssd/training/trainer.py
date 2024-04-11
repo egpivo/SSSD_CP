@@ -103,6 +103,7 @@ class DiffusionTrainer:
             )
 
     def _create_training_dataloader(self) -> DataLoader:
+        """The dataloader will produce without label part, i.e., a tuple of objects with length one for each batch."""
         dataset = TensorDataset(torch.from_numpy(self.training_data_load))
         dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         return dataloader
@@ -127,7 +128,7 @@ class DiffusionTrainer:
 
     def _train_per_epoch(self) -> torch.Tensor:
         for batch in self._create_training_dataloader():
-            mask = self._update_mask(batch)
+            mask = self._update_mask(batch[0])
             loss_mask = ~mask.bool()
 
             batch = batch.permute(0, 2, 1)
