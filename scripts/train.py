@@ -11,6 +11,7 @@ from sssd.utils.logger import setup_logger
 from sssd.utils.utils import calc_diffusion_hyperparams, display_current_time
 
 LOGGER = setup_logger()
+NUM_WORKERS = 16
 
 
 def fetch_args() -> argparse.Namespace:
@@ -53,7 +54,10 @@ def setup_output_directory(config: dict) -> str:
 def run_job(config: dict, device: torch.device, batch_size: int) -> None:
     output_directory = setup_output_directory(config)
     dataloader = get_dataloader(
-        config["trainset_config"]["train_data_path"], batch_size
+        config["trainset_config"]["train_data_path"],
+        batch_size,
+        device=device,
+        num_workers=NUM_WORKERS,
     )
 
     diffusion_hyperparams = calc_diffusion_hyperparams(
