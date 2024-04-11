@@ -127,8 +127,9 @@ class DiffusionTrainer:
         )
 
     def _train_per_epoch(self) -> torch.Tensor:
-        for batch in self._create_training_dataloader():
-            mask = self._update_mask(batch[0])
+        dataloader = self._create_training_dataloader()
+        for (batch,) in dataloader:
+            mask = self._update_mask(batch)
             loss_mask = ~mask.bool()
 
             batch = batch.permute(0, 2, 1)
