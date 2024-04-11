@@ -1,4 +1,5 @@
 import random
+from typing import Union
 
 import numpy as np
 import pandas as pd
@@ -99,7 +100,8 @@ def get_dataloader(
     path: str,
     batch_size: int,
     is_shuffle: bool = True,
-    num_workers: int = 4,
+    device: Union[str, torch.device] = "cpu",
+    num_workers: int = 8,
 ) -> DataLoader:
     """
     Get a PyTorch DataLoader for the dataset stored at the given path.
@@ -113,9 +115,11 @@ def get_dataloader(
         DataLoader: PyTorch DataLoader for the dataset.
     """
     dataset = TensorDataset(torch.from_numpy(np.load(path)))
+    pin_memory = device == "cuda" or device == torch.device("cuda")
     return DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=is_shuffle,
+        pin_memory=pin_memory,
         num_workers=num_workers,
     )

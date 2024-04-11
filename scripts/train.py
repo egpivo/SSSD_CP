@@ -31,7 +31,7 @@ def fetch_args() -> argparse.Namespace:
         help="Batch size",
     )
     parser.add_argument(
-        "-b",
+        "-n",
         "--num_workers",
         type=int,
         default=1,
@@ -65,6 +65,7 @@ def run_job(
     dataloader = get_dataloader(
         config["trainset_config"]["train_data_path"],
         batch_size,
+        device=device,
         num_workers=num_workers,
     )
 
