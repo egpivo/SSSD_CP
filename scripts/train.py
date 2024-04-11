@@ -11,7 +11,7 @@ from sssd.utils.logger import setup_logger
 from sssd.utils.utils import calc_diffusion_hyperparams, display_current_time
 
 LOGGER = setup_logger()
-NUM_WORKERS = 16
+NUM_WORKERS = 1
 
 
 def fetch_args() -> argparse.Namespace:
@@ -29,6 +29,13 @@ def fetch_args() -> argparse.Namespace:
         type=int,
         default=80,
         help="Batch size",
+    )
+    parser.add_argument(
+        "-b",
+        "--num_workers",
+        type=int,
+        default=1,
+        help="Number of workers",
     )
     return parser.parse_args()
 
@@ -51,13 +58,14 @@ def setup_output_directory(config: dict) -> str:
     return output_directory
 
 
-def run_job(config: dict, device: torch.device, batch_size: int) -> None:
+def run_job(
+    config: dict, device: torch.device, batch_size: int, num_workers: int
+) -> None:
     output_directory = setup_output_directory(config)
     dataloader = get_dataloader(
         config["trainset_config"]["train_data_path"],
         batch_size,
-        device=device,
-        num_workers=NUM_WORKERS,
+        num_workers=num_workers,
     )
 
     diffusion_hyperparams = calc_diffusion_hyperparams(
@@ -99,4 +107,4 @@ if __name__ == "__main__":
         LOGGER.info(f"Using {torch.cuda.device_count()} GPUs!")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    run_job(config, device, args.batch_size)
+    run_job(config, device, args.batch_size, args.num_workers)

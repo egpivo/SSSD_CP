@@ -122,6 +122,7 @@ class DiffusionTrainer:
 
     def _train_per_epoch(self) -> torch.Tensor:
         for (batch,) in self.dataloader:
+            batch = batch.to(self.device)
             mask = self._update_mask(batch)
             loss_mask = ~mask.bool()
 
