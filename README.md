@@ -26,7 +26,7 @@
     ```shell
     bash scripts/diffusion_process.sh --config {CONFIG_FILE_PATH}
     ```
-   - Example: `CONFIG_FILE_PATH=configs/config_toy_example.json`
+   - Example: `CONFIG_FILE_PATH=configs/toy_example.json`
 
 2. Run in a container:
    - Adjust `CONFIG_FILE` in `docker-compose.yaml`

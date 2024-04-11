@@ -3,6 +3,7 @@ import random
 import numpy as np
 import pandas as pd
 import torch
+from torch.utils.data import DataLoader, TensorDataset
 
 
 def merge_all_time(df: pd.DataFrame) -> pd.DataFrame:
@@ -92,3 +93,19 @@ def load_and_split_training_data(
     training_data = np.split(training_data, batch_num, 0)
     training_data = np.array(training_data)
     return torch.from_numpy(training_data).to(device, dtype=torch.float32)
+
+
+def get_dataloader(path: str, batch_size: int, is_shuffle: bool = True) -> DataLoader:
+    """
+    Get a PyTorch DataLoader for the dataset stored at the given path.
+
+    Args:
+        path (str): Path to the dataset file.
+        batch_size (int): Size of each batch.
+        is_shuffle (bool, optional): Whether to shuffle the dataset. Defaults to True.
+
+    Returns:
+        DataLoader: PyTorch DataLoader for the dataset.
+    """
+    dataset = TensorDataset(torch.from_numpy(np.load(path)))
+    return DataLoader(dataset, batch_size=batch_size, shuffle=is_shuffle)

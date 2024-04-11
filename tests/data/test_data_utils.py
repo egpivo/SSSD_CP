@@ -2,8 +2,10 @@ import numpy as np
 import pandas as pd
 import pytest
 import torch
+from torch.utils.data import DataLoader
 
 from sssd.data.utils import (
+    get_dataloader,
     load_and_split_training_data,
     load_testing_data,
     merge_all_time,
@@ -91,3 +93,27 @@ def test_load_and_split_training_data():
     # Assert that the function raises a ValueError when batch size is larger than available data
     with pytest.raises(ValueError):
         load_and_split_training_data(training_data_load, batch_num, batch_size, device)
+
+
+@pytest.fixture(scope="module")
+def temp_dataset():
+    # Create a temporary dataset file
+    dataset = np.random.rand(100, 5)  # Example dataset of shape (100, 5)
+    np.save("test_dataset.npy", dataset)
+    yield "test_dataset.npy"  # Provide the path to the temporary dataset file
+    # Clean up the temporary dataset file
+    import os
+
+    os.remove("test_dataset.npy")
+
+
+def test_get_dataloader(temp_dataset):
+    # Test loading the dataset
+    path = temp_dataset
+    batch_size = 10
+    dataloader = get_dataloader(path, batch_size, is_shuffle=False)
+
+    # Check if the DataLoader is correctly created
+    assert isinstance(dataloader, DataLoader)
+    assert len(dataloader.dataset) == 100
+    assert dataloader.batch_size == batch_size

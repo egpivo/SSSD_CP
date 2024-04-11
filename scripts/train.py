@@ -2,11 +2,10 @@ import argparse
 import json
 import os
 
-import numpy as np
 import torch
-from torch.utils.data import DataLoader, TensorDataset
 
 from sssd.core.model_specs import MODEL_PATH_FORMAT, setup_model
+from sssd.data.utils import get_dataloader
 from sssd.training.trainer import DiffusionTrainer
 from sssd.utils.logger import setup_logger
 from sssd.utils.utils import calc_diffusion_hyperparams, display_current_time
@@ -53,10 +52,9 @@ def setup_output_directory(config: dict) -> str:
 
 def run_job(config: dict, device: torch.device, batch_size: int) -> None:
     output_directory = setup_output_directory(config)
-
-    training_data_load = np.load(config["trainset_config"]["train_data_path"])
-    dataset = TensorDataset(torch.from_numpy(training_data_load))
-    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+    dataloader = get_dataloader(
+        config["trainset_config"]["train_data_path"], batch_size
+    )
 
     diffusion_hyperparams = calc_diffusion_hyperparams(
         **config["diffusion_config"], device=device
