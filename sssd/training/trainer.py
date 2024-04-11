@@ -4,7 +4,7 @@ from typing import Any, Dict, Optional, Union
 
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from sssd.core.model_specs import MASK_FN
@@ -20,26 +20,26 @@ class DiffusionTrainer:
     Train Diffusion Models
 
     Args:
-        training_data_load (Any): The training data to be loaded
-        diffusion_hyperparams (Dict[str, Any]): Hyperparameters for the diffusion process
-        net (nn.Module): The neural network model to be trained
-        device (torch.device): The device to be used for training
-        output_directory (str): Directory to save model checkpoints
-        ckpt_iter (Optional[int]): The checkpoint iteration to be loaded; 'max' selects the maximum iteration
-        n_iters (int): Number of iterations to train
-        iters_per_ckpt (int): Number of iterations to save checkpoint
-        iters_per_logging (int): Number of iterations to save training log and compute validation loss
-        learning_rate (float): Learning rate for training
-        only_generate_missing (int): Option to generate missing portions of the signal only
-        masking (str): Type of masking strategy: 'mnr' for Missing Not at Random, 'bm' for Blackout Missing, 'rm' for Random Missing
-        missing_k (int): K missing time steps for each feature across the sample length
-        batch_size (int): Size of each training batch
-        logger (Optional[logging.Logger]): Logger object for logging, defaults to None
+        dataloader (DataLoader): The training dataloader.
+        diffusion_hyperparams (Dict[str, Any]): Hyperparameters for the diffusion process.
+        net (nn.Module): The neural network model to be trained.
+        device (torch.device): The device to be used for training.
+        output_directory (str): Directory to save model checkpoints.
+        ckpt_iter (Optional[Union[int, str]]): The checkpoint iteration to be loaded; 'max' selects the maximum iteration.
+        n_iters (int): Number of iterations to train.
+        iters_per_ckpt (int): Number of iterations to save checkpoint.
+        iters_per_logging (int): Number of iterations to save training log and compute validation loss.
+        learning_rate (float): Learning rate for training.
+        only_generate_missing (int): Option to generate missing portions of the signal only.
+        masking (str): Type of masking strategy: 'mnr' for Missing Not at Random, 'bm' for Blackout Missing, 'rm' for Random Missing.
+        missing_k (int): K missing time steps for each feature across the sample length.
+        batch_size (int): Size of each training batch.
+        logger (Optional[logging.Logger]): Logger object for logging, defaults to None.
     """
 
     def __init__(
         self,
-        training_data_load: Any,
+        dataloader: DataLoader,
         diffusion_hyperparams: Dict[str, Any],
         net: nn.Module,
         device: torch.device,
@@ -55,7 +55,7 @@ class DiffusionTrainer:
         batch_size: int,
         logger: Optional[logging.Logger] = None,
     ) -> None:
-        self.training_data_load = training_data_load
+        self.dataloader = dataloader
         self.diffusion_hyperparams = diffusion_hyperparams
         self.net = nn.DataParallel(net).to(device)
         self.device = device
@@ -102,13 +102,7 @@ class DiffusionTrainer:
                 "No valid checkpoint model found, start training from initialization."
             )
 
-    def _create_training_dataloader(self) -> DataLoader:
-        """The dataloader will produce without label part, i.e., a tuple of objects with length one for each batch."""
-        dataset = TensorDataset(torch.from_numpy(self.training_data_load))
-        dataloader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
-        return dataloader
-
-    def _save_model(self, n_iter) -> None:
+    def _save_model(self, n_iter: int) -> None:
         if n_iter > 0 and n_iter % self.iters_per_ckpt == 0:
             torch.save(
                 {
@@ -118,7 +112,7 @@ class DiffusionTrainer:
                 os.path.join(self.output_directory, f"{n_iter}.pkl"),
             )
 
-    def _update_mask(self, batch) -> None:
+    def _update_mask(self, batch: torch.Tensor) -> torch.Tensor:
         transposed_mask = MASK_FN[self.masking](batch[0], self.missing_k)
         return (
             transposed_mask.permute(1, 0)
@@ -127,8 +121,7 @@ class DiffusionTrainer:
         )
 
     def _train_per_epoch(self) -> torch.Tensor:
-        dataloader = self._create_training_dataloader()
-        for (batch,) in dataloader:
+        for (batch,) in self.dataloader:
             mask = self._update_mask(batch)
             loss_mask = ~mask.bool()
 
