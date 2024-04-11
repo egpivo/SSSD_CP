@@ -33,7 +33,7 @@
     },
     "trainset_config":{
         "train_data_path": "./datasets/NYISO/mix/load_array_mix_train_stdd.npy",
-        "test_data_path": "./datasets/NYISO/mix/load_array_mix_test_stdd.npy",
+        "test_data_path": "./datasets/NYISO/mix/load_array_mix_test_stdd.npy"
     },
     "gen_config":{
 	    "output_directory": "./results/NYISO_3_mix",
