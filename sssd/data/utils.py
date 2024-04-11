@@ -110,11 +110,13 @@ def get_dataloader(
         path (str): Path to the dataset file.
         batch_size (int): Size of each batch.
         is_shuffle (bool, optional): Whether to shuffle the dataset. Defaults to True.
+        device (Union[str, torch.device], optional): Device to move the data to. Defaults to "cpu".
+        num_workers (int, optional): Number of subprocesses to use for data loading. Defaults to 8.
 
     Returns:
         DataLoader: PyTorch DataLoader for the dataset.
     """
-    dataset = TensorDataset(torch.from_numpy(np.load(path)))
+    dataset = TensorDataset(torch.from_numpy(np.load(path)).to(dtype=torch.float32))
     pin_memory = device == "cuda" or device == torch.device("cuda")
     return DataLoader(
         dataset,
