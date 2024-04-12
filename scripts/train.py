@@ -2,15 +2,16 @@ import argparse
 import json
 import os
 
-import numpy as np
 import torch
 
 from sssd.core.model_specs import MODEL_PATH_FORMAT, setup_model
+from sssd.data.utils import get_dataloader
 from sssd.training.trainer import DiffusionTrainer
 from sssd.utils.logger import setup_logger
 from sssd.utils.utils import calc_diffusion_hyperparams, display_current_time
 
 LOGGER = setup_logger()
+NUM_WORKERS = 1
 
 
 def fetch_args() -> argparse.Namespace:
@@ -22,26 +23,17 @@ def fetch_args() -> argparse.Namespace:
         default="configs/SSSDS4.json",
         help="JSON file for configuration",
     )
-    parser.add_argument(
-        "-b",
-        "--batch_size",
-        type=int,
-        default=80,
-        help="Batch size",
-    )
     return parser.parse_args()
 
 
 def setup_output_directory(config: dict) -> str:
     # Build output directory
     local_path = MODEL_PATH_FORMAT.format(
-        T=config["diffusion_config"]["T"],
-        beta_0=config["diffusion_config"]["beta_0"],
-        beta_T=config["diffusion_config"]["beta_T"],
+        T=config["diffusion"]["T"],
+        beta_0=config["diffusion"]["beta_0"],
+        beta_T=config["diffusion"]["beta_T"],
     )
-    output_directory = os.path.join(
-        config["train_config"]["output_directory"], local_path
-    )
+    output_directory = os.path.join(config["training"]["output_directory"], local_path)
 
     if not os.path.isdir(output_directory):
         os.makedirs(output_directory)
@@ -50,29 +42,37 @@ def setup_output_directory(config: dict) -> str:
     return output_directory
 
 
-def run_job(config: dict, device: torch.device, batch_size: int) -> None:
+def run_job(config: dict, device: torch.device) -> None:
     output_directory = setup_output_directory(config)
-    training_data_load = np.load(config["trainset_config"]["train_data_path"])
+    batch_size = config["common"]["train_batch_size"]
+    num_workers = config["common"]["num_workers"]
+    dataloader = get_dataloader(
+        config["data"]["train_data_path"],
+        batch_size,
+        device=device,
+        num_workers=num_workers,
+    )
+
     diffusion_hyperparams = calc_diffusion_hyperparams(
-        **config["diffusion_config"], device=device
+        **config["diffusion"], device=device
     )
     net = setup_model(config, device)
 
     LOGGER.info(display_current_time())
     trainer = DiffusionTrainer(
-        training_data_load=training_data_load,
+        dataloader=dataloader,
         diffusion_hyperparams=diffusion_hyperparams,
         net=net,
         device=device,
         output_directory=output_directory,
-        ckpt_iter=config["train_config"].get("ckpt_iter"),
-        n_iters=config["train_config"].get("n_iters"),
-        iters_per_ckpt=config["train_config"].get("iters_per_ckpt"),
-        iters_per_logging=config["train_config"].get("iters_per_logging"),
-        learning_rate=config["train_config"].get("learning_rate"),
-        only_generate_missing=config["train_config"].get("only_generate_missing"),
-        masking=config["train_config"].get("masking"),
-        missing_k=config["train_config"].get("missing_k"),
+        ckpt_iter=config["training"].get("ckpt_iter"),
+        n_iters=config["training"].get("n_iters"),
+        iters_per_ckpt=config["training"].get("iters_per_ckpt"),
+        iters_per_logging=config["training"].get("iters_per_logging"),
+        learning_rate=config["training"].get("learning_rate"),
+        only_generate_missing=config["training"].get("only_generate_missing"),
+        masking=config["training"].get("masking"),
+        missing_k=config["training"].get("missing_k"),
         batch_size=batch_size,
         logger=LOGGER,
     )
@@ -92,4 +92,4 @@ if __name__ == "__main__":
         LOGGER.info(f"Using {torch.cuda.device_count()} GPUs!")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    run_job(config, device, args.batch_size)
+    run_job(config, device)

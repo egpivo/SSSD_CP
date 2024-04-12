@@ -1,5 +1,10 @@
 {
-    "diffusion_config":{
+    "common": {
+        "train_batch_size": 80,
+        "test_batch_size": 200,
+        "num_workers": 4
+    },
+    "diffusion":{
         "T": 200,
         "beta_0": 0.0001,
         "beta_T": 0.02
@@ -20,25 +25,24 @@
         "s4_dropout":0.0,
         "s4_bidirectional":1
     },
-    "train_config": {
+    "training": {
         "output_directory": "/",
         "ckpt_iter": "max",
         "iters_per_ckpt": 2000,
         "iters_per_logging": 100,
         "n_iters": 200000,
         "learning_rate": 2e-4,
-        "batch_size_per_gpu": 80,
         "only_generate_missing": 1,
         "use_model": 2,
         "masking": "bm",
         "missing_k": 200
     },
-    "trainset_config":{
+    "data":{
         "data_path": "/",
         "segment_length": 1000,
         "sampling_rate": 100
     },
-    "gen_config":{
+    "generation":{
         "output_directory": "/",
         "ckpt_path": "//"
     }

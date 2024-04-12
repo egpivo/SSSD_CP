@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "sssd"
-version = "0.0.6"
+version = "0.0.7"
 description = ""
 authors = [
     "Yu-Ting Fan <ytfan.st07g@nctu.edu.tw>",

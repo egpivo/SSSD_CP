@@ -31,7 +31,7 @@ config = json.loads(data)
 print(config)
 
 global model_config
-model_config = config["wavenet_config"]
+model_config = config["wavenet"]
 net = SSSDS4Imputer(**model_config).cuda()
 
 # load checkpoint

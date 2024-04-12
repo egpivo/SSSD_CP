@@ -1,8 +1,10 @@
 import random
+from typing import Union
 
 import numpy as np
 import pandas as pd
 import torch
+from torch.utils.data import DataLoader, TensorDataset
 
 
 def merge_all_time(df: pd.DataFrame) -> pd.DataFrame:
@@ -87,8 +89,39 @@ def load_and_split_training_data(
             "Batch size exceeds the total number of samples in the training data"
         )
 
-    indices = random.sample(range(training_data_load.shape[0]), batch_num * batch_size)
+    indices = random.sample(range(total_samples), batch_num * batch_size)
     training_data = training_data_load[indices]
     training_data = np.split(training_data, batch_num, 0)
     training_data = np.array(training_data)
     return torch.from_numpy(training_data).to(device, dtype=torch.float32)
+
+
+def get_dataloader(
+    path: str,
+    batch_size: int,
+    is_shuffle: bool = True,
+    device: Union[str, torch.device] = "cpu",
+    num_workers: int = 8,
+) -> DataLoader:
+    """
+    Get a PyTorch DataLoader for the dataset stored at the given path.
+
+    Args:
+        path (str): Path to the dataset file.
+        batch_size (int): Size of each batch.
+        is_shuffle (bool, optional): Whether to shuffle the dataset. Defaults to True.
+        device (Union[str, torch.device], optional): Device to move the data to. Defaults to "cpu".
+        num_workers (int, optional): Number of subprocesses to use for data loading. Defaults to 8.
+
+    Returns:
+        DataLoader: PyTorch DataLoader for the dataset.
+    """
+    dataset = TensorDataset(torch.from_numpy(np.load(path)).to(dtype=torch.float32))
+    pin_memory = device == "cuda" or device == torch.device("cuda")
+    return DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=is_shuffle,
+        pin_memory=pin_memory,
+        num_workers=num_workers,
+    )

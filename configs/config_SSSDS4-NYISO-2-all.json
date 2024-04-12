@@ -1,10 +1,15 @@
 {
-    "diffusion_config":{
+    "common": {
+        "train_batch_size": 80,
+        "test_batch_size": 200,
+        "num_workers": 4
+    },
+    "diffusion":{
         "T": 200,
         "beta_0": 0.0001,
         "beta_T": 0.02
     },
-    "wavenet_config": {
+    "wavenet": {
         "in_channels":11,
 	    "out_channels":11,
         "num_res_layers": 36,
@@ -19,7 +24,7 @@
         "s4_bidirectional":1,
         "s4_layernorm":1
     },
-    "train_config": {
+    "training": {
         "output_directory": "./results/NYISO_2_all",
         "ckpt_iter": "max",
         "iters_per_ckpt": 10000,
@@ -31,13 +36,13 @@
         "masking": "forecast",
         "missing_k": 24
     },
-    "trainset_config":{
+    "data":{
         "train_data_path": "./datasets/NYISO/dataset_2/all/all_pre_train_data_stdd.npy",
         "test_data_path": "./datasets/NYISO/dataset_2/all/all_test_data_0_stdd.npy",
         "segment_length":100,
         "sampling_rate": 100
     },
-    "gen_config":{
+    "generation":{
 	    "output_directory": "./results/NYISO_2_all",
         "ckpt_path": "./results/NYISO_2_all"
     }

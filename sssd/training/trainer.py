@@ -4,10 +4,10 @@ from typing import Any, Dict, Optional
 
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from sssd.core.model_specs import MASK_FN
-from sssd.data.utils import load_and_split_training_data
 from sssd.training.utils import training_loss
 from sssd.utils.logger import setup_logger
 from sssd.utils.utils import find_max_epoch
@@ -20,31 +20,31 @@ class DiffusionTrainer:
     Train Diffusion Models
 
     Args:
-        training_data_load (Any): The training data to be loaded
-        diffusion_hyperparams (Dict[str, Any]): Hyperparameters for the diffusion process
-        net (nn.Module): The neural network model to be trained
-        device (torch.device): The device to be used for training
-        output_directory (str): Directory to save model checkpoints
-        ckpt_iter (Optional[int]): The checkpoint iteration to be loaded; 'max' selects the maximum iteration
-        n_iters (int): Number of iterations to train
-        iters_per_ckpt (int): Number of iterations to save checkpoint
-        iters_per_logging (int): Number of iterations to save training log and compute validation loss
-        learning_rate (float): Learning rate for training
-        only_generate_missing (int): Option to generate missing portions of the signal only
-        masking (str): Type of masking strategy: 'mnr' for Missing Not at Random, 'bm' for Blackout Missing, 'rm' for Random Missing
-        missing_k (int): K missing time steps for each feature across the sample length
-        batch_size (int): Size of each training batch
-        logger (Optional[logging.Logger]): Logger object for logging, defaults to None
+        dataloader (DataLoader): The training dataloader.
+        diffusion_hyperparams (Dict[str, Any]): Hyperparameters for the diffusion process.
+        net (nn.Module): The neural network model to be trained.
+        device (torch.device): The device to be used for training.
+        output_directory (str): Directory to save model checkpoints.
+        ckpt_iter (Optional[Union[int, str]]): The checkpoint iteration to be loaded; 'max' selects the maximum iteration.
+        n_iters (int): Number of iterations to train.
+        iters_per_ckpt (int): Number of iterations to save checkpoint.
+        iters_per_logging (int): Number of iterations to save training log and compute validation loss.
+        learning_rate (float): Learning rate for training.
+        only_generate_missing (int): Option to generate missing portions of the signal only.
+        masking (str): Type of masking strategy: 'mnr' for Missing Not at Random, 'bm' for Blackout Missing, 'rm' for Random Missing.
+        missing_k (int): K missing time steps for each feature across the sample length.
+        batch_size (int): Size of each training batch.
+        logger (Optional[logging.Logger]): Logger object for logging, defaults to None.
     """
 
     def __init__(
         self,
-        training_data_load: Any,
+        dataloader: DataLoader,
         diffusion_hyperparams: Dict[str, Any],
         net: nn.Module,
         device: torch.device,
         output_directory: str,
-        ckpt_iter: Optional[int, str],
+        ckpt_iter: Any,
         n_iters: int,
         iters_per_ckpt: int,
         iters_per_logging: int,
@@ -55,7 +55,7 @@ class DiffusionTrainer:
         batch_size: int,
         logger: Optional[logging.Logger] = None,
     ) -> None:
-        self.training_data_load = training_data_load
+        self.dataloader = dataloader
         self.diffusion_hyperparams = diffusion_hyperparams
         self.net = nn.DataParallel(net).to(device)
         self.device = device
@@ -76,7 +76,7 @@ class DiffusionTrainer:
         if self.masking not in MASK_FN:
             raise KeyError(f"Please enter a correct masking, but got {self.masking}")
 
-    def _load_checkpoint(self):
+    def _load_checkpoint(self) -> None:
         if self.ckpt_iter == "max":
             self.ckpt_iter = find_max_epoch(self.output_directory)
         if self.ckpt_iter >= 0:
@@ -102,16 +102,7 @@ class DiffusionTrainer:
                 "No valid checkpoint model found, start training from initialization."
             )
 
-    def _prepare_training_data(self):
-        training_size = self.training_data_load.shape[0]
-        batch_num = training_size // self.batch_size
-        training_data = load_and_split_training_data(
-            self.training_data_load, batch_num, self.batch_size, self.device
-        )
-        self.logger.info(f"Data loaded with batch num - {batch_num}")
-        return training_data, batch_num
-
-    def _save_model(self, n_iter):
+    def _save_model(self, n_iter: int) -> None:
         if n_iter > 0 and n_iter % self.iters_per_ckpt == 0:
             torch.save(
                 {
@@ -121,7 +112,7 @@ class DiffusionTrainer:
                 os.path.join(self.output_directory, f"{n_iter}.pkl"),
             )
 
-    def _update_mask(self, batch):
+    def _update_mask(self, batch: torch.Tensor) -> torch.Tensor:
         transposed_mask = MASK_FN[self.masking](batch[0], self.missing_k)
         return (
             transposed_mask.permute(1, 0)
@@ -129,8 +120,9 @@ class DiffusionTrainer:
             .to(self.device, dtype=torch.float32)
         )
 
-    def _train_per_epoch(self, training_data):
-        for batch in training_data:
+    def _train_per_epoch(self) -> torch.Tensor:
+        for (batch,) in self.dataloader:
+            batch = batch.to(self.device)
             mask = self._update_mask(batch)
             loss_mask = ~mask.bool()
 
@@ -151,9 +143,8 @@ class DiffusionTrainer:
 
         return loss
 
-    def train(self):
+    def train(self) -> None:
         self._load_checkpoint()
-        training_data, batch_num = self._prepare_training_data()
 
         n_iter_start = (
             self.ckpt_iter + 2 if self.ckpt_iter == -1 else self.ckpt_iter + 1
@@ -161,13 +152,7 @@ class DiffusionTrainer:
         self.logger.info(f"Start the {n_iter_start} iteration")
 
         for n_iter in range(n_iter_start, self.n_iters + 1):
-            if n_iter % batch_num == 0:
-                training_data = load_and_split_training_data(
-                    self.training_data_load, batch_num, self.batch_size, self.device
-                )
-
-            loss = self._train_per_epoch(training_data)
-
+            loss = self._train_per_epoch()
             self.writer.add_scalar("Train/Loss", loss.item(), n_iter)
             if n_iter % self.iters_per_logging == 0:
                 self.logger.info(f"Iteration: {n_iter} \tLoss: { loss.item()}")
