@@ -53,11 +53,7 @@ def load_testing_data(test_data_path: str, num_samples: int) -> torch.Tensor:
     testing_data = np.load(test_data_path)
 
     # Split testing data into batches
-    split_length = testing_data.shape[0] // num_samples * num_samples
-    # Trim the array to ensure an equal division
-    trimmed_data = testing_data[:split_length]
-    # Split the trimmed array into equal parts
-    testing_data_batches = np.split(trimmed_data, num_samples)
+    testing_data_batches = np.split(testing_data, testing_data.shape[0] // num_samples)
 
     # Convert to numpy array and then to torch tensor
     testing_data_tensor = torch.from_numpy(np.array(testing_data_batches)).float()
