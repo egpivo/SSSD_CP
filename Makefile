@@ -40,7 +40,7 @@ run-toy_example: install
 
 ## Docker commands
 build-docker:
-	docker build -t $(DOCKER_USERNAME)/sssd:latest -f envs/docker/Dockerfile.local .
+	docker build -t $(DOCKER_USERNAME)/sssd:latest -f Dockerfile .
 
 push-docker:
 	docker tag $(DOCKER_USERNAME)/sssd:latest $(DOCKER_USERNAME)/sssd:latest
