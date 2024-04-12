@@ -44,7 +44,7 @@ class DiffusionTrainer:
         net: nn.Module,
         device: torch.device,
         output_directory: str,
-        ckpt_iter: Optional[int, str],
+        ckpt_iter: Any,
         n_iters: int,
         iters_per_ckpt: int,
         iters_per_logging: int,
