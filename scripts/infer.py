@@ -47,7 +47,7 @@ def run_job(
     trials: int,
 ) -> None:
 
-    testing_data = load_testing_data(config["data"]["test_data_path"], args.num_samples)
+    testing_data = load_testing_data(config["data"]["test_data_path"], num_samples)
     local_path = MODEL_PATH_FORMAT.format(
         T=config["diffusion"]["T"],
         beta_0=config["diffusion"]["beta_0"],
