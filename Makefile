@@ -23,7 +23,7 @@ clean-docker:
 
 ## Installation
 install: clean
-	$(EXECUTABLE) poetry install
+	$(SHELL) envs/conda/build_conda_env.sh -c sssd
 
 ## Activate Conda environment
 activate-conda-env: install
