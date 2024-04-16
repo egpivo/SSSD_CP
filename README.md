@@ -12,7 +12,7 @@
 
 
 ## Dataset
-1. The NYISO dataset can be downloaded from [here](https://www.nyiso.com/).
+1. The NYISO dataset can be downloaded from [here](https://www.nyiso.com/) but may require access from a US IP address.
 2. The cleaned data created by the author can be downloaded from [this link](https://drive.google.com/drive/folders/1dwPkBIHSikhQ5ru3HPQiILSnaGAtP3Yr?usp=sharing).
 
    Note that the cleaned data is created following the scripts in `notebooks/dataset_script/nyiso-csv-to-pickle.ipynb` and `notebooks/dataset_script/nyiso-load-pickle-to-npy.ipynb`.
@@ -61,12 +61,8 @@
    ![img_4.png](docs/images/img_4.png)
 
 ## Suggestions
-1. Use `CUDA_VISIBLE_DEVICES` to specify the number of GPUs. Both training and inference require the same number of GPUs.
-2. Use the sample size as the parameter --num_samples in the inference section.
-   - Example:
-        ```bash
-        python sssd/infer.py -c configs/config_SSSDS4-NYISO-3-mix.json --num_samples=128
-        ``````
+- Use `CUDA_VISIBLE_DEVICES` to specify the number of GPUs. Both training and inference require the same number of GPUs.
+
 
 
 ## References

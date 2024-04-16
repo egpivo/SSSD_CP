@@ -106,5 +106,5 @@ if __name__ == "__main__":
     # Parse configs
     with open(args.config) as f:
         config = json.load(f)
-    num_samples = config["common"]["test_batch_size"]
+    num_samples = config["common"]["inference_batch_size"]
     run_job(config, device, num_samples, args.ckpt_iter, args.trials)

@@ -35,9 +35,8 @@ def read_multiple_imputations(folder_path: str, missing_k: int) -> np.ndarray:
         # shape = (obs, channel, length) -> (1, obs, channel, length)
         array_data = read_missing_k_data(folder_path, npy_file, missing_k)
         if array_data is not None:
-            array_data = np.expand_dims(
-                array_data, axis=0
-            )  # Add a new axis for stacking
+            # Add a new axis for stacking
+            array_data = np.expand_dims(array_data, axis=0)
             stack_array_data.append(array_data)
 
     if not stack_array_data:
