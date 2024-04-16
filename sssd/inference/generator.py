@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Dict, List, Optional, Union
+from typing import Dict, Iterable, Optional, Union
 
 import numpy as np
 import torch
@@ -49,7 +49,7 @@ class DiffusionGenerator:
         masking: str,
         missing_k: int,
         only_generate_missing: int,
-        saved_data_names: List[str] = ["imputation", "original", "mask"],
+        saved_data_names: Iterable[str] = ("imputation", "original", "mask"),
         logger: Optional[logging.Logger] = None,
     ):
         self.net = net
@@ -113,7 +113,7 @@ class DiffusionGenerator:
         results: Dict[str, np.ndarray],
         index: int,
     ) -> None:
-        """Save generated_audio, batch, and mask data arrays."""
+        """Save generated_series, batch, and mask data arrays."""
 
         for name, data in results.items():
             if name in self.saved_data_names:
@@ -129,25 +129,29 @@ class DiffusionGenerator:
             sample_length = batch.size(2)
             sample_channels = batch.size(1)
 
-            generated_audio = sampling(
-                self.net,
-                (self.num_samples, sample_channels, sample_length),
-                self.diffusion_hyperparams,
-                cond=batch,
-                mask=mask,
-                only_generate_missing=self.only_generate_missing,
-                device=self.device,
+            generated_series = (
+                sampling(
+                    self.net,
+                    (self.num_samples, sample_channels, sample_length),
+                    self.diffusion_hyperparams,
+                    cond=batch,
+                    mask=mask,
+                    only_generate_missing=self.only_generate_missing,
+                    device=self.device,
+                )
+                .detach()
+                .cpu()
+                .numpy()
             )
 
-            generated_audio = generated_audio.detach().cpu().numpy()
             batch = batch.detach().cpu().numpy()
             mask = mask.detach().cpu().numpy()
             mse = mean_squared_error(
-                generated_audio[~mask.astype(bool)], batch[~mask.astype(bool)]
+                generated_series[~mask.astype(bool)], batch[~mask.astype(bool)]
             )
             all_mses.append(mse)
             results = {
-                "imputation": generated_audio,
+                "imputation": generated_series,
                 "original": batch,
                 "mask": mask,
             }
