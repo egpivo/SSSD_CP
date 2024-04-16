@@ -66,60 +66,81 @@ def read_missing_k_data(folder_path: str, npy_file: str, missing_k: int) -> np.n
     return last_k_elements
 
 
-def predict_interval(pred, beta=0.05):
+def predict_interval(
+    pred: np.ndarray, alpha: float = 0.05
+) -> tuple[np.ndarray, np.ndarray]:
     """
-    goal: compute the (1-alpha) quantile of imputation ecdf, i.e, prediction interval
-    output: lower bound and upper bound, shape: (obs, channel, length)
-    input:
-        pred = all data, shape(number of imputation files, obs, channel, length)
-        beta = significance level of original prediction interval
+    Compute the (1-alpha) quantile prediction interval of imputation ecdf.
+
+    Args:
+        pred (np.ndarray): All data with shape (num_imputations, obs, channel, length).
+        alpha (float, optional): Significance level of the prediction interval. Defaults to 0.05.
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]: Lower and upper bounds of the prediction interval with shape (obs, channel, length).
     """
-    # compute original prediction intervals
-    L = np.quantile(pred, beta / 2, axis=0)
-    U = np.quantile(pred, 1 - beta / 2, axis=0)
+    # Compute original prediction intervals
+    L = np.quantile(pred, alpha / 2, axis=0)
+    U = np.quantile(pred, 1 - alpha / 2, axis=0)
 
     return L, U
 
 
-def compute_E_star(L, U, true, alpha=0.05):
+def compute_E_star(
+    L: np.ndarray, U: np.ndarray, true: np.ndarray, alpha: float = 0.05
+) -> np.ndarray:
     """
-    goal: compute the (1-alpha) quantile of conformity scores, i.e, E_star
-    output: E_star, shape: (channel, length)
-    input:
-        L = lower bound to be adjusted, shape: (obs, channel, length)
-        U = upper bound to be adjusted, shape: (obs, channel, length)
-        alpha = miscoverage rate of conformal prediction
+    Compute the (1-alpha) quantile of conformity scores, i.e., E_star.
+
+    Args:
+        L (np.ndarray): Lower bound to be adjusted with shape (obs, channel, length).
+        U (np.ndarray): Upper bound to be adjusted with shape (obs, channel, length).
+        true (np.ndarray): True values with shape (obs, channel, length).
+        alpha (float, optional): Mis-coverage rate of conformal prediction. Defaults to 0.05.
+
+    Returns:
+        np.ndarray: E_star with shape (channel, length).
     """
-    # compute the conformity scores
+    # Compute the conformity scores
     E = np.maximum(L - true, true - U)
 
-    # compute the (1-alpha) quantile of conformity scores
+    # Compute the (1-alpha) quantile of conformity scores
     CP_PAR = (1 + 1 / true.shape[0]) * (1 - alpha)
     E_star = np.quantile(E, CP_PAR, axis=0)
-
     return E_star
 
 
-def adjust_PI(L, U, E_star):
+def adjust_PI(
+    L: np.ndarray, U: np.ndarray, E_star: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
     """
-    goal: adjust prediction interval using conformal prediction
-    output: adjusted lower and upper bound, shape: (obs, channel, length)
-    input:
-        L = lower bound to be adjusted, shape: (obs, channel, length)
-        U = upper bound to be adjusted, shape: (obs, channel, length)
-        E_star = scores, shape: (channel, length)
+    Adjust prediction interval using conformal prediction.
+
+    Args:
+        L (np.ndarray): Lower bound to be adjusted with shape (obs, channel, length).
+        U (np.ndarray): Upper bound to be adjusted with shape (obs, channel, length).
+        E_star (np.ndarray): Scores with shape (channel, length).
+
+    Returns:
+        tuple[np.ndarray, np.ndarray]: Adjusted lower and upper bound with shape (obs, channel, length).
     """
     E_star_exd = np.expand_dims(E_star, axis=0)
-    return L - E_star_exd, U + E_star_exd
+    adjusted_L = L - E_star_exd
+    adjusted_U = U + E_star_exd
+    return adjusted_L, adjusted_U
 
 
-def coverage_rate(L, U, true):
+def coverage_rate(L: np.ndarray, U: np.ndarray, true: np.ndarray) -> np.ndarray:
     """
-    goal: compute the coverage rate, which is the proportion of [L,U] contains true data
-    output: an array, shape (shape, length)
-    input:
-        L = lower bound, shape: (2209, 1, 24)
-        U = upper bound, shape: (2209, 1, 24)
-        true = true data, shape: (2209, 1, 24)
+    Compute the coverage rate, which is the proportion of [L, U] containing true data.
+
+    Args:
+        L (np.ndarray): Lower bound with shape (obs, channel, length).
+        U (np.ndarray): Upper bound with shape (obs, channel, length).
+        true (np.ndarray): True data with shape (obs, channel, length).
+
+    Returns:
+        np.ndarray: Coverage rate with shape (1, length).
     """
-    return np.sum(np.logical_and(true > L, true < U), axis=0) / true.shape[0]
+    coverage = np.sum(np.logical_and(true > L, true < U), axis=0) / true.shape[0]
+    return coverage
