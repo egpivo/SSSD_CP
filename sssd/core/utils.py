@@ -6,16 +6,16 @@ import torch
 
 def get_mask_mnr(sample: torch.Tensor, k: int) -> torch.Tensor:
     """
-    Get mask of random segments (non-missing at random) across channels based on k,
-    where k == number of segments. Mask of sample's shape where 0's to be imputed,
-    and 1's to preserved as per time series imputers.
+    Get a mask of random segments (non-missing at random) across channels based on k.
 
     Args:
-    sample (torch.Tensor): Input tensor of shape [# of samples, # of channels].
-    k (int): Number of segments.
+        sample (torch.Tensor): Input tensor of shape [# of samples, # of channels].
+        k (int): Number of segments.
 
     Returns:
-    torch.Tensor: Mask tensor of the same shape as the input sample.
+        torch.Tensor: Mask tensor of the same shape as the input sample,
+                      where 0's indicate values to be imputed and 1's indicate
+                      values to be preserved as per time series imputers.
     """
     mask = torch.ones(sample.shape)
     length_index = torch.tensor(range(mask.shape[0]))
@@ -29,16 +29,16 @@ def get_mask_mnr(sample: torch.Tensor, k: int) -> torch.Tensor:
 
 def get_mask_bm(sample: torch.Tensor, k: int) -> torch.Tensor:
     """
-    Get mask of same segments (black-out missing) across channels based on k,
-    where k == number of segments. Mask of sample's shape where 0's to be imputed,
-    and 1's to be preserved as per time series imputers.
+    Get a mask of same segments (black-out missing) across channels based on k.
 
     Args:
-    sample (torch.Tensor): Input tensor of shape [# of samples, # of channels].
-    k (int): Number of segments.
+        sample (torch.Tensor): Input tensor of shape [# of samples, # of channels].
+        k (int): Number of segments.
 
     Returns:
-    torch.Tensor: Mask tensor of the same shape as the input sample.
+        torch.Tensor: Mask tensor of the same shape as the input sample,
+                      where 0's indicate values to be imputed and 1's indicate
+                      values to be preserved as per time series imputers.
     """
     mask = torch.ones(sample.shape)
     length_index = torch.tensor(range(mask.shape[0]))
@@ -75,16 +75,16 @@ def get_mask_forecast(sample: torch.Tensor, k: int) -> torch.Tensor:
 
 def get_mask_rm(sample: torch.Tensor, k: int) -> torch.Tensor:
     """
-    Get mask of random points (missing at random) across channels based on k,
-    where k == number of data points. Mask of sample's shape where 0's to be imputed,
-    and 1's to be preserved as per time series imputers.
+    Get a mask of random points (missing at random) across channels based on k.
 
     Args:
-    sample (torch.Tensor): Input tensor of shape [# of samples, # of channels].
-    k (int): Number of data points to be masked.
+        sample (torch.Tensor): Input tensor of shape [# of samples, # of channels].
+        k (int): Number of data points to be masked.
 
     Returns:
-    torch.Tensor: Mask tensor of the same shape as the input sample.
+        torch.Tensor: Mask tensor of the same shape as the input sample,
+                      where 0's indicate values to be imputed and 1's indicate
+                      values to be preserved as per time series imputers.
     """
     mask = torch.ones_like(sample)
     for channel in range(mask.shape[1]):

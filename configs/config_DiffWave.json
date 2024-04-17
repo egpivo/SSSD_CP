@@ -1,7 +1,7 @@
 {
     "common": {
         "train_batch_size": 80,
-        "test_batch_size": 200,
+        "inference_batch_size": 200,
         "num_workers": 4
     },
     "diffusion":{

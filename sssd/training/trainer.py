@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Union
 
 import torch
 import torch.nn as nn
@@ -25,7 +25,7 @@ class DiffusionTrainer:
         net (nn.Module): The neural network model to be trained.
         device (torch.device): The device to be used for training.
         output_directory (str): Directory to save model checkpoints.
-        ckpt_iter (Optional[Union[int, str]]): The checkpoint iteration to be loaded; 'max' selects the maximum iteration.
+        ckpt_iter (Optional[int, str]): The checkpoint iteration to be loaded; 'max' selects the maximum iteration.
         n_iters (int): Number of iterations to train.
         iters_per_ckpt (int): Number of iterations to save checkpoint.
         iters_per_logging (int): Number of iterations to save training log and compute validation loss.
@@ -42,9 +42,9 @@ class DiffusionTrainer:
         dataloader: DataLoader,
         diffusion_hyperparams: Dict[str, Any],
         net: nn.Module,
-        device: torch.device,
+        device: Optional[Union[torch.device, str]],
         output_directory: str,
-        ckpt_iter: Any,
+        ckpt_iter: Union[str, int],
         n_iters: int,
         iters_per_ckpt: int,
         iters_per_logging: int,

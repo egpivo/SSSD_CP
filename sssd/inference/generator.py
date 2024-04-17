@@ -1,10 +1,11 @@
 import logging
 import os
-from typing import Dict, List, Optional, Union
+from typing import Dict, Iterable, Optional, Union
 
 import numpy as np
 import torch
 from sklearn.metrics import mean_squared_error
+from torch.utils.data import DataLoader
 
 from sssd.core.model_specs import MASK_FN
 from sssd.utils.logger import setup_logger
@@ -17,47 +18,48 @@ class DiffusionGenerator:
     """
     Generate data based on ground truth.
 
-    Parameters:
-    -----------
-    net (torch.nn.Module):         The neural network model
-    device (torch.device):         The device to run the model on (e.g., 'cuda' or 'cpu')
-    diffusion_hyperparams (dict):  Dictionary of diffusion hyperparameters
-    local_path (str):              Local path format for the model
-    testing_data (np.ndarray):     Numpy array containing testing data
-    output_directory (str):        Path to save generated samples
-    num_samples (int):             Number of samples to generate (default is 4)
-    ckpt_path (str):               Checkpoint directory
-    ckpt_iter (int or 'max'):      Pretrained checkpoint to load; 'max' selects the maximum iteration
-    masking (str):                  Type of masking: 'mnr' (missing not at random), 'bm' (black-out), 'rm' (random missing)
-    missing_k (int):               Number of missing time points for each channel across the length
-    only_generate_missing (int):   Whether to generate only missing portions of the signal:
-                                    0 (all sample diffusion), 1 (generate missing portions only)
-    logger (Optional[logging.Logger]): Logger object for logging messages (default is None)
+    Args:
+        net (torch.nn.Module): The neural network model.
+        device (Optional[Union[torch.device, str]]): The device to run the model on (e.g., 'cuda' or 'cpu').
+        diffusion_hyperparams (dict): Dictionary of diffusion hyperparameters.
+        local_path (str): Local path format for the model.
+        testing_data (torch.Tensor): Tensor containing testing data.
+        output_directory (str): Path to save generated samples.
+        batch_size (int): Number of samples to generate.
+        ckpt_path (str): Checkpoint directory.
+        ckpt_iter (str): Pretrained checkpoint to load; 'max' selects the maximum iteration.
+        masking (str): Type of masking: 'mnr' (missing not at random), 'bm' (black-out), 'rm' (random missing).
+        missing_k (int): Number of missing time points for each channel across the length.
+        only_generate_missing (int): Whether to generate only missing portions of the signal:
+                                      - 0 (all sample diffusion),
+                                      - 1 (generate missing portions only).
+        saved_data_names (Iterable[str], optional): Names of data arrays to save (default is ("imputation", "original", "mask")).
+        logger (Optional[logging.Logger], optional): Logger object for logging messages (default is None).
     """
 
     def __init__(
         self,
         net: torch.nn.Module,
-        device: Union[torch.device, str],
+        device: Optional[Union[torch.device, str]],
         diffusion_hyperparams: dict,
         local_path: str,
-        testing_data: np.ndarray,
+        dataloader: DataLoader,
         output_directory: str,
-        num_samples: int,
+        batch_size: int,
         ckpt_path: str,
         ckpt_iter: str,
         masking: str,
         missing_k: int,
         only_generate_missing: int,
-        saved_data_names: List[str] = ["imputation", "original", "mask"],
+        saved_data_names: Iterable[str] = ("imputation", "original", "mask"),
         logger: Optional[logging.Logger] = None,
     ):
         self.net = net
         self.device = device
         self.diffusion_hyperparams = diffusion_hyperparams
         self.local_path = local_path
-        self.testing_data = testing_data
-        self.num_samples = num_samples
+        self.dataloader = dataloader
+        self.batch_size = batch_size
         self.masking = masking
         self.missing_k = missing_k
         self.only_generate_missing = only_generate_missing
@@ -113,7 +115,7 @@ class DiffusionGenerator:
         results: Dict[str, np.ndarray],
         index: int,
     ) -> None:
-        """Save generated_audio, batch, and mask data arrays."""
+        """Save generated_series, batch, and mask data arrays."""
 
         for name, data in results.items():
             if name in self.saved_data_names:
@@ -123,31 +125,36 @@ class DiffusionGenerator:
     def generate(self) -> list:
         """Generate samples using the given neural network model."""
         all_mses = []
-        for index, batch in enumerate(self.testing_data):
+        for index, (batch,) in enumerate(self.dataloader):
+            batch = batch.to(self.device)
             mask = self._update_mask(batch)
             batch = batch.permute(0, 2, 1)
-            sample_length = batch.size(2)
-            sample_channels = batch.size(1)
+            batch.size(2)
+            batch.size(1)
 
-            generated_audio = sampling(
-                self.net,
-                (self.num_samples, sample_channels, sample_length),
-                self.diffusion_hyperparams,
-                cond=batch,
-                mask=mask,
-                only_generate_missing=self.only_generate_missing,
-                device=self.device,
+            generated_series = (
+                sampling(
+                    net=self.net,
+                    size=batch.shape,
+                    diffusion_hyperparams=self.diffusion_hyperparams,
+                    cond=batch,
+                    mask=mask,
+                    only_generate_missing=self.only_generate_missing,
+                    device=self.device,
+                )
+                .detach()
+                .cpu()
+                .numpy()
             )
 
-            generated_audio = generated_audio.detach().cpu().numpy()
             batch = batch.detach().cpu().numpy()
             mask = mask.detach().cpu().numpy()
             mse = mean_squared_error(
-                generated_audio[~mask.astype(bool)], batch[~mask.astype(bool)]
+                generated_series[~mask.astype(bool)], batch[~mask.astype(bool)]
             )
             all_mses.append(mse)
             results = {
-                "imputation": generated_audio,
+                "imputation": generated_series,
                 "original": batch,
                 "mask": mask,
             }

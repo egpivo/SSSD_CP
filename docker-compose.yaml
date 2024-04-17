@@ -1,4 +1,4 @@
-version: "0.0.7"
+version: "latest"
 services:
   sssd:
     image: egpivo/sssd:latest

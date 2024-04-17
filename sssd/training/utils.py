@@ -14,19 +14,19 @@ def training_loss(
     device: str = "cpu",
 ) -> torch.Tensor:
     """
-    Compute the training loss of epsilon and epsilon_theta
+    Compute the training loss of epsilon and epsilon_theta.
 
-    Parameters:
-    net (torch.nn.Module):            the wavenet model
-    loss_fn (torch.nn.Module):         the loss function, default is nn.MSELoss()
-    X (tuple):                         training data tuple containing (audio, cond, mask, loss_mask)
-    diffusion_hyperparams (dict):      dictionary of diffusion hyperparameters returned by calc_diffusion_hyperparams
-                                       note, the tensors need to be cuda tensors
-    only_generate_missing (int):       flag to indicate whether to only generate missing values (default=1)
-    device (str):                      device to run the computations on (default="cuda")
+    Args:
+        net (torch.nn.Module): The wavenet model.
+        loss_fn (torch.nn.Module): The loss function, default is nn.MSELoss().
+        X (tuple): Training data tuple containing (audio, cond, mask, loss_mask).
+        diffusion_hyperparams (dict): Dictionary of diffusion hyperparameters returned by calc_diffusion_hyperparams.
+                                      Note, the tensors need to be cuda tensors.
+        only_generate_missing (int): Flag to indicate whether to only generate missing values (default=1).
+        device (str): Device to run the computations on (default="cuda").
 
     Returns:
-    torch.Tensor: training loss
+        torch.Tensor: Training loss.
     """
 
     _dh = diffusion_hyperparams

@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+from typing import Optional, Union
 
 import torch
 
@@ -42,15 +43,15 @@ def setup_output_directory(config: dict) -> str:
     return output_directory
 
 
-def run_job(config: dict, device: torch.device) -> None:
+def run_job(config: dict, device: Optional[Union[torch.device, str]]) -> None:
     output_directory = setup_output_directory(config)
     batch_size = config["common"]["train_batch_size"]
-    num_workers = config["common"]["num_workers"]
+
     dataloader = get_dataloader(
         config["data"]["train_data_path"],
         batch_size,
         device=device,
-        num_workers=num_workers,
+        num_workers=config["common"]["num_workers"],
     )
 
     diffusion_hyperparams = calc_diffusion_hyperparams(
