@@ -25,10 +25,10 @@ class DiffusionGenerator:
     local_path (str):              Local path format for the model
     testing_data (np.ndarray):     Numpy array containing testing data
     output_directory (str):        Path to save generated samples
-    num_samples (int):             Number of samples to generate (default is 4)
+    batch_size (int):              Number of samples to generate
     ckpt_path (str):               Checkpoint directory
     ckpt_iter (int or 'max'):      Pretrained checkpoint to load; 'max' selects the maximum iteration
-    masking (str):                  Type of masking: 'mnr' (missing not at random), 'bm' (black-out), 'rm' (random missing)
+    masking (str):                 Type of masking: 'mnr' (missing not at random), 'bm' (black-out), 'rm' (random missing)
     missing_k (int):               Number of missing time points for each channel across the length
     only_generate_missing (int):   Whether to generate only missing portions of the signal:
                                     0 (all sample diffusion), 1 (generate missing portions only)
@@ -43,7 +43,7 @@ class DiffusionGenerator:
         local_path: str,
         testing_data: np.ndarray,
         output_directory: str,
-        num_samples: int,
+        batch_size: int,
         ckpt_path: str,
         ckpt_iter: str,
         masking: str,
@@ -57,7 +57,7 @@ class DiffusionGenerator:
         self.diffusion_hyperparams = diffusion_hyperparams
         self.local_path = local_path
         self.testing_data = testing_data
-        self.num_samples = num_samples
+        self.batch_size = batch_size
         self.masking = masking
         self.missing_k = missing_k
         self.only_generate_missing = only_generate_missing
@@ -132,7 +132,7 @@ class DiffusionGenerator:
             generated_series = (
                 sampling(
                     self.net,
-                    (self.num_samples, sample_channels, sample_length),
+                    (self.batch_size, sample_channels, sample_length),
                     self.diffusion_hyperparams,
                     cond=batch,
                     mask=mask,

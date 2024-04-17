@@ -42,12 +42,12 @@ def fetch_args() -> argparse.Namespace:
 def run_job(
     config: dict,
     device: torch.device,
-    num_samples: int,
     ckpt_iter: Union[str, int],
     trials: int,
 ) -> None:
+    batch_size = config["common"]["inference_batch_size"]
+    testing_data = load_testing_data(config["data"]["test_data_path"], batch_size)
 
-    testing_data = load_testing_data(config["data"]["test_data_path"], num_samples)
     local_path = MODEL_PATH_FORMAT.format(
         T=config["diffusion"]["T"],
         beta_0=config["diffusion"]["beta_0"],
@@ -83,7 +83,7 @@ def run_job(
             output_directory=directory.format(trial=trial) if trials > 1 else directory,
             ckpt_path=config["generation"]["ckpt_path"],
             ckpt_iter=ckpt_iter,
-            num_samples=num_samples,
+            batch_size=batch_size,
             masking=config["training"]["masking"],
             missing_k=config["training"]["missing_k"],
             only_generate_missing=config["training"]["only_generate_missing"],
@@ -106,5 +106,5 @@ if __name__ == "__main__":
     # Parse configs
     with open(args.config) as f:
         config = json.load(f)
-    num_samples = config["common"]["inference_batch_size"]
-    run_job(config, device, num_samples, args.ckpt_iter, args.trials)
+
+    run_job(config, device, args.ckpt_iter, args.trials)
