@@ -27,7 +27,7 @@ def fetch_args() -> argparse.Namespace:
         "-ckpt_iter",
         "--ckpt_iter",
         default="max",
-        help='Which checkpoint to use; assign a number or "max"',
+        help='Which checkpoint to use; assign a number or "max" to find the latest checkpoint',
     )
     parser.add_argument(
         "-trials",
