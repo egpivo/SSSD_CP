@@ -1,37 +1,34 @@
 import os
 from datetime import datetime, timedelta
-from typing import List, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 
 
-def flatten(v: List[Union[list, tuple]]) -> List:
+def flatten(v: List[Union[List[Any], Tuple[Any]]]) -> List[Any]:
     """
     Flatten a list of lists/tuples.
 
     Args:
-    v (List[Union[list, tuple]]): List of lists or tuples.
+        v (List[Union[List[Any], Tuple[Any]]]): List of lists or tuples.
 
     Returns:
-    List: Flattened list.
+        List[Any]: Flattened list.
     """
-
     return [x for y in v for x in y]
 
 
-def find_max_epoch(path):
+def find_max_epoch(path: str) -> int:
     """
-    Find maximum epoch/iteration in path, formatted ${n_iter}.pkl
-    E.g. 100000.pkl
+    Find the maximum epoch/iteration in the given path, formatted as ${n_iter}.pkl (e.g., 100000.pkl).
 
-    Parameters:
-    path (str): checkpoint path
+    Args:
+        path (str): Checkpoint path.
 
     Returns:
-    maximum iteration, -1 if there is no (valid) checkpoint
+        int: Maximum iteration, -1 if there is no (valid) checkpoint.
     """
-
     files = os.listdir(path)
     epoch = -1
     for f in files:
@@ -49,10 +46,9 @@ def print_size(net: torch.nn.Module) -> None:
     """
     Print the number of parameters of a network.
 
-    Parameters:
-    net (torch.nn.Module): The network whose parameters need to be printed.
+    Args:
+        net (torch.nn.Module): The network whose parameters need to be printed.
     """
-
     if not isinstance(net, torch.nn.Module):
         raise ValueError("The 'net' parameter must be an instance of torch.nn.Module.")
 
@@ -62,21 +58,25 @@ def print_size(net: torch.nn.Module) -> None:
 
 
 def calc_diffusion_hyperparams(
-    T: int, beta_0: float, beta_T: float, device: str
-) -> dict:
+    T: int, beta_0: float, beta_T: float, device: Optional[torch.device, str]
+) -> Dict[str, torch.Tensor]:
     """
     Compute diffusion process hyperparameters.
 
     Args:
-    T (int): Number of diffusion steps.
-    beta_0 (float): Beta schedule start value.
-    beta_T (float): Beta schedule end value.
-    device (str): Device to run the calculations on.
+        T (int): Number of diffusion steps.
+        beta_0 (float): Beta schedule start value.
+        beta_T (float): Beta schedule end value.
+        device (Union[torch.device, str]): Device to run the calculations on (e.g., 'cpu' or 'cuda').
 
     Returns:
-    dict: A dictionary of diffusion hyperparameters including:
-        T (int), Beta/Alpha/Alpha_bar/Sigma (torch.tensor on cpu, shape=(T, )).
-        These cpu tensors are changed to cuda tensors on each individual gpu.
+        Dict[str, torch.Tensor]: A dictionary of diffusion hyperparameters including:
+            T (int): Number of diffusion steps.
+            Beta (torch.Tensor): Beta schedule tensor on the specified device, shape=(T,).
+            Alpha (torch.Tensor): Alpha schedule tensor on the specified device, shape=(T,).
+            Alpha_bar (torch.Tensor): Alpha_bar schedule tensor on the specified device, shape=(T,).
+            Sigma (torch.Tensor): Sigma schedule tensor on the specified device, shape=(T,).
+            These tensors are initially created on CPU and then moved to the specified device.
     """
 
     Beta = torch.linspace(beta_0, beta_T, T)  # Linear schedule
@@ -99,24 +99,24 @@ def calc_diffusion_hyperparams(
     }
 
 
-def std_normal(size: Tuple[int], device: str) -> torch.Tensor:
+def std_normal(size: Tuple[int], device: Union[torch.device, str]) -> torch.Tensor:
     """
-    Generate the standard Gaussian variable of a certain size
+    Generate samples from the standard normal distribution of a specified size.
 
-    Parameters:
-    size (tuple): Size of the tensor to be generated
-    device (str): Device to run the computations on
+    Args:
+        size (Tuple[int]): Size of the tensor to be generated.
+        device (Union[torch.device, str]): Device to run the computations on (e.g., 'cpu' or 'cuda').
 
     Returns:
-    torch.Tensor: Tensor containing samples from standard normal distribution
+        torch.Tensor: Tensor containing samples from the standard normal distribution.
     """
     return torch.normal(0, 1, size=size).to(device)
 
 
 def sampling(
-    net,
-    size: tuple,
-    diffusion_hyperparams: dict,
+    net: torch.nn.Module,
+    size: Tuple[int, int, int],
+    diffusion_hyperparams: Dict[str, torch.Tensor],
     cond: torch.Tensor,
     mask: torch.Tensor,
     only_generate_missing: int = 0,
@@ -125,18 +125,17 @@ def sampling(
     """
     Perform the complete sampling step according to p(x_0|x_T) = \prod_{t=1}^T p_{\theta}(x_{t-1}|x_t).
 
-    Parameters:
-    net (torch.nn.Module): the wavenet model.
-    size (tuple): size of tensor to be generated, usually is (number of audios to generate, channels=1, length of audio).
-    diffusion_hyperparams (dict): dictionary of diffusion hyperparameters returned by calc_diffusion_hyperparams.
-                                  Note, the tensors need to be cuda tensors.
-    cond (torch.Tensor): conditioning tensor.
-    mask (torch.Tensor): mask tensor.
-    only_generate_missing (int): flag indicating whether to only generate missing values.
-    device (str): device to place tensors (e.g., 'cpu' or 'cuda').
+    Args:
+        net (torch.nn.Module): The wavenet model.
+        size (Tuple[int, int, int]): Size of tensor to be generated, usually (number of audios to generate, channels=1, length of audio).
+        diffusion_hyperparams (Dict[str, torch.Tensor]): Dictionary of diffusion hyperparameters returned by calc_diffusion_hyperparams. Note, the tensors need to be cuda tensors.
+        cond (torch.Tensor): Conditioning tensor.
+        mask (torch.Tensor): Mask tensor.
+        only_generate_missing (int, optional): Flag indicating whether to only generate missing values (default is 0).
+        device (Union[torch.device, str], optional): Device to place tensors (default is 'cpu').
 
     Returns:
-    torch.Tensor: the generated audio(s) in torch.Tensor, shape=size.
+        torch.Tensor: The generated audio(s) in torch.Tensor, shape=size.
     """
 
     _dh = diffusion_hyperparams

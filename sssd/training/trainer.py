@@ -42,7 +42,7 @@ class DiffusionTrainer:
         dataloader: DataLoader,
         diffusion_hyperparams: Dict[str, Any],
         net: nn.Module,
-        device: torch.device,
+        device: Optional[torch.device, str],
         output_directory: str,
         ckpt_iter: Any,
         n_iters: int,

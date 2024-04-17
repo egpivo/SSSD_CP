@@ -1,12 +1,12 @@
 import argparse
 import json
-from typing import Union
+from typing import Optional, Union
 
 import torch
 import torch.nn as nn
 
 from sssd.core.model_specs import MODEL_PATH_FORMAT, setup_model
-from sssd.data.utils import load_testing_data
+from sssd.data.utils import get_dataloader
 from sssd.inference.generator import DiffusionGenerator
 from sssd.utils.logger import setup_logger
 from sssd.utils.utils import calc_diffusion_hyperparams, display_current_time
@@ -41,12 +41,17 @@ def fetch_args() -> argparse.Namespace:
 
 def run_job(
     config: dict,
-    device: torch.device,
+    device: Optional[torch.device, str],
     ckpt_iter: Union[str, int],
     trials: int,
 ) -> None:
     batch_size = config["common"]["inference_batch_size"]
-    testing_data = load_testing_data(config["data"]["test_data_path"], batch_size)
+    dataloader = get_dataloader(
+        config["data"]["test_data_path"],
+        batch_size,
+        device=device,
+        num_workers=config["common"]["num_workers"],
+    )
 
     local_path = MODEL_PATH_FORMAT.format(
         T=config["diffusion"]["T"],
@@ -78,7 +83,7 @@ def run_job(
             net=net,
             device=device,
             diffusion_hyperparams=diffusion_hyperparams,
-            testing_data=testing_data,
+            dataloader=dataloader,
             local_path=local_path,
             output_directory=directory.format(trial=trial) if trials > 1 else directory,
             ckpt_path=config["generation"]["ckpt_path"],

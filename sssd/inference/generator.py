@@ -1,10 +1,11 @@
 import logging
 import os
-from typing import Dict, Iterable, Optional, Union
+from typing import Dict, Iterable, Optional
 
 import numpy as np
 import torch
 from sklearn.metrics import mean_squared_error
+from torch.utils.data import DataLoader
 
 from sssd.core.model_specs import MASK_FN
 from sssd.utils.logger import setup_logger
@@ -17,31 +18,32 @@ class DiffusionGenerator:
     """
     Generate data based on ground truth.
 
-    Parameters:
-    -----------
-    net (torch.nn.Module):         The neural network model
-    device (torch.device):         The device to run the model on (e.g., 'cuda' or 'cpu')
-    diffusion_hyperparams (dict):  Dictionary of diffusion hyperparameters
-    local_path (str):              Local path format for the model
-    testing_data (np.ndarray):     Numpy array containing testing data
-    output_directory (str):        Path to save generated samples
-    batch_size (int):              Number of samples to generate
-    ckpt_path (str):               Checkpoint directory
-    ckpt_iter (int or 'max'):      Pretrained checkpoint to load; 'max' selects the maximum iteration
-    masking (str):                 Type of masking: 'mnr' (missing not at random), 'bm' (black-out), 'rm' (random missing)
-    missing_k (int):               Number of missing time points for each channel across the length
-    only_generate_missing (int):   Whether to generate only missing portions of the signal:
-                                    0 (all sample diffusion), 1 (generate missing portions only)
-    logger (Optional[logging.Logger]): Logger object for logging messages (default is None)
+    Args:
+        net (torch.nn.Module): The neural network model.
+        device (Optional[torch.device, str]): The device to run the model on (e.g., 'cuda' or 'cpu').
+        diffusion_hyperparams (dict): Dictionary of diffusion hyperparameters.
+        local_path (str): Local path format for the model.
+        testing_data (torch.Tensor): Tensor containing testing data.
+        output_directory (str): Path to save generated samples.
+        batch_size (int): Number of samples to generate.
+        ckpt_path (str): Checkpoint directory.
+        ckpt_iter (str): Pretrained checkpoint to load; 'max' selects the maximum iteration.
+        masking (str): Type of masking: 'mnr' (missing not at random), 'bm' (black-out), 'rm' (random missing).
+        missing_k (int): Number of missing time points for each channel across the length.
+        only_generate_missing (int): Whether to generate only missing portions of the signal:
+                                      - 0 (all sample diffusion),
+                                      - 1 (generate missing portions only).
+        saved_data_names (Iterable[str], optional): Names of data arrays to save (default is ("imputation", "original", "mask")).
+        logger (Optional[logging.Logger], optional): Logger object for logging messages (default is None).
     """
 
     def __init__(
         self,
         net: torch.nn.Module,
-        device: Union[torch.device, str],
+        device: Optional[torch.device, str],
         diffusion_hyperparams: dict,
         local_path: str,
-        testing_data: np.ndarray,
+        dataloader: DataLoader,
         output_directory: str,
         batch_size: int,
         ckpt_path: str,
@@ -56,7 +58,7 @@ class DiffusionGenerator:
         self.device = device
         self.diffusion_hyperparams = diffusion_hyperparams
         self.local_path = local_path
-        self.testing_data = testing_data
+        self.dataloader = dataloader
         self.batch_size = batch_size
         self.masking = masking
         self.missing_k = missing_k
@@ -123,7 +125,7 @@ class DiffusionGenerator:
     def generate(self) -> list:
         """Generate samples using the given neural network model."""
         all_mses = []
-        for index, batch in enumerate(self.testing_data):
+        for index, (batch,) in enumerate(self.dataloader):
             mask = self._update_mask(batch)
             batch = batch.permute(0, 2, 1)
             sample_length = batch.size(2)
