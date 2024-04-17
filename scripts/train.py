@@ -1,7 +1,7 @@
 import argparse
 import json
 import os
-from typing import Optional
+from typing import Optional, Union
 
 import torch
 
