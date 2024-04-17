@@ -129,14 +129,14 @@ class DiffusionGenerator:
             batch = batch.to(self.device)
             mask = self._update_mask(batch)
             batch = batch.permute(0, 2, 1)
-            sample_length = batch.size(2)
-            sample_channels = batch.size(1)
+            batch.size(2)
+            batch.size(1)
 
             generated_series = (
                 sampling(
-                    self.net,
-                    (self.batch_size, sample_channels, sample_length),
-                    self.diffusion_hyperparams,
+                    net=self.net,
+                    size=batch.shape,
+                    diffusion_hyperparams=self.diffusion_hyperparams,
                     cond=batch,
                     mask=mask,
                     only_generate_missing=self.only_generate_missing,
