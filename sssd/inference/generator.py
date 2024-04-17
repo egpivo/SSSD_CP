@@ -1,6 +1,6 @@
 import logging
 import os
-from typing import Dict, Iterable, Optional
+from typing import Dict, Iterable, Optional, Union
 
 import numpy as np
 import torch
@@ -20,7 +20,7 @@ class DiffusionGenerator:
 
     Args:
         net (torch.nn.Module): The neural network model.
-        device (Optional[torch.device, str]): The device to run the model on (e.g., 'cuda' or 'cpu').
+        device (Optional[Union[torch.device, str]]): The device to run the model on (e.g., 'cuda' or 'cpu').
         diffusion_hyperparams (dict): Dictionary of diffusion hyperparameters.
         local_path (str): Local path format for the model.
         testing_data (torch.Tensor): Tensor containing testing data.
@@ -40,7 +40,7 @@ class DiffusionGenerator:
     def __init__(
         self,
         net: torch.nn.Module,
-        device: Optional[torch.device, str],
+        device: Optional[Union[torch.device, str]],
         diffusion_hyperparams: dict,
         local_path: str,
         dataloader: DataLoader,

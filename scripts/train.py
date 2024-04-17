@@ -43,7 +43,7 @@ def setup_output_directory(config: dict) -> str:
     return output_directory
 
 
-def run_job(config: dict, device: Optional[torch.device, str]) -> None:
+def run_job(config: dict, device: Optional[Union[torch.device, str]]) -> None:
     output_directory = setup_output_directory(config)
     batch_size = config["common"]["train_batch_size"]
 

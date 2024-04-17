@@ -1,6 +1,6 @@
 import os
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -32,12 +32,10 @@ def find_max_epoch(path: str) -> int:
     files = os.listdir(path)
     epoch = -1
     for f in files:
-        if len(f) <= 4:
-            continue
-        if f[-4:] == ".pkl":
+        if f.endswith(".pkl"):
             try:
                 epoch = max(epoch, int(f[:-4]))
-            except:
+            except ValueError:
                 continue
     return epoch
 
@@ -58,7 +56,7 @@ def print_size(net: torch.nn.Module) -> None:
 
 
 def calc_diffusion_hyperparams(
-    T: int, beta_0: float, beta_T: float, device: Optional[torch.device, str]
+    T: int, beta_0: float, beta_T: float, device: Optional[Union[torch.device, str]]
 ) -> Dict[str, torch.Tensor]:
     """
     Compute diffusion process hyperparameters.

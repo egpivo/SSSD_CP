@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 
 import pytest
@@ -8,6 +9,7 @@ from sssd.core.imputers.SSSDS4Imputer import SSSDS4Imputer
 from sssd.utils.utils import (
     calc_diffusion_hyperparams,
     display_current_time,
+    find_max_epoch,
     flatten,
     generate_date_from_seq,
     print_size,
@@ -183,3 +185,18 @@ def test_flatten():
     input_list = [[]]
     expected_output = []
     assert flatten(input_list) == expected_output
+
+
+@pytest.fixture
+def checkpoint_files(tmpdir):
+    # Create dummy checkpoint files
+    filenames = ["10000.pkl", "20000.pkl", "30000.pkl"]
+    for filename in filenames:
+        open(os.path.join(tmpdir, filename), "w").close()
+    return tmpdir, filenames
+
+
+def test_find_max_epoch(checkpoint_files):
+    path, filenames = checkpoint_files
+    max_epoch = find_max_epoch(path)
+    assert max_epoch == 30000

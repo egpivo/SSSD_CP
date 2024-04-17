@@ -41,7 +41,7 @@ def fetch_args() -> argparse.Namespace:
 
 def run_job(
     config: dict,
-    device: Optional[torch.device, str],
+    device: Optional[Union[torch.device, str]],
     ckpt_iter: Union[str, int],
     trials: int,
 ) -> None:
