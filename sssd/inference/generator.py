@@ -126,6 +126,7 @@ class DiffusionGenerator:
         """Generate samples using the given neural network model."""
         all_mses = []
         for index, (batch,) in enumerate(self.dataloader):
+            batch = batch.to(self.device)
             mask = self._update_mask(batch)
             batch = batch.permute(0, 2, 1)
             sample_length = batch.size(2)
