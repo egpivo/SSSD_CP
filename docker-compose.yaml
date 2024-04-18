@@ -11,11 +11,12 @@ services:
     environment:
       PORT: 8080
       CONFIG_FILE: "toy_example.json"  # Specify the new config file here, located in the configs/ directory
-      TRIALS: 2 # inference trials
+      TRIALS: 2 # Inference trials
+    shm_size: "2GB"  # Specify more shared memory size for runtime if the number of GPUs increase
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              device_ids: ["0"] # Specify the gpu ids
+              device_ids: ["0"] # Specify the GPU ids, e.g., ["0", "2"]; or ["all"] means the all GPUs
               capabilities: [gpu]
