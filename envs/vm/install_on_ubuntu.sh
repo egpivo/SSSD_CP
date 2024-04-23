@@ -7,16 +7,17 @@
 
 install_docker_and_compose() {
     # Update package lists and install Docker
-    sudo apt-get update
-    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io
+    sudo apt-get update > /dev/null 2>&1 || true
+
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io > /dev/null 2>&1 || true
 
     # Install Docker Compose
-    sudo curl -SL https://github.com/docker/compose/releases/download/v2.3.3/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
-    sudo chmod +x /usr/local/bin/docker-compose
-
+    mkdir -p ~/.docker/cli-plugins/
+    curl -SL https://github.com/docker/compose/releases/download/v2.3.3/docker-compose-linux-x86_64 -o ~/.docker/cli-plugins/docker-compose
+    chmod +x ~/.docker/cli-plugins/docker-compose
     # Add current user to the docker group
-    sudo usermod -aG docker "$USER"
-    sudo chown "$USER":docker /var/run/docker.sock
+    sudo usermod -aG docker "$USER" || { echo "Error: Failed to add user to docker group."; return 1; }
+    sudo chown "$USER":docker /var/run/docker.sock || { echo "Error: Failed to change ownership of docker.sock."; return 1; }
 }
 
 install_nvidia_drivers() {
@@ -51,6 +52,8 @@ install_nvidia_drivers() {
     # Blacklist nouveau and set options
     echo "blacklist nouveau" | sudo tee -a /etc/modprobe.d/blacklist.conf
     echo "options nouveau modeset=0" | sudo tee -a /etc/modprobe.d/blacklist.conf
+    echo 'export PATH=/usr/local/cuda/bin${PATH:+:${PATH}}' >> ~/.bashrc
+    echo 'export LD_LIBRARY_PATH=/usr/local/cuda-12.2/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}' >> ~/.bashrc
 }
 
 main() {
