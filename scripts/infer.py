@@ -76,7 +76,7 @@ def run_job(
         directory += "_{trial}"
 
     for trial in range(1, trials + 1):
-        LOGGER.info(f"The {trial}th inference trail")
+        LOGGER.info(f"The {trial}th inference trial")
         saved_data_names = data_names if trial == 0 else data_names[0]
 
         mse = DiffusionGenerator(
