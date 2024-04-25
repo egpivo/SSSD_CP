@@ -46,6 +46,10 @@ while [[ $# -gt 0 ]]; do
       INFERENCE_CONFIG="$2"
       shift
       ;;
+    -u|--update_conda_env)
+      DOES_UPDATE_CONDA_ENV="true"
+      shift
+      ;;
     *)
       ;;
   esac

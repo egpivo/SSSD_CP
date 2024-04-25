@@ -46,7 +46,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Validate mandatory parameter
-if [[ -z "$CONFIG" ]]; then
+if [[ -z "${MODEL_CONFIG}" ]]; then
   echo "Error: Configuration file path is required."
   exit "${ERROR_EXITCODE}"
 fi
