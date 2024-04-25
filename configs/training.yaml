@@ -5,7 +5,7 @@ ckpt_iter: "max"  # Checkpoint mode (max or min)
 iters_per_ckpt: 1  # Checkpoint frequency (number of epochs)
 iters_per_logging: 1  # Log frequency (number of iterations)
 n_iters: 5  # Maximum number of iterations
-learning_rate: 2e-4  # Learning rate
+learning_rate: 0.0002  # Learning rate
 
 # Additional training settings
 only_generate_missing: true  # Generate missing values only

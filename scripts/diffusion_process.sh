@@ -68,5 +68,5 @@ fi
 
 # Execute inference if the inference config exists
 if [[ -n "${INFERENCE_CONFIG}" ]]; then
-  . ${DIR}/training_job.sh -m ${MODEL_CONFIG} -i ${INFERENCE_CONFIG}
+  . ${DIR}/inference_job.sh -m ${MODEL_CONFIG} -i ${INFERENCE_CONFIG}
 fi
