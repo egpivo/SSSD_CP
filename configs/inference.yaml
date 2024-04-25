@@ -1,0 +1,8 @@
+# Inference configuration
+batch_size: 200  # Batch size for inference
+output_dir: "./results/experiment"  # Output directory for inference results
+ckpt_path: "./results/experiment"  # Path to checkpoint for inference
+
+# Data paths
+data:
+  test_path: "./datasets/experiment/test_data.npy"  # Path to test data
