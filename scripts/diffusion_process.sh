@@ -11,9 +11,9 @@
 #        - -u/--update_conda_env: flag to update Conda environment
 #
 # Examples:
-#    - Execute whole process: ./training_job.sh -m configs/model.yaml -t configs/training.yaml -i configs/inference.yaml
-#    - Execute only training process: ./training_job.sh -m configs/model.yaml -t configs/training.yaml
-#    - Execute only inference process: ./training_job.sh -m configs/model.yaml -i configs/inference.yaml
+#    - Execute whole process: ./diffusion_process.sh -m configs/model.yaml -t configs/training.yaml -i configs/inference.yaml
+#    - Execute only training process: ./diffusion_process.sh -m configs/model.yaml -t configs/training.yaml
+#    - Execute only inference process: ./diffusion_process.sh -m configs/model.yaml -i configs/inference.yaml
 #
 
 set -euo pipefail
