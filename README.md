@@ -24,9 +24,12 @@
      - Enter`aws s3 sync s3://sssd-cp/datasets/ /{repo}/datasets`
 1. Run the process locally:
     ```shell
-    bash scripts/diffusion_process.sh --config {CONFIG_FILE_PATH}
+    bash scripts/diffusion_process.sh \
+      --model_config {MODEL_CONFIG} \
+      --training_config {TRAINING_CONFIG} \
+      --inference_config {INFERENCE_CONFIG}
     ```
-   - Example: `CONFIG_FILE_PATH=configs/toy_example.json`
+   - Note: Modify the parameters in three different configs. If the training or inference config is empty, the process will not be executed.
 
 2. Run in a container:
    - Adjust `CONFIG_FILE` in `docker-compose.yaml`

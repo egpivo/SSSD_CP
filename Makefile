@@ -2,10 +2,10 @@ SHELL := /bin/bash
 EXECUTABLE := poetry run
 DOCKER_USERNAME := "egpivo"
 
-.PHONY: clean install activate-conda-env test run-diffusion-mix clean-docker build-docker push-docker run-docker help
+.PHONY: clean install activate-conda-env test run-diffusion build-docker push-docker run-docker help
 
 ## Clean targets
-clean: clean-pyc clean-build clean-test-coverage
+clean: clean-pyc clean-build clean-test-coverage clean-docker
 
 clean-pyc:
 	find . -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -delete
@@ -34,9 +34,9 @@ activate-conda-env: install
 test: install
 	$(EXECUTABLE) pytest --cov=sssd
 
-## Run diffusion with `configs/toy_example.json`
-run-toy_example: install
-	$(EXECUTABLE) scripts/diffusion_process.sh --config configs/toy_example.json
+## Run diffusion
+run-diffusion: install
+	$(EXECUTABLE) scripts/diffusion_process.sh -m configs/model.yaml -t configs/training.yaml -i configs/inference.yaml
 
 ## Docker commands
 build-docker:
@@ -56,7 +56,7 @@ help:
 	@echo "install            : Install sssd with dependencies"
 	@echo "activate-conda-env : Activate Conda environment"
 	@echo "test               : Run tests"
-	@echo "run-toy_example  : Run diffusion process with configs/configs/toy_example.json locally"
+	@echo "run-diffusion      : Run diffusion process"
 	@echo "build-docker       : Build Docker image"
 	@echo "push-docker        : Push Docker image to Docker Hub"
 	@echo "run-docker         : Run diffusion process in Docker container"
