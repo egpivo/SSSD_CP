@@ -15,7 +15,6 @@
 #    - Execute only training process: ./training_job.sh -m configs/model.yaml -t configs/training.yaml
 #    - Execute only inference process: ./training_job.sh -m configs/model.yaml -i configs/inference.yaml
 #
-#
 
 set -euo pipefail
 
@@ -26,12 +25,12 @@ source "${PACKAGE_BASE_PATH}/bin/color_map.sh"
 source "${PACKAGE_BASE_PATH}/bin/exit_code.sh"
 CONDA_ENV="sssd"
 
+# Default value
 MODEL_CONFIG=""
 TRAINING_CONFIG=""
 INFERENCE_CONFIG=""
-DOES_UPDATE_CONDA_ENV="false"  # Default value for updating Conda environment
+DOES_UPDATE_CONDA_ENV="false"
 
-# Parse command line arguments
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -m|--model_config)
@@ -63,14 +62,14 @@ if [[ -z "${MODEL_CONFIG}" ]]; then
 fi
 
 # Initialize Conda environment if specified
-update_conda_environment ${PACKAGE_BASE_PATH} ${DOES_UPDATE_CONDA_ENV} ${CONDA_ENV}
+update_conda_environment "${PACKAGE_BASE_PATH}" "${DOES_UPDATE_CONDA_ENV}" "${CONDA_ENV}"
 
 # Execute training if the training config exists
 if [[ -n "${TRAINING_CONFIG}" ]]; then
-  . ${DIR}/training_job.sh -m ${MODEL_CONFIG} -t ${TRAINING_CONFIG}
+  . "${DIR}/training_job.sh" -m "${MODEL_CONFIG}" -t "${TRAINING_CONFIG}"
 fi
 
 # Execute inference if the inference config exists
 if [[ -n "${INFERENCE_CONFIG}" ]]; then
-  . ${DIR}/inference_job.sh -m ${MODEL_CONFIG} -i ${INFERENCE_CONFIG}
+  . "${DIR}/inference_job.sh" -m "${MODEL_CONFIG}" -i "${INFERENCE_CONFIG}"
 fi
