@@ -35,8 +35,8 @@ test: install
 	$(EXECUTABLE) pytest --cov=sssd
 
 ## Run diffusion process on local machine
-run-local: install
-	$(EXECUTABLE) scripts/diffusion_process.sh -m configs/model.yaml -t configs/training.yaml -i configs/inference.yaml
+run-local:
+	$(EXECUTABLE) scripts/diffusion_process.sh -m configs/model.yaml -t configs/training.yaml -i configs/inference.yaml -u
 
 ## Docker commands
 build-docker:

@@ -97,7 +97,7 @@ if __name__ == "__main__":
 
     with open(args.model_config, "rt") as f:
         model_config = yaml.safe_load(f.read())
-    with open(args.traning_config, "rt") as f:
+    with open(args.training_config, "rt") as f:
         training_config = yaml.safe_load(f.read())
 
     LOGGER.info(f"Model spec: {model_config}")
