@@ -25,7 +25,7 @@ INFERENCE_CONFIG=""
 DOES_UPDATE_CONDA_ENV="false"
 
 # Parse command-line arguments
-while true; do
+while [[ $# -gt 0 ]]; do
   case "$1" in
     -m|--model_config)
       MODEL_CONFIG="$2"

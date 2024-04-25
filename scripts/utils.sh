@@ -1,6 +1,6 @@
 update_conda_environment() {
   local PACKAGE_BASE_PATH=$1
-  local DOES_UPDATE_CONDA_ENV==$2
+  local DOES_UPDATE_CONDA_ENV=$2
   local CONDA_ENV=$3
 
   if [ -x "$(command -v conda)" ]; then
