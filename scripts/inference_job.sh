@@ -60,10 +60,9 @@ INFERENCE_JOB_COMMANDS=(
 # Initialize Conda environment if specified
 update_conda_environment ${PACKAGE_BASE_PATH} ${DOES_UPDATE_CONDA_ENV} ${CONDA_ENV}
 
-
 # Execute inference
 echo -e "${FG_YELLOW}[Execution - Inference]${FG_RESET}"
 echo -e "${FG_GREEN}${INFERENCE_JOB_COMMANDS[*]}${FG_RESET}"
 python "${INFERENCE_JOB_COMMANDS[@]}"
 
-echo -e "${FG_GREEN}Job completed${FG_RESET}"
+echo -e "${FG_GREEN}Inference Job completed${FG_RESET}"
