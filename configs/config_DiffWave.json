@@ -1,9 +1,4 @@
 {
-    "common": {
-        "train_batch_size": 80,
-        "inference_batch_size": 200,
-        "num_workers": 4
-    },
     "diffusion":{
         "T": 200,
         "beta_0": 0.0001,
@@ -20,7 +15,8 @@
         "diffusion_step_embed_dim_hidden": 512,
         "diffusion_step_embed_dim_output": 512
     },
-    "training": {
+   "training": {
+        "batch_size": 80,
         "output_directory": "/",
         "ckpt_iter": "max",
         "iters_per_ckpt": 100,
@@ -38,6 +34,7 @@
         "sampling_rate": 100
     },
     "generation":{
+        "batch_size": 200,
         "output_directory": "/",
         "ckpt_path": "/"
     }

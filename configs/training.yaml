@@ -1,19 +1,17 @@
-
-# configs/training.yaml
 # Training configuration
 batch_size: 80  # Batch size
-output_dir: "./results/experiment"  # Output directory for checkpoints and logs
-ckpt_mode: "max"  # Checkpoint mode (max or min)
-ckpt_freq: 1  # Checkpoint frequency (number of epochs)
-log_freq: 1  # Log frequency (number of iterations)
-max_iters: 5  # Maximum number of iterations
+output_directory: "./results/experiment"  # Output directory for checkpoints and logs
+ckpt_iter: "max"  # Checkpoint mode (max or min)
+iters_per_ckpt: 1  # Checkpoint frequency (number of epochs)
+iters_per_logging: 1  # Log frequency (number of iterations)
+n_iters: 5  # Maximum number of iterations
 learning_rate: 2e-4  # Learning rate
 
 # Additional training settings
-generate_missing_only: true  # Generate missing values only
-model_to_use: 2  # Model to use for training
-masking_strategy: "forecast"  # Masking strategy for missing values
-missing_values: 24  # Number of missing values
+only_generate_missing: true  # Generate missing values only
+use_model: 2  # Model to use for training
+masking: "forecast"  # Masking strategy for missing values
+missing_k: 24  # Number of missing values
 
 # Data paths
 data:

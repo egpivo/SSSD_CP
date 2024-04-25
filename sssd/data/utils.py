@@ -101,7 +101,7 @@ def get_dataloader(
     batch_size: int,
     is_shuffle: bool = True,
     device: Union[str, torch.device] = "cpu",
-    num_workers: int = 8,
+    num_workers: int = 0,
 ) -> DataLoader:
     """
     Get a PyTorch DataLoader for the dataset stored at the given path.

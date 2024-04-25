@@ -45,12 +45,11 @@ def run_job(
     ckpt_iter: Union[str, int],
     trials: int,
 ) -> None:
-    batch_size = config["common"]["inference_batch_size"]
+    batch_size = config["inference"]["batch_size"]
     dataloader = get_dataloader(
-        config["data"]["test_data_path"],
+        config["inference"]["data"]["test_path"],
         batch_size,
         device=device,
-        num_workers=config["common"]["num_workers"],
     )
 
     local_path = MODEL_PATH_FORMAT.format(

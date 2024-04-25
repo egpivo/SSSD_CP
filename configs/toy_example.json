@@ -1,9 +1,4 @@
 {
-    "common": {
-        "train_batch_size": 80,
-        "inference_batch_size": 200,
-        "num_workers": 4
-    },
     "diffusion":{
         "T": 200,
         "beta_0": 0.0001,
@@ -24,7 +19,8 @@
         "s4_bidirectional":1,
         "s4_use_layer_norm":1
     },
-    "training": {
+   "training": {
+        "batch_size": 80,
         "output_directory": "./results/NYISO_3_mix",
         "ckpt_iter": "max",
         "iters_per_ckpt": 1,
@@ -41,6 +37,7 @@
         "test_data_path": "./datasets/NYISO/mix/load_array_mix_test_stdd.npy"
     },
     "generation":{
+        "batch_size": 200,
 	    "output_directory": "./results/NYISO_3_mix",
         "ckpt_path": "./results/NYISO_3_mix"
     }
