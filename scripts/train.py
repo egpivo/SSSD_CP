@@ -59,7 +59,7 @@ def run_job(
 ) -> None:
     output_directory = setup_output_directory(model_config, training_config)
     dataloader = get_dataloader(
-        training_config["data"]["train_data_path"],
+        training_config["data"]["train_path"],
         batch_size=training_config.get("batch_size"),
         device=device,
     )
