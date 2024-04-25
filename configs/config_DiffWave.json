@@ -10,15 +10,15 @@
         "beta_T": 0.02
     },
     "wavenet": {
-        "in_channels": 12,
-        "out_channels": 12,
-        "num_res_layers": 36,
-        "res_channels": 256,
+        "input_channels": 12,
+        "output_channels": 12,
+        "residual_layers": 36,
+        "residual_channels": 256,
         "skip_channels": 256,
         "dilation_cycle": 12,
-        "diffusion_step_embed_dim_in": 128,
-        "diffusion_step_embed_dim_mid": 512,
-        "diffusion_step_embed_dim_out": 512
+        "diffusion_step_embed_dim_input": 128,
+        "diffusion_step_embed_dim_hidden": 512,
+        "diffusion_step_embed_dim_output": 512
     },
     "training": {
         "output_directory": "/",

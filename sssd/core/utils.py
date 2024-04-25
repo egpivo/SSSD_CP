@@ -97,7 +97,7 @@ def get_mask_rm(sample: torch.Tensor, k: int) -> torch.Tensor:
 
 def calc_diffusion_step_embedding(
     diffusion_steps: torch.Tensor,
-    diffusion_step_embed_dim_in: int = 128,
+    diffusion_step_embed_dim_input: int = 128,
     device: str = "cpu",
 ) -> torch.Tensor:
     """
@@ -107,15 +107,15 @@ def calc_diffusion_step_embedding(
 
     Args:
     diffusion_steps (torch.Tensor): Diffusion steps for batch data, shape=(batchsize, 1).
-    diffusion_step_embed_dim_in (int, optional): Dimensionality of the embedding space for discrete diffusion steps. Default is 128.
+    diffusion_step_embed_dim_input (int, optional): Dimensionality of the embedding space for discrete diffusion steps. Default is 128.
     device (str, optional): Device to run the calculations on. Default is "cpu".
 
     Returns:
-    torch.Tensor: The embedding vectors, shape=(batchsize, diffusion_step_embed_dim_in).
+    torch.Tensor: The embedding vectors, shape=(batchsize, diffusion_step_embed_dim_input).
     """
-    assert diffusion_step_embed_dim_in % 2 == 0
+    assert diffusion_step_embed_dim_input % 2 == 0
 
-    half_dim = diffusion_step_embed_dim_in // 2
+    half_dim = diffusion_step_embed_dim_input // 2
     _embed = np.log(10000) / (half_dim - 1)
     _embed = torch.exp(torch.arange(half_dim) * -_embed).to(device)
     _embed = diffusion_steps * _embed
