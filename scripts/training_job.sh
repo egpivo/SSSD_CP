@@ -1,20 +1,16 @@
 #!/bin/bash
 #
-# Execute a diffusion process - either training or inference
+# Execute a diffusion process - training
 #
 # Parameters:
 #    - Mandatory:
 #        - -m/--model_config: model configuration path
-#    - Optional:
 #        - -t/--training_config: training configuration path
-#        - -i/--inference_config: inference configuration path
+#    - Optional:
 #        - -u/--update_conda_env: flag to update Conda environment
 #
 # Examples:
-#    - Execute whole process: ./training_job.sh -m configs/model.yaml -t configs/training.yaml -i configs/inference.yaml
-#    - Execute only training process: ./training_job.sh -m configs/model.yaml -t configs/training.yaml
-#    - Execute only inference process: ./training_job.sh -m configs/model.yaml -i configs/inference.yaml
-#
+#    - Execute the script: ./training_job.sh -m configs/model.yaml - t configs/training.yaml
 #
 
 set -euo pipefail
@@ -28,7 +24,6 @@ CONDA_ENV="sssd"
 
 MODEL_CONFIG=""
 TRAINING_CONFIG=""
-INFERENCE_CONFIG=""
 DOES_UPDATE_CONDA_ENV="false"  # Default value for updating Conda environment
 
 # Parse command line arguments
@@ -42,9 +37,8 @@ while [[ $# -gt 0 ]]; do
       TRAINING_CONFIG="$2"
       shift
       ;;
-    -i|--inference_config)
-      INFERENCE_CONFIG="$2"
-      shift
+    -u|--update_conda_env)
+      DOES_UPDATE_CONDA_ENV="true"
       ;;
     *)
       ;;
@@ -57,16 +51,24 @@ if [[ -z "${MODEL_CONFIG}" ]]; then
   echo "Error: MODEL Configuration file path is required."
   exit "${ERROR_EXITCODE}"
 fi
+if [[ -z "${TRAINING_CONFIG}" ]]; then
+  echo "Error: Training Configuration file path is required."
+  exit "${ERROR_EXITCODE}"
+fi
 
 # Initialize Conda environment if specified
 update_conda_environment ${PACKAGE_BASE_PATH} ${DOES_UPDATE_CONDA_ENV} ${CONDA_ENV}
 
-# Execute training if the training config exists
-if [[ -n "${TRAINING_CONFIG}" ]]; then
-  ./${DIR}/training_job.sh -m ${MODEL_CONFIG} -t ${TRAINING_CONFIG}
-fi
+# Define training job commands
+TRAINING_JOB_COMMANDS=(
+  "${DIR}/train.py"
+  --model_config "${MODEL_CONFIG}"
+  --training_config "${TRAINING_CONFIG}"
+)
 
-# Execute inference if the inference config exists
-if [[ -n "${INFERENCE_CONFIG}" ]]; then
-  ./${DIR}/training_job.sh -m ${MODEL_CONFIG} -i ${INFERENCE_CONFIG}
-fi
+# Execute training
+echo -e "${FG_YELLOW}[Execution - Training]${FG_RESET}"
+echo -e "${FG_GREEN}${TRAINING_JOB_COMMANDS[*]}${FG_RESET}"
+python "${TRAINING_JOB_COMMANDS[@]}"
+
+echo -e "${FG_GREEN}Training Job completed${FG_RESET}"

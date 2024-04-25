@@ -36,13 +36,6 @@ def fetch_args() -> argparse.Namespace:
         default="max",
         help='Which checkpoint to use; assign a number or "max" to find the latest checkpoint',
     )
-    parser.add_argument(
-        "-trials",
-        "--trials",
-        type=int,
-        default=1,
-        help="Trials of inference. If replications > 1, only save imputation results",
-    )
     return parser.parse_args()
 
 
@@ -51,8 +44,8 @@ def run_job(
     inference_config: dict,
     device: Optional[Union[torch.device, str]],
     ckpt_iter: Union[str, int],
-    trials: int,
 ) -> None:
+    trials = inference_config.get("trials")
     batch_size = inference_config["batch_size"]
     dataloader = get_dataloader(
         inference_config["data"]["test_path"],
@@ -120,4 +113,4 @@ if __name__ == "__main__":
         LOGGER.info(f"Using {torch.cuda.device_count()} GPUs!")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    run_job(model_config, inference_config, device, args.ckpt_iter, args.trials)
+    run_job(model_config, inference_config, device, args.ckpt_iter)
