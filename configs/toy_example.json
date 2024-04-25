@@ -36,7 +36,7 @@
         "train_data_path": "./datasets/NYISO/mix/load_array_mix_train_stdd.npy",
         "test_data_path": "./datasets/NYISO/mix/load_array_mix_test_stdd.npy"
     },
-    "generation":{
+    "inference":{
         "batch_size": 200,
 	    "output_directory": "./results/NYISO_3_mix",
         "ckpt_path": "./results/NYISO_3_mix"

@@ -38,7 +38,7 @@
         "segment_length":100,
         "sampling_rate": 100
     },
-    "generation":{
+    "inference":{
         "batch_size": 200,
 	    "output_directory": "./results/ar1-8",
         "ckpt_path": "./results/ar1-8/"

@@ -1,9 +1,9 @@
 import argparse
-import json
 from typing import Optional, Union
 
 import torch
 import torch.nn as nn
+import yaml
 
 from sssd.core.model_specs import MODEL_PATH_FORMAT, setup_model
 from sssd.data.utils import get_dataloader
@@ -17,11 +17,18 @@ LOGGER = setup_logger()
 def fetch_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-c",
-        "--config",
+        "-m",
+        "--model_config",
         type=str,
-        default="config.json",
-        help="Path to the JSON file containing the configuration",
+        default="configs/model.yaml",
+        help="Model configuration",
+    )
+    parser.add_argument(
+        "-i",
+        "--inference_config",
+        type=str,
+        default="configs/inference_config.yaml",
+        help="Inference configuration",
     )
     parser.add_argument(
         "-ckpt_iter",
@@ -40,36 +47,37 @@ def fetch_args() -> argparse.Namespace:
 
 
 def run_job(
-    config: dict,
+    model_config: dict,
+    inference_config: dict,
     device: Optional[Union[torch.device, str]],
     ckpt_iter: Union[str, int],
     trials: int,
 ) -> None:
-    batch_size = config["inference"]["batch_size"]
+    batch_size = inference_config["batch_size"]
     dataloader = get_dataloader(
-        config["inference"]["data"]["test_path"],
+        inference_config["data"]["test_path"],
         batch_size,
         device=device,
     )
 
     local_path = MODEL_PATH_FORMAT.format(
-        T=config["diffusion"]["T"],
-        beta_0=config["diffusion"]["beta_0"],
-        beta_T=config["diffusion"]["beta_T"],
+        T=model_config["diffusion"]["T"],
+        beta_0=model_config["diffusion"]["beta_0"],
+        beta_T=model_config["diffusion"]["beta_T"],
     )
 
     diffusion_hyperparams = calc_diffusion_hyperparams(
-        **config["diffusion"], device=device
+        **model_config["diffusion"], device=device
     )
     LOGGER.info(display_current_time())
-    net = setup_model(config, device)
+    net = setup_model(inference_config["use_model"], model_config, device)
 
     # Check if multiple GPUs are available
     if torch.cuda.device_count() > 0:
         net = nn.DataParallel(net)
 
     data_names = ["imputation", "original", "mask"]
-    directory = config["generation"]["output_directory"]
+    directory = inference_config["output_directory"]
 
     if trials > 1:
         directory += "_{trial}"
@@ -85,12 +93,12 @@ def run_job(
             dataloader=dataloader,
             local_path=local_path,
             output_directory=directory.format(trial=trial) if trials > 1 else directory,
-            ckpt_path=config["generation"]["ckpt_path"],
+            ckpt_path=inference_config["ckpt_path"],
             ckpt_iter=ckpt_iter,
             batch_size=batch_size,
-            masking=config["training"]["masking"],
-            missing_k=config["training"]["missing_k"],
-            only_generate_missing=config["training"]["only_generate_missing"],
+            masking=inference_config["masking"],
+            missing_k=inference_config["missing_k"],
+            only_generate_missing=inference_config["only_generate_missing"],
             saved_data_names=saved_data_names,
         ).generate()
 
@@ -99,16 +107,17 @@ def run_job(
 
 
 if __name__ == "__main__":
-
     args = fetch_args()
+
+    with open(args.model_config, "rt") as f:
+        model_config = yaml.safe_load(f.read())
+    with open(args.inference_config, "rt") as f:
+        inference_config = yaml.safe_load(f.read())
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     if torch.cuda.device_count() > 0:
         LOGGER.info(f"Using {torch.cuda.device_count()} GPUs!")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    # Parse configs
-    with open(args.config) as f:
-        config = json.load(f)
-
-    run_job(config, device, args.ckpt_iter, args.trials)
+    run_job(model_config, inference_config, device, args.ckpt_iter, args.trials)

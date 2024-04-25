@@ -1,9 +1,9 @@
 import argparse
-import json
 import os
 from typing import Optional, Union
 
 import torch
+import yaml
 
 from sssd.core.model_specs import MODEL_PATH_FORMAT, setup_model
 from sssd.data.utils import get_dataloader
@@ -17,23 +17,33 @@ LOGGER = setup_logger()
 def fetch_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-c",
-        "--config",
+        "-m",
+        "--model_config",
         type=str,
-        default="configs/SSSDS4.json",
-        help="JSON file for configuration",
+        default="configs/model.yaml",
+        help="Model configuration",
+    )
+    parser.add_argument(
+        "-t",
+        "--training_config",
+        type=str,
+        default="configs/training.yaml",
+        help="Training configuration",
     )
     return parser.parse_args()
 
 
-def setup_output_directory(config: dict) -> str:
+def setup_output_directory(
+    model_config: dict,
+    training_config: dict,
+) -> str:
     # Build output directory
     local_path = MODEL_PATH_FORMAT.format(
-        T=config["diffusion"]["T"],
-        beta_0=config["diffusion"]["beta_0"],
-        beta_T=config["diffusion"]["beta_T"],
+        T=model_config["diffusion"]["T"],
+        beta_0=model_config["diffusion"]["beta_0"],
+        beta_T=model_config["diffusion"]["beta_T"],
     )
-    output_directory = os.path.join(config["training"]["output_directory"], local_path)
+    output_directory = os.path.join(training_config["output_directory"], local_path)
 
     if not os.path.isdir(output_directory):
         os.makedirs(output_directory)
@@ -42,20 +52,22 @@ def setup_output_directory(config: dict) -> str:
     return output_directory
 
 
-def run_job(config: dict, device: Optional[Union[torch.device, str]]) -> None:
-    output_directory = setup_output_directory(config)
-    batch_size = config["common"]["train_batch_size"]
-
+def run_job(
+    model_config: dict,
+    training_config: dict,
+    device: Optional[Union[torch.device, str]],
+) -> None:
+    output_directory = setup_output_directory(model_config, training_config)
     dataloader = get_dataloader(
-        config["data"]["train_data_path"],
-        batch_size,
+        training_config["data"]["train_data_path"],
+        batch_size=training_config.get("batch_size"),
         device=device,
     )
 
     diffusion_hyperparams = calc_diffusion_hyperparams(
-        **config["diffusion"], device=device
+        **model_config["diffusion"], device=device
     )
-    net = setup_model(config, device)
+    net = setup_model(training_config["use_model"], model_config, device)
 
     LOGGER.info(display_current_time())
     trainer = DiffusionTrainer(
@@ -64,15 +76,15 @@ def run_job(config: dict, device: Optional[Union[torch.device, str]]) -> None:
         net=net,
         device=device,
         output_directory=output_directory,
-        ckpt_iter=config["training"].get("ckpt_iter"),
-        n_iters=config["training"].get("n_iters"),
-        iters_per_ckpt=config["training"].get("iters_per_ckpt"),
-        iters_per_logging=config["training"].get("iters_per_logging"),
-        learning_rate=config["training"].get("learning_rate"),
-        only_generate_missing=config["training"].get("only_generate_missing"),
-        masking=config["training"].get("masking"),
-        missing_k=config["training"].get("missing_k"),
-        batch_size=batch_size,
+        ckpt_iter=training_config.get("ckpt_iter"),
+        n_iters=training_config.get("n_iters"),
+        iters_per_ckpt=training_config.get("iters_per_ckpt"),
+        iters_per_logging=training_config.get("iters_per_logging"),
+        learning_rate=training_config.get("learning_rate"),
+        only_generate_missing=training_config.get("only_generate_missing"),
+        masking=training_config.get("masking"),
+        missing_k=training_config.get("missing_k"),
+        batch_size=training_config.get("batch_size"),
         logger=LOGGER,
     )
     trainer.train()
@@ -83,12 +95,16 @@ def run_job(config: dict, device: Optional[Union[torch.device, str]]) -> None:
 if __name__ == "__main__":
     args = fetch_args()
 
-    with open(args.config) as f:
-        config = json.load(f)
-    LOGGER.info(config)
+    with open(args.model_config, "rt") as f:
+        model_config = yaml.safe_load(f.read())
+    with open(args.traning_config, "rt") as f:
+        training_config = yaml.safe_load(f.read())
+
+    LOGGER.info(f"Model spec: {model_config}")
+    LOGGER.info(f"Training spec: {training_config}")
 
     if torch.cuda.device_count() > 0:
         LOGGER.info(f"Using {torch.cuda.device_count()} GPUs!")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    run_job(config, device)
+    run_job(model_config, training_config, device)

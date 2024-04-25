@@ -38,7 +38,7 @@
         "segment_length":100,
         "sampling_rate": 100
     },
-    "generation":{
+    "inference":{
         "batch_size": 200,
 	    "output_directory": "./results/NYISO_NYC_split",
         "ckpt_path": "./results/NYISO_NYC_split"
