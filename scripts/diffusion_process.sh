@@ -63,10 +63,10 @@ update_conda_environment ${PACKAGE_BASE_PATH} ${DOES_UPDATE_CONDA_ENV} ${CONDA_E
 
 # Execute training if the training config exists
 if [[ -n "${TRAINING_CONFIG}" ]]; then
-  ./${DIR}/training_job.sh -m ${MODEL_CONFIG} -t ${TRAINING_CONFIG}
+  . ${DIR}/training_job.sh -m ${MODEL_CONFIG} -t ${TRAINING_CONFIG}
 fi
 
 # Execute inference if the inference config exists
 if [[ -n "${INFERENCE_CONFIG}" ]]; then
-  ./${DIR}/training_job.sh -m ${MODEL_CONFIG} -i ${INFERENCE_CONFIG}
+  . ${DIR}/training_job.sh -m ${MODEL_CONFIG} -i ${INFERENCE_CONFIG}
 fi
