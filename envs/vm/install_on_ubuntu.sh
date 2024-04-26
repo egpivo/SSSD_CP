@@ -57,8 +57,11 @@ install_nvidia_drivers() {
 }
 
 main() {
+    echo -e "Install Docker"
     install_docker_and_compose || { echo "Error: Failed to install Docker and Docker Compose."; exit 1; }
-    install_nvidia_drivers || { echo "Error: Failed to install NVIDIA drivers and CUDA."; exit 1}
+
+    echo -e "Install NVIDIA drivers"
+    install_nvidia_drivers || { echo "Error: Failed to install NVIDIA drivers and CUDA."; exit 1; }
     sudo DEBIAN_FRONTEND=noninteractive apt install -y awscli
 }
 
