@@ -1,7 +1,7 @@
 # Inference configuration
 batch_size: 200  # Batch size for inference
-output_directory: "./results"  # Output directory for inference results
-ckpt_path: "./results"  # Path to checkpoint for inference
+output_directory: "./results/NYISO_3_mix"  # Output directory for inference results
+ckpt_path: "./results/NYISO_3_mix"  # Path to checkpoint for inference
 trials: 1 # Replications
 
 # Additional training settings
