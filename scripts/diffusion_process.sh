@@ -77,14 +77,13 @@ CONDA_ENV="sssd"
 set -euo pipefail
 
 # Validate mandatory parameter
-if [[ -z "${MODEL_CONFIG}" ]]; then
-  echo "Error: MODEL Configuration file path is required."
-  exit "${ERROR_EXITCODE}"
-fi
+check_file_exists "${MODEL_CONFIG}"
+
 
 # Initialize Conda environment if specified
-update_conda_environment "${PACKAGE_BASE_PATH}" "${DOES_UPDATE_CONDA_ENV}" "${CONDA_ENV}"
-
+if [ x"${DOES_UPDATE_CONDA_ENV}x" == "xtruex" ]; then
+  update_conda_environment "${PACKAGE_BASE_PATH}" "${CONDA_ENV}"
+fi
 # Execute training if the training config exists and the file exists
 if [[ -n "${TRAINING_CONFIG}" && -f "${TRAINING_CONFIG}" ]]; then
   . "${DIR}/training_job.sh" -m "${MODEL_CONFIG}" -t "${TRAINING_CONFIG}"

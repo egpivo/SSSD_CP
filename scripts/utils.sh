@@ -1,5 +1,5 @@
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${DIR}/utils.sh"
+source "${DIR}/../bin/color_map.sh"
 
 
 update_conda_environment() {
