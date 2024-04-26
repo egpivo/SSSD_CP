@@ -37,7 +37,7 @@
        ```shell
        make run-docker
        ```
-     ![img.png](docs/images/img.png)
+     ![run_docker.png](docs/images/run_docker.png)
 
 ####  Useful Commands
 
@@ -45,23 +45,23 @@
     ```bash
     docker compose down
     ```
-   ![img.png](docs/images/img_5.png)
+   ![docker_compose_down.png](docs/images/docker_compose_down.png)
 2. Check a Docker container status
    ```bash
    docker compose ps
    ```
-   ![img_2.png](docs/images/img_2.png)
+   ![docker_compose_ps.png](docs/images/docker_compose_ps.png)
 3. Check a Docker container logs
    ```bash
    docker compose logs
    ```
-   ![img_1.png](docs/images/img_1.png)
+   ![img_docker_compose_log.png](docs/images/img_docker_compose_log.png)
 
 4. Clean Docker cache
    ```bash
    docker system prune -f
    ```
-   ![img_4.png](docs/images/img_4.png)
+   ![clean_docker.png](docs/images/clean_docker.png)
 
 ## Suggestions
 - Use `CUDA_VISIBLE_DEVICES` to specify the number of GPUs. Both training and inference require the same number of GPUs.
