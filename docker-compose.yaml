@@ -10,9 +10,9 @@ services:
       - 8001:8080
     environment:
       PORT: 8080
-      MODEL_CONFIG: "model.config"  # Path to the model configuration file in the `configs/` directory
-      TRAINING_CONFIG: "training.config"  # Path to the training configuration file in the `configs/` directory. Leave empty ("") for no execution
-      INFERENCE_CONFIG: "inference.config"  # Path to the inference configuration file in the `configs/` directory. Leave empty ("") for no execution
+      MODEL_CONFIG: "model.yaml"  # Path to the model configuration file in the `configs/` directory
+      TRAINING_CONFIG: "training.yaml"  # Path to the training configuration file in the `configs/` directory. Leave empty ("") for no execution
+      INFERENCE_CONFIG: "inference.yaml"  # Path to the inference configuration file in the `configs/` directory. Leave empty ("") for no execution
     shm_size: "2GB"  # Increase shared memory size for runtime if the number of GPUs increases
     deploy:
       resources:

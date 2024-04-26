@@ -67,30 +67,16 @@ else
   exit "${ERROR_EXITCODE}"
 fi
 
-# Validate mandatory parameters
-if [[ -z "${MODEL_CONFIG}" ]]; then
-  echo "Error: Model configuration file path is required."
-  exit "${ERROR_EXITCODE}"
-fi
-
-if [[ -z "${TRAINING_CONFIG}" ]]; then
-  echo "Error: Training configuration file path is required."
-  exit "${ERROR_EXITCODE}"
-fi
 
 # Check if the configuration files exist
-if [[ ! -f "${MODEL_CONFIG}" ]]; then
-  echo "Error: Model configuration file '${MODEL_CONFIG}' not found."
-  exit "${ERROR_EXITCODE}"
-fi
-
-if [[ ! -f "${TRAINING_CONFIG}" ]]; then
-  echo "Error: Training configuration file '${TRAINING_CONFIG}' not found."
-  exit "${ERROR_EXITCODE}"
-fi
+check_file_exists "${MODEL_CONFIG}"
+check_file_exists "${TRAINING_CONFIG}"
 
 # Initialize Conda environment if specified
-update_conda_environment "${PACKAGE_BASE_PATH}" "${DOES_UPDATE_CONDA_ENV}" "${CONDA_ENV}"
+if [ x"${DOES_UPDATE_CONDA_ENV}x" == "xtruex" ]; then
+  update_conda_environment "${PACKAGE_BASE_PATH}" "${CONDA_ENV}"
+fi
+activate_conda_environment "${CONDA_ENV}"
 
 # Define training job commands
 TRAINING_JOB_COMMANDS=(
