@@ -24,7 +24,7 @@
      - Enter`aws s3 sync s3://sssd-cp/datasets/ /{repo}/datasets`
 1. Run the process locally:
     ```shell
-    bash scripts/diffusion_process.sh \
+    bash scripts/diffusion/diffusion_process.sh \
       --model_config {MODEL_CONFIG} \
       --training_config {TRAINING_CONFIG} \
       --inference_config {INFERENCE_CONFIG}

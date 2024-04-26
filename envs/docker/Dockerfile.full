@@ -39,5 +39,9 @@ RUN echo "conda activate sssd" >> ~/.bashrc
 COPY --from=builder /sssd/bin bin/
 COPY --from=builder /sssd/scripts scripts/
 
+# Set the entrypoint script as an argument
+ARG ENTRYPOINT_SCRIPT
+COPY $ENTRYPOINT_SCRIPT entrypoint.sh
+
 # Set the entrypoint
-ENTRYPOINT ["/bin/bash", "-c", "/bin/bash scripts/diffusion_process.sh --model_config configs/$MODEL_CONFIG --training_config configs/$TRAINING_CONFIG --inference_config configs/$INFERENCE_CONFIG"]
+ENTRYPOINT ["/bin/bash", "-c", "/bin/bash /sssd/entrypoint.sh"]

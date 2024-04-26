@@ -36,7 +36,7 @@ test: install
 
 ## Run diffusion process on local machine
 run-local:
-	$(SHELL) scripts/diffusion_process.sh \
+	$(SHELL) scripts/diffusion/diffusion_process.sh \
 		-m configs/model.yaml \
 		-t configs/training.yaml \
 		-i configs/inference.yaml \
