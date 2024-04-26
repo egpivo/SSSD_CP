@@ -1,0 +1,15 @@
+# Inference configuration
+batch_size: 200  # Batch size for inference
+output_directory: "./results/NYISO_3_mix"  # Output directory for inference results
+ckpt_path: "./results/NYISO_3_mix"  # Path to checkpoint for inference
+trials: 1 # Replications
+
+# Additional training settings
+only_generate_missing: true  # Generate missing values only
+use_model: 2  # Model to use for training
+masking: "forecast"  # Masking strategy for missing values
+missing_k: 24  # Number of missing values
+
+# Data paths
+data:
+  test_path: "./datasets/NYISO/mix/load_array_mix_test_stdd.npy"  # Path to test data

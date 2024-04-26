@@ -12,12 +12,12 @@ def swish(x):
 
 
 class Conv(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, dilation=1):
+    def __init__(self, input_channels, output_channels, kernel_size=3, dilation=1):
         super(Conv, self).__init__()
         self.padding = dilation * (kernel_size - 1) // 2
         self.conv = nn.Conv1d(
-            in_channels,
-            out_channels,
+            input_channels,
+            output_channels,
             kernel_size,
             dilation=dilation,
             padding=self.padding,
@@ -45,48 +45,52 @@ class ZeroConv1d(nn.Module):
 class Residual_block(nn.Module):
     def __init__(
         self,
-        res_channels,
+        residual_channels,
         skip_channels,
-        diffusion_step_embed_dim_out,
-        in_channels,
-        s4_lmax,
-        s4_d_state,
+        diffusion_step_embed_dim_output,
+        input_channels,
+        s4_max_sequence_length,
+        s4_state_dim,
         s4_dropout,
         s4_bidirectional,
-        s4_layernorm,
+        s4_use_layer_norm,
     ):
         super(Residual_block, self).__init__()
-        self.res_channels = res_channels
+        self.residual_channels = residual_channels
 
-        self.fc_t = nn.Linear(diffusion_step_embed_dim_out, self.res_channels)
+        self.fc_t = nn.Linear(diffusion_step_embed_dim_output, self.residual_channels)
 
         self.S41 = S4Layer(
-            features=2 * self.res_channels,
-            lmax=s4_lmax,
-            N=s4_d_state,
+            features=2 * self.residual_channels,
+            lmax=s4_max_sequence_length,
+            N=s4_state_dim,
             dropout=s4_dropout,
             bidirectional=s4_bidirectional,
-            layer_norm=s4_layernorm,
+            layer_norm=s4_use_layer_norm,
         )
 
-        self.conv_layer = Conv(self.res_channels, 2 * self.res_channels, kernel_size=3)
+        self.conv_layer = Conv(
+            self.residual_channels, 2 * self.residual_channels, kernel_size=3
+        )
 
         self.S42 = S4Layer(
-            features=2 * self.res_channels,
-            lmax=s4_lmax,
-            N=s4_d_state,
+            features=2 * self.residual_channels,
+            lmax=s4_max_sequence_length,
+            N=s4_state_dim,
             dropout=s4_dropout,
             bidirectional=s4_bidirectional,
-            layer_norm=s4_layernorm,
+            layer_norm=s4_use_layer_norm,
         )
 
-        self.cond_conv = Conv(2 * in_channels, 2 * self.res_channels, kernel_size=1)
+        self.cond_conv = Conv(
+            2 * input_channels, 2 * self.residual_channels, kernel_size=1
+        )
 
-        self.res_conv = nn.Conv1d(res_channels, res_channels, kernel_size=1)
+        self.res_conv = nn.Conv1d(residual_channels, residual_channels, kernel_size=1)
         self.res_conv = nn.utils.parametrizations.weight_norm(self.res_conv)
         nn.init.kaiming_normal_(self.res_conv.weight)
 
-        self.skip_conv = nn.Conv1d(res_channels, skip_channels, kernel_size=1)
+        self.skip_conv = nn.Conv1d(residual_channels, skip_channels, kernel_size=1)
         self.skip_conv = nn.utils.parametrizations.weight_norm(self.skip_conv)
         nn.init.kaiming_normal_(self.skip_conv.weight)
 
@@ -94,10 +98,10 @@ class Residual_block(nn.Module):
         x, cond, diffusion_step_embed = input_data
         h = x
         B, C, L = x.shape
-        assert C == self.res_channels
+        assert C == self.residual_channels
 
         part_t = self.fc_t(diffusion_step_embed)
-        part_t = part_t.view([B, self.res_channels, 1])
+        part_t = part_t.view([B, self.residual_channels, 1])
         h = h + part_t
 
         h = self.conv_layer(h)
@@ -109,8 +113,8 @@ class Residual_block(nn.Module):
 
         h = self.S42(h.permute(2, 0, 1)).permute(1, 2, 0)
 
-        out = torch.tanh(h[:, : self.res_channels, :]) * torch.sigmoid(
-            h[:, self.res_channels :, :]
+        out = torch.tanh(h[:, : self.residual_channels, :]) * torch.sigmoid(
+            h[:, self.residual_channels :, :]
         )
 
         res = self.res_conv(out)
@@ -123,44 +127,44 @@ class Residual_block(nn.Module):
 class Residual_group(nn.Module):
     def __init__(
         self,
-        res_channels,
+        residual_channels,
         skip_channels,
-        num_res_layers,
-        diffusion_step_embed_dim_in,
-        diffusion_step_embed_dim_mid,
-        diffusion_step_embed_dim_out,
-        in_channels,
-        s4_lmax,
-        s4_d_state,
+        residual_layers,
+        diffusion_step_embed_dim_input,
+        diffusion_step_embed_dim_hidden,
+        diffusion_step_embed_dim_output,
+        input_channels,
+        s4_max_sequence_length,
+        s4_state_dim,
         s4_dropout,
         s4_bidirectional,
-        s4_layernorm,
+        s4_use_layer_norm,
         device="cuda",
     ):
         super(Residual_group, self).__init__()
-        self.num_res_layers = num_res_layers
-        self.diffusion_step_embed_dim_in = diffusion_step_embed_dim_in
+        self.residual_layers = residual_layers
+        self.diffusion_step_embed_dim_input = diffusion_step_embed_dim_input
 
         self.fc_t1 = nn.Linear(
-            diffusion_step_embed_dim_in, diffusion_step_embed_dim_mid
+            diffusion_step_embed_dim_input, diffusion_step_embed_dim_hidden
         )
         self.fc_t2 = nn.Linear(
-            diffusion_step_embed_dim_mid, diffusion_step_embed_dim_out
+            diffusion_step_embed_dim_hidden, diffusion_step_embed_dim_output
         )
 
         self.residual_blocks = nn.ModuleList()
-        for n in range(self.num_res_layers):
+        for n in range(self.residual_layers):
             self.residual_blocks.append(
                 Residual_block(
-                    res_channels,
+                    residual_channels,
                     skip_channels,
-                    diffusion_step_embed_dim_out=diffusion_step_embed_dim_out,
-                    in_channels=in_channels,
-                    s4_lmax=s4_lmax,
-                    s4_d_state=s4_d_state,
+                    diffusion_step_embed_dim_output=diffusion_step_embed_dim_output,
+                    input_channels=input_channels,
+                    s4_max_sequence_length=s4_max_sequence_length,
+                    s4_state_dim=s4_state_dim,
                     s4_dropout=s4_dropout,
                     s4_bidirectional=s4_bidirectional,
-                    s4_layernorm=s4_layernorm,
+                    s4_use_layer_norm=s4_use_layer_norm,
                 )
             )
 
@@ -170,64 +174,64 @@ class Residual_group(nn.Module):
         noise, conditional, diffusion_steps = input_data
 
         diffusion_step_embed = calc_diffusion_step_embedding(
-            diffusion_steps, self.diffusion_step_embed_dim_in, device=self.device
+            diffusion_steps, self.diffusion_step_embed_dim_input, device=self.device
         )
         diffusion_step_embed = swish(self.fc_t1(diffusion_step_embed))
         diffusion_step_embed = swish(self.fc_t2(diffusion_step_embed))
 
         h = noise
         skip = 0
-        for n in range(self.num_res_layers):
+        for n in range(self.residual_layers):
             h, skip_n = self.residual_blocks[n]((h, conditional, diffusion_step_embed))
             skip += skip_n
 
-        return skip * math.sqrt(1.0 / self.num_res_layers)
+        return skip * math.sqrt(1.0 / self.residual_layers)
 
 
 class SSSDS4Imputer(nn.Module):
     def __init__(
         self,
-        in_channels,
-        res_channels,
+        input_channels,
+        residual_channels,
         skip_channels,
-        out_channels,
-        num_res_layers,
-        diffusion_step_embed_dim_in,
-        diffusion_step_embed_dim_mid,
-        diffusion_step_embed_dim_out,
-        s4_lmax,
-        s4_d_state,
+        output_channels,
+        residual_layers,
+        diffusion_step_embed_dim_input,
+        diffusion_step_embed_dim_hidden,
+        diffusion_step_embed_dim_output,
+        s4_max_sequence_length,
+        s4_state_dim,
         s4_dropout,
         s4_bidirectional,
-        s4_layernorm,
+        s4_use_layer_norm,
         device="cuda",
     ):
         super(SSSDS4Imputer, self).__init__()
 
         self.init_conv = nn.Sequential(
-            Conv(in_channels, res_channels, kernel_size=1), nn.ReLU()
+            Conv(input_channels, residual_channels, kernel_size=1), nn.ReLU()
         )
 
         self.residual_layer = Residual_group(
-            res_channels=res_channels,
+            residual_channels=residual_channels,
             skip_channels=skip_channels,
-            num_res_layers=num_res_layers,
-            diffusion_step_embed_dim_in=diffusion_step_embed_dim_in,
-            diffusion_step_embed_dim_mid=diffusion_step_embed_dim_mid,
-            diffusion_step_embed_dim_out=diffusion_step_embed_dim_out,
-            in_channels=in_channels,
-            s4_lmax=s4_lmax,
-            s4_d_state=s4_d_state,
+            residual_layers=residual_layers,
+            diffusion_step_embed_dim_input=diffusion_step_embed_dim_input,
+            diffusion_step_embed_dim_hidden=diffusion_step_embed_dim_hidden,
+            diffusion_step_embed_dim_output=diffusion_step_embed_dim_output,
+            input_channels=input_channels,
+            s4_max_sequence_length=s4_max_sequence_length,
+            s4_state_dim=s4_state_dim,
             s4_dropout=s4_dropout,
             s4_bidirectional=s4_bidirectional,
-            s4_layernorm=s4_layernorm,
+            s4_use_layer_norm=s4_use_layer_norm,
             device=device,
         )
 
         self.final_conv = nn.Sequential(
             Conv(skip_channels, skip_channels, kernel_size=1),
             nn.ReLU(),
-            ZeroConv1d(skip_channels, out_channels),
+            ZeroConv1d(skip_channels, output_channels),
         )
 
     def forward(self, input_data):

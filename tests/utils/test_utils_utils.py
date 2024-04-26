@@ -101,19 +101,19 @@ def dummy_data():
 def test_sampling(dummy_data):
     size, cond, mask, diffusion_hyperparams = dummy_data
     net = SSSDS4Imputer(
-        in_channels=1,
-        res_channels=1,
+        input_channels=1,
+        residual_channels=1,
         skip_channels=1,
-        out_channels=1,
-        num_res_layers=1,
-        diffusion_step_embed_dim_in=2,
-        diffusion_step_embed_dim_mid=1,
-        diffusion_step_embed_dim_out=1,
-        s4_lmax=32,
-        s4_d_state=128,
+        output_channels=1,
+        residual_layers=1,
+        diffusion_step_embed_dim_input=2,
+        diffusion_step_embed_dim_hidden=1,
+        diffusion_step_embed_dim_output=1,
+        s4_max_sequence_length=32,
+        s4_state_dim=128,
         s4_dropout=0.1,
         s4_bidirectional=False,
-        s4_layernorm=False,
+        s4_use_layer_norm=False,
         device="cpu",
     )
     audio = sampling(net, size, diffusion_hyperparams, cond, mask)

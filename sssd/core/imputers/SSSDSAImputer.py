@@ -12,12 +12,14 @@ def swish(x):
 
 
 class Conv(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, dilation=1, stride=1):
+    def __init__(
+        self, input_channels, output_channels, kernel_size=3, dilation=1, stride=1
+    ):
         super(Conv, self).__init__()
         self.padding = dilation * (kernel_size - 1) // 2
         self.conv = nn.Conv1d(
-            in_channels,
-            out_channels,
+            input_channels,
+            output_channels,
             kernel_size,
             dilation=dilation,
             padding=self.padding,
@@ -170,8 +172,8 @@ class ResidualBlock(nn.Module):
         d_model,
         layer,
         dropout,
-        diffusion_step_embed_dim_out,
-        in_channels,
+        diffusion_step_embed_dim_output,
+        input_channels,
         label_embed_dim,
         stride,
     ):
@@ -191,9 +193,9 @@ class ResidualBlock(nn.Module):
         self.norm = nn.LayerNorm(d_model)
         self.dropout = nn.Dropout2d(dropout) if dropout > 0.0 else nn.Identity()
 
-        self.fc_t = nn.Linear(diffusion_step_embed_dim_out, d_model)
+        self.fc_t = nn.Linear(diffusion_step_embed_dim_output, d_model)
         self.cond_conv = Conv(
-            2 * in_channels, d_model, kernel_size=stride, stride=stride
+            2 * input_channels, d_model, kernel_size=stride, stride=stride
         )
         self.fc_label = (
             nn.Linear(label_embed_dim, d_model) if label_embed_dim is not None else None
@@ -256,16 +258,16 @@ class SSSDSAImputer(nn.Module):
         glu=True,
         unet=True,
         dropout=0.0,
-        in_channels=1,
-        out_channels=1,
-        diffusion_step_embed_dim_in=128,
-        diffusion_step_embed_dim_mid=512,
-        diffusion_step_embed_dim_out=512,
+        input_channels=1,
+        output_channels=1,
+        diffusion_step_embed_dim_input=128,
+        diffusion_step_embed_dim_hidden=512,
+        diffusion_step_embed_dim_output=512,
         label_embed_dim=128,
         label_embed_classes=71,
         bidirectional=True,
-        s4_lmax=1,
-        s4_d_state=64,
+        s4_max_sequence_length=1,
+        s4_state_dim=64,
         s4_dropout=0.0,
         s4_bidirectional=True,
     ):
@@ -301,8 +303,8 @@ class SSSDSAImputer(nn.Module):
 
             layer = S4(
                 d_model=dim,
-                l_max=s4_lmax,
-                d_state=s4_d_state,
+                l_max=s4_max_sequence_length,
+                d_state=s4_state_dim,
                 bidirectional=s4_bidirectional,
                 postact="glu" if glu else None,
                 dropout=dropout,
@@ -321,8 +323,8 @@ class SSSDSAImputer(nn.Module):
                 d_model=dim,
                 layer=layer,
                 dropout=dropout,
-                diffusion_step_embed_dim_out=diffusion_step_embed_dim_out,
-                in_channels=in_channels,
+                diffusion_step_embed_dim_output=diffusion_step_embed_dim_output,
+                input_channels=input_channels,
                 label_embed_dim=label_embed_dim,
                 stride=stride,
             )
@@ -337,8 +339,8 @@ class SSSDSAImputer(nn.Module):
                 d_model=dim,
                 layer=layer,
                 dropout=dropout,
-                diffusion_step_embed_dim_out=diffusion_step_embed_dim_out,
-                in_channels=in_channels,
+                diffusion_step_embed_dim_output=diffusion_step_embed_dim_output,
+                input_channels=input_channels,
                 label_embed_dim=label_embed_dim,
                 stride=stride,
             )
@@ -394,25 +396,25 @@ class SSSDSAImputer(nn.Module):
         self.norm = nn.LayerNorm(H)
 
         self.init_conv = nn.Sequential(
-            nn.Conv1d(in_channels, d_model, kernel_size=1), nn.ReLU()
+            nn.Conv1d(input_channels, d_model, kernel_size=1), nn.ReLU()
         )
         self.final_conv = nn.Sequential(
             nn.Conv1d(d_model, d_model, kernel_size=1),
             nn.ReLU(),
-            nn.Conv1d(d_model, out_channels, kernel_size=1),
+            nn.Conv1d(d_model, output_channels, kernel_size=1),
         )
         self.fc_t1 = nn.Linear(
-            diffusion_step_embed_dim_in, diffusion_step_embed_dim_mid
+            diffusion_step_embed_dim_input, diffusion_step_embed_dim_hidden
         )
         self.fc_t2 = nn.Linear(
-            diffusion_step_embed_dim_mid, diffusion_step_embed_dim_out
+            diffusion_step_embed_dim_hidden, diffusion_step_embed_dim_output
         )
         self.cond_embedding = (
             nn.Embedding(label_embed_classes, label_embed_dim)
             if label_embed_classes > 0 != None
             else None
         )
-        self.diffusion_step_embed_dim_in = diffusion_step_embed_dim_in
+        self.diffusion_step_embed_dim_input = diffusion_step_embed_dim_input
 
         assert H == d_model
 
@@ -426,7 +428,7 @@ class SSSDSAImputer(nn.Module):
         conditional = torch.cat([conditional, mask.float()], dim=1)
 
         diffusion_step_embed = calc_diffusion_step_embedding(
-            diffusion_steps, self.diffusion_step_embed_dim_in
+            diffusion_steps, self.diffusion_step_embed_dim_input
         )
         diffusion_step_embed = swish(self.fc_t1(diffusion_step_embed))
         diffusion_step_embed = swish(self.fc_t2(diffusion_step_embed))

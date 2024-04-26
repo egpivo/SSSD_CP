@@ -106,7 +106,7 @@ def test_calc_diffusion_step_embedding():
 
     # Calculate diffusion step embeddings
     embeddings = calc_diffusion_step_embedding(
-        diffusion_steps, diffusion_step_embed_dim_in=128
+        diffusion_steps, diffusion_step_embed_dim_input=128
     )
 
     # Check the shape of the embeddings

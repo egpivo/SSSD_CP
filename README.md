@@ -24,9 +24,12 @@
      - Enter`aws s3 sync s3://sssd-cp/datasets/ /{repo}/datasets`
 1. Run the process locally:
     ```shell
-    bash scripts/diffusion_process.sh --config {CONFIG_FILE_PATH}
+    bash scripts/diffusion_process.sh \
+      --model_config {MODEL_CONFIG} \
+      --training_config {TRAINING_CONFIG} \
+      --inference_config {INFERENCE_CONFIG}
     ```
-   - Example: `CONFIG_FILE_PATH=configs/toy_example.json`
+   - Note: Modify the parameters in three different configs. If the training or inference config is empty, the process will not be executed.
 
 2. Run in a container:
    - Adjust `CONFIG_FILE` in `docker-compose.yaml`
@@ -34,7 +37,7 @@
        ```shell
        make run-docker
        ```
-     ![img.png](docs/images/img.png)
+     ![run_docker.png](docs/images/run_docker.png)
 
 ####  Useful Commands
 
@@ -42,23 +45,23 @@
     ```bash
     docker compose down
     ```
-   ![img.png](docs/images/img_5.png)
+   ![docker_compose_down.png](docs/images/docker_compose_down.png)
 2. Check a Docker container status
    ```bash
    docker compose ps
    ```
-   ![img_2.png](docs/images/img_2.png)
+   ![docker_compose_ps.png](docs/images/docker_compose_ps.png)
 3. Check a Docker container logs
    ```bash
    docker compose logs
    ```
-   ![img_1.png](docs/images/img_1.png)
+   ![img_docker_compose_log.png](docs/images/img_docker_compose_log.png)
 
 4. Clean Docker cache
    ```bash
    docker system prune -f
    ```
-   ![img_4.png](docs/images/img_4.png)
+   ![clean_docker.png](docs/images/clean_docker.png)
 
 ## Suggestions
 - Use `CUDA_VISIBLE_DEVICES` to specify the number of GPUs. Both training and inference require the same number of GPUs.

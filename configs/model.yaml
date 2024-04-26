@@ -1,0 +1,25 @@
+wavenet:
+  # WaveNet model parameters
+  input_channels: 1  # Number of input channels
+  output_channels: 1  # Number of output channels
+  residual_layers: 2  # Number of residual layers
+  residual_channels: 2  # Number of channels in residual blocks
+  skip_channels: 2  # Number of channels in skip connections
+
+  # Diffusion step embedding dimensions
+  diffusion_step_embed_dim_input: 128  # Input dimension
+  diffusion_step_embed_dim_hidden: 512  # Middle dimension
+  diffusion_step_embed_dim_output: 512  # Output dimension
+
+  # Structured State Spaces sequence model (S4) configurations
+  s4_max_sequence_length: 200  # Maximum sequence length
+  s4_state_dim: 64  # State dimension
+  s4_dropout: 0.0  # Dropout rate
+  s4_bidirectional: true  # Whether to use bidirectional layers
+  s4_use_layer_norm: true  # Whether to use layer normalization
+
+diffusion:
+  # Diffusion model parameters
+  T: 200  # Number of diffusion steps
+  beta_0: 0.0001  # Initial beta value
+  beta_T: 0.02  # Final beta value

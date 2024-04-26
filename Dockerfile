@@ -4,7 +4,7 @@
 FROM egpivo/sssd:latest AS builder
 
 LABEL authors="Joseph Wang <egpivo@gmail.com>" \
-      version="0.0.8"
+      version="0.0.9"
 
 # Set the working directory in the container
 WORKDIR /sssd
@@ -42,4 +42,4 @@ COPY --from=builder /sssd/bin bin/
 COPY --from=builder /sssd/scripts scripts/
 
 # Set the entrypoint
-ENTRYPOINT ["/bin/bash", "-c", "/bin/bash scripts/diffusion_process.sh --config configs/$CONFIG_FILE --trials ${TRIALS}"]
+ENTRYPOINT ["/bin/bash", "-c", "/bin/bash scripts/diffusion_process.sh --model_config configs/$MODEL_CONFIG --training_config configs/$TRAINING_CONFIG --inference_config configs/$INFERENCE_CONFIG"]

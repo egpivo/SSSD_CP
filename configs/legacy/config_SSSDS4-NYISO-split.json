@@ -1,30 +1,26 @@
 {
-    "common": {
-        "train_batch_size": 80,
-        "inference_batch_size": 200,
-        "num_workers": 4
-    },
     "diffusion":{
         "T": 200,
         "beta_0": 0.0001,
         "beta_T": 0.02
     },
     "wavenet": {
-        "in_channels":1,
-	    "out_channels":1,
-        "num_res_layers": 36,
-        "res_channels": 256,
+        "input_channels":1,
+	    "output_channels":1,
+        "residual_layers": 36,
+        "residual_channels": 256,
         "skip_channels": 256,
-        "diffusion_step_embed_dim_in": 128,
-        "diffusion_step_embed_dim_mid": 512,
-        "diffusion_step_embed_dim_out": 512,
-        "s4_lmax": 200,
-        "s4_d_state":64,
+        "diffusion_step_embed_dim_input": 128,
+        "diffusion_step_embed_dim_hidden": 512,
+        "diffusion_step_embed_dim_output": 512,
+        "s4_max_sequence_length": 200,
+        "s4_state_dim":64,
         "s4_dropout":0.0,
         "s4_bidirectional":1,
-        "s4_layernorm":1
+        "s4_use_layer_norm":1
     },
-    "training": {
+   "training": {
+        "batch_size": 80,
         "output_directory": "./results/NYISO_NYC_split",
         "ckpt_iter": "max",
         "iters_per_ckpt": 10000,
@@ -42,7 +38,8 @@
         "segment_length":100,
         "sampling_rate": 100
     },
-    "generation":{
+    "inference":{
+        "batch_size": 200,
 	    "output_directory": "./results/NYISO_NYC_split",
         "ckpt_path": "./results/NYISO_NYC_split"
     }

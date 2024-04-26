@@ -1,0 +1,18 @@
+# Training configuration
+batch_size: 80  # Batch size
+output_directory: "./results/NYISO_3_mix"  # Output directory for checkpoints and logs
+ckpt_iter: "max"  # Checkpoint mode (max or min)
+iters_per_ckpt: 1  # Checkpoint frequency (number of epochs)
+iters_per_logging: 1  # Log frequency (number of iterations)
+n_iters: 5  # Maximum number of iterations
+learning_rate: 0.0002  # Learning rate
+
+# Additional training settings
+only_generate_missing: true  # Generate missing values only
+use_model: 2  # Model to use for training
+masking: "forecast"  # Masking strategy for missing values
+missing_k: 24  # Number of missing values
+
+# Data paths
+data:
+  train_path: "./datasets/NYISO/mix/load_array_mix_train_stdd.npy"  # Path to training data

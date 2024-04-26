@@ -1,31 +1,27 @@
 {
-    "common": {
-        "train_batch_size": 80,
-        "inference_batch_size": 200,
-        "num_workers": 4
-    },
     "diffusion":{
         "T": 200,
         "beta_0": 0.0001,
         "beta_T": 0.02
     },
     "sashimi_config": {
-        "in_channels": 12,
-        "out_channels":12,
+        "input_channels": 12,
+        "output_channels":12,
         "d_model": 128,
         "n_layers":6,
-        "diffusion_step_embed_dim_in": 128,
-        "diffusion_step_embed_dim_mid": 512,
-        "diffusion_step_embed_dim_out": 512,
+        "diffusion_step_embed_dim_input": 128,
+        "diffusion_step_embed_dim_hidden": 512,
+        "diffusion_step_embed_dim_output": 512,
         "label_embed_dim": 128,
         "label_embed_classes": 71,
         "bidirectional":1,
-        "s4_lmax":1000,
-        "s4_d_state":64,
+        "s4_max_sequence_length":1000,
+        "s4_state_dim":64,
         "s4_dropout":0.0,
         "s4_bidirectional":1
     },
     "training": {
+        "batch_size": 80,
         "output_directory": "/",
         "ckpt_iter": "max",
         "iters_per_ckpt": 2000,
@@ -42,7 +38,8 @@
         "segment_length": 1000,
         "sampling_rate": 100
     },
-    "generation":{
+    "inference":{
+        "batch_size": 200,
         "output_directory": "/",
         "ckpt_path": "//"
     }
