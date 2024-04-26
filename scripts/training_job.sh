@@ -46,8 +46,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Source utility functions
-if [[ -f "${DIR}/utils.sh" ]]; then
-  source "${DIR}/utils.sh"
+if [[ -f "${PACKAGE_BASE_PATH}/bin/utils.sh" ]]; then
+  source "${PACKAGE_BASE_PATH}/bin/utils.sh"
 else
   echo "Error: utils.sh not found" >&2
   exit "${ERROR_EXITCODE}"

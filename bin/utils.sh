@@ -26,9 +26,9 @@ activate_conda_environment() {
 
 
 check_file_exists() {
-  local CONFIG_FILE="$1"
-  if [[ ! -f "${CONFIG_FILE}" ]]; then
-    echo "Error: Configuration file '${CONFIG_FILE}' not found." >&2
+  local FILE_PATH="$1"
+  if [[ ! -f "${FILE_PATH}" ]]; then
+    echo "Error: File '${FILE_PATH}' not found." >&2
     exit "${ERROR_EXITCODE}"
   fi
 }
