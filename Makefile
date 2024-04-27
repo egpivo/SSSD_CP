@@ -35,7 +35,7 @@ test: install
 	$(EXECUTABLE) pytest --cov=sssd
 
 ## Run diffusion process on local machine
-run-local:
+run-local-diffusion:
 	$(SHELL) scripts/diffusion/diffusion_process.sh \
 		-m configs/model.yaml \
 		-t configs/training.yaml \

@@ -9,8 +9,7 @@ WORKDIR /sssd
 
 # Copy only necessary project files and Conda environment setup
 COPY scripts/ scripts/
-COPY envs/conda envs/conda/
-COPY bin bin/
+COPY envs/ envs/COPY bin bin/
 COPY sssd sssd/
 COPY pyproject.toml pyproject.toml
 COPY README.md README.md
@@ -38,10 +37,7 @@ RUN echo "conda activate sssd" >> ~/.bashrc
 # Copy necessary files from the build stage
 COPY --from=builder /sssd/bin bin/
 COPY --from=builder /sssd/scripts scripts/
-
-# Set the entrypoint script as an argument
-ARG ENTRYPOINT_SCRIPT
-COPY $ENTRYPOINT_SCRIPT entrypoint.sh
+COPY --from=builder /sssd/envs envs/
 
 # Set the entrypoint
 ENTRYPOINT ["/bin/bash", "-c", "/bin/bash scripts/docker/$ENTRYPOINT_SCRIPT"]
