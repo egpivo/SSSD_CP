@@ -16,7 +16,7 @@
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PACKAGE_BASE_PATH="${DIR}/.."
+PACKAGE_BASE_PATH="${DIR}/../.."
 
 MODEL_CONFIG=""
 TRAINING_CONFIG=""
