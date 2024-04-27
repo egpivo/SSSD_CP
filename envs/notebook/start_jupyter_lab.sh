@@ -2,14 +2,14 @@
 #
 # Start a Jupyter Lab server with the specified kernel environment and configure Spark and GPU settings.
 # Parameters:
-#    -k or --kernel_env: Specify the kernel environment name (default: optimus).
+#    -k or --kernel_env: Specify the kernel environment name (default: sssd).
 #    -p or --port: Specify the port number for the Jupyter Lab server (default: 8501).
 #    -C or --rebuild_conda: Set the DOES_UPDATE_CONDA flag to TRUE to update the Conda environment.
 #
 #
 
 # Set default values
-KERNEL_ENV="optimus"
+KERNEL_ENV="sssd"
 PORT="8501"
 DOES_UPDATE_CONDA="FALSE"
 
@@ -29,6 +29,7 @@ source "${NOTEBOOK_DIR}/utils.sh"
 PACKAGE_BASE_PATH="${NOTEBOOK_DIR}/../.."
 source "${PACKAGE_BASE_PATH}/bin/color_map.sh"
 source "${PACKAGE_BASE_PATH}/bin/exit_code.sh"
+source "${CONDA_BASE}/etc/profile.d/conda.sh"
 
 start_jupyter_server() {
   local PORT="$1"

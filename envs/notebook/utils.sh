@@ -2,6 +2,8 @@
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${DIR}/../../bin/exit_code.sh"
 source "${DIR}/../../bin/color_map.sh"
+source "${DIR}/../conda/utils.sh"
+
 
 update_conda_env_path() {
   local ENV_NAME=$1
