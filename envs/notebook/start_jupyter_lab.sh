@@ -71,7 +71,7 @@ start_jupyter_server() {
   fi
   update_gpu_env ${KERNEL_ENV}
 
-  jupyter lab --ip=0.0.0.0 --port "${PORT}" --no-browser --NotebookApp.token='' --NotebookApp.password=''
+  jupyter lab --ip=0.0.0.0 --port "${PORT}" --no-browser --NotebookApp.token='' --NotebookApp.password='' --allow-root
   conda deactivate
 }
 
