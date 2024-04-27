@@ -64,13 +64,15 @@ start_jupyter_server() {
   fi
 
   update_conda_env_path "${KERNEL_ENV}"
+  source activate "${KERNEL_ENV}"
   is_jupyter_kernel_path_available "${KERNEL_ENV}"
   if [ "$?" == "${ERROR_EXITCODE}" ]; then
     set_jupyter_kernel_path "${KERNEL_ENV}"
   fi
   update_gpu_env ${KERNEL_ENV}
 
-  jupyter lab --ip=0.0.0.0 --port "${PORT}" --no-browser
+  jupyter lab --ip=0.0.0.0 --port "${PORT}" --no-browser --NotebookApp.token='' --NotebookApp.password=''
+  conda deactivate
 }
 
 if [ "x${PORT}x" == "xx" ]; then
