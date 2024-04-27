@@ -53,6 +53,10 @@ push-docker:
 run-docker:
 	docker compose up -d
 
+## Jupyter server
+run-jupyter:
+	$(SHELL) envs/jupyter/start_jupyter_lab.sh --port
+
 ## Help
 help:
 	@echo "Available targets:"

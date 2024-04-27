@@ -76,6 +76,6 @@ start_jupyter_server() {
 }
 
 if [ "x${PORT}x" == "xx" ]; then
-  PORT="8000"
+  PORT="8501"
 fi
 start_jupyter_server ${PORT}
