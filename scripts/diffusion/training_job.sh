@@ -15,8 +15,8 @@
 
 set -euo pipefail
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PACKAGE_BASE_PATH="${DIR}/../.."
+TRAINING_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PACKAGE_BASE_PATH="${TRAINING_DIR}/../.."
 
 MODEL_CONFIG=""
 TRAINING_CONFIG=""
@@ -80,7 +80,7 @@ activate_conda_environment "${CONDA_ENV}"
 
 # Define training job commands
 TRAINING_JOB_COMMANDS=(
-  "${DIR}/train.py"
+  "${TRAINING_DIR}/train.py"
   --model_config "${MODEL_CONFIG}"
   --training_config "${TRAINING_CONFIG}"
 )

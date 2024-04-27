@@ -16,8 +16,8 @@
 #    - Execute only inference process: ./diffusion_process.sh -m configs/model.yaml -i configs/inference.yaml
 #
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PACKAGE_BASE_PATH="${DIR}/../.."
+DIFFUSION_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PACKAGE_BASE_PATH="${DIFFUSION_DIR}/../.."
 
 MODEL_CONFIG=""
 TRAINING_CONFIG=""
@@ -86,10 +86,10 @@ if [ x"${DOES_UPDATE_CONDA_ENV}x" == "xtruex" ]; then
 fi
 # Execute training if the training config exists and the file exists
 if [[ -n "${TRAINING_CONFIG}" && -f "${TRAINING_CONFIG}" ]]; then
-  . "${DIR}/training_job.sh" -m "${MODEL_CONFIG}" -t "${TRAINING_CONFIG}"
+  . "${DIFFUSION_DIR}/training_job.sh" -m "${MODEL_CONFIG}" -t "${TRAINING_CONFIG}"
 fi
 
 # Execute inference if the inference config exists and the file exists
 if [[ -n "${INFERENCE_CONFIG}" && -f "${INFERENCE_CONFIG}" ]]; then
-  . "${DIR}/inference_job.sh" -m "${MODEL_CONFIG}" -i "${INFERENCE_CONFIG}"
+  . "${DIFFUSION_DIR}/inference_job.sh" -m "${MODEL_CONFIG}" -i "${INFERENCE_CONFIG}"
 fi

@@ -15,8 +15,8 @@
 
 set -euo pipefail
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PACKAGE_BASE_PATH="${DIR}/../.."
+INFERENCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PACKAGE_BASE_PATH="${INFERENCE_DIR}/../.."
 
 MODEL_CONFIG=""
 INFERENCE_CONFIG=""
@@ -80,7 +80,7 @@ activate_conda_environment "${CONDA_ENV}"
 
 # Define inference job commands
 INFERENCE_JOB_COMMANDS=(
-  "${DIR}/infer.py"
+  "${INFERENCE_DIR}/infer.py"
   --model_config "${MODEL_CONFIG}"
   --inference_config "${INFERENCE_CONFIG}"
 )
