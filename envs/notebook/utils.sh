@@ -1,9 +1,9 @@
 #!/bin/bash
-BIN_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${BIN_DIR}/../../bin/exit_code.sh"
-source "${BIN_DIR}/../../bin/color_map.sh"
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${DIR}/../../bin/exit_code.sh"
+source "${DIR}/../../bin/color_map.sh"
 
-find_conda_env_path() {
+update_conda_env_path() {
   # Will return `CONDA_ENV_DIR`
   local ENV_NAME=$1
 
@@ -16,11 +16,10 @@ find_conda_env_path() {
     return "${ERROR_EXITCODE}"
   fi
 
-  if [ "x${CONDA_INFO[1]}x" == "x*x" ]; then
-    CONDA_ENV_DIR="${CONDA_INFO[2]}"
-  else
-    CONDA_ENV_DIR="${CONDA_INFO[1]}"
-  fi
+  . ${DIR}/../envs/conda/build_conda_env.sh -c "${ENV_NAME}"
+  source activate "${ENV_NAME}"
+  poetry install ---with notebook
+  conda deactivate
 }
 
 is_jupyter_kernel_path_available() {

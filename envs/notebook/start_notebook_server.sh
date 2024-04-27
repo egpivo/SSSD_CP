@@ -63,23 +63,14 @@ start_jupyter_server() {
     KERNEL_ENV="sssd"
   fi
 
-  # Kernel initialization
+  update_conda_env_path "${KERNEL_ENV}"
   is_jupyter_kernel_path_available "${KERNEL_ENV}"
   if [ "$?" == "${ERROR_EXITCODE}" ]; then
     set_jupyter_kernel_path "${KERNEL_ENV}"
   fi
   update_gpu_env ${KERNEL_ENV}
 
-  # Conda rebuilding
-  if [ "x${DOES_UPDATE_CONDA}x" == "xTRUEx" ]; then
-    CONDA_BUILDER=(
-      "${NOTEBOOK_DIR}/../conda/build_conda_env.sh"
-      -c "${KERNEL_ENV}"
-    )
-    bash "${CONDA_BUILDER[@]}"
-  fi
-
-  jupyter lab --ip=127.0.0.1 --port "${PORT}"
+  jupyter lab --ip=0.0.0.0 --port "${PORT}" --no-browser
 }
 
 if [ "x${PORT}x" == "xx" ]; then
