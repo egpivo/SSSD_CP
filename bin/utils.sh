@@ -7,7 +7,7 @@ update_conda_environment() {
   local CONDA_ENV=$2
 
   if [ -x "$(command -v conda)" ]; then
-    echo -e "${FG_YELLOW}Updating Conda environment - sssd${FG_RESET}"
+    echo -e "${FG_YELLOW}Updating Conda environment - ${CONDA_ENV}${FG_RESET}"
     bash "${PACKAGE_BASE_PATH}/envs/conda/build_conda_env.sh" --conda_env ${CONDA_ENV}
   else
     echo -e "${FG_RED}Conda is not installed.${FG_RESET}"
@@ -26,9 +26,9 @@ activate_conda_environment() {
 
 
 check_file_exists() {
-  local CONFIG_FILE="$1"
-  if [[ ! -f "${CONFIG_FILE}" ]]; then
-    echo "Error: Configuration file '${CONFIG_FILE}' not found." >&2
+  local FILE_PATH="$1"
+  if [[ ! -f "${FILE_PATH}" ]]; then
+    echo "Error: File '${FILE_PATH}' not found." >&2
     exit "${ERROR_EXITCODE}"
   fi
 }

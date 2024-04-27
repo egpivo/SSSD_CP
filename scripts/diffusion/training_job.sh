@@ -1,25 +1,25 @@
 #!/bin/bash
 #
-# Execute a diffusion process - inference
+# Execute a diffusion process - training
 #
 # Parameters:
 #    - Mandatory:
 #        - -m/--model_config: model configuration path
-#        - -i/--inference_config: inference configuration path
+#        - -t/--training_config: training configuration path
 #    - Optional:
 #        - -u/--update_conda_env: flag to update Conda environment
 #
 # Examples:
-#    - Execute the script: ./inference_job.sh -m configs/model.yaml -i configs/inference.yaml
+#    - Execute the script: ./training_job.sh -m configs/model.yaml -t configs/training.yaml
 #
 
 set -euo pipefail
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PACKAGE_BASE_PATH="${DIR}/.."
+TRAINING_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PACKAGE_BASE_PATH="${TRAINING_DIR}/../.."
 
 MODEL_CONFIG=""
-INFERENCE_CONFIG=""
+TRAINING_CONFIG=""
 DOES_UPDATE_CONDA_ENV="false"
 CONDA_ENV="sssd"
 
@@ -30,8 +30,8 @@ while [[ $# -gt 0 ]]; do
       MODEL_CONFIG="$2"
       shift 2
       ;;
-    -i|--inference_config)
-      INFERENCE_CONFIG="$2"
+    -t|--training_config)
+      TRAINING_CONFIG="$2"
       shift 2
       ;;
     -u|--update_conda_env)
@@ -46,8 +46,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Source utility functions
-if [[ -f "${DIR}/utils.sh" ]]; then
-  source "${DIR}/utils.sh"
+if [[ -f "${PACKAGE_BASE_PATH}/bin/utils.sh" ]]; then
+  source "${PACKAGE_BASE_PATH}/bin/utils.sh"
 else
   echo "Error: utils.sh not found" >&2
   exit "${ERROR_EXITCODE}"
@@ -70,7 +70,7 @@ fi
 
 # Check if the configuration files exist
 check_file_exists "${MODEL_CONFIG}"
-check_file_exists "${INFERENCE_CONFIG}"
+check_file_exists "${TRAINING_CONFIG}"
 
 # Initialize Conda environment if specified
 if [ x"${DOES_UPDATE_CONDA_ENV}x" == "xtruex" ]; then
@@ -78,16 +78,16 @@ if [ x"${DOES_UPDATE_CONDA_ENV}x" == "xtruex" ]; then
 fi
 activate_conda_environment "${CONDA_ENV}"
 
-# Define inference job commands
-INFERENCE_JOB_COMMANDS=(
-  "${DIR}/infer.py"
+# Define training job commands
+TRAINING_JOB_COMMANDS=(
+  "${TRAINING_DIR}/train.py"
   --model_config "${MODEL_CONFIG}"
-  --inference_config "${INFERENCE_CONFIG}"
+  --training_config "${TRAINING_CONFIG}"
 )
 
-# Execute inference
-echo -e "${FG_YELLOW}[Execution - Inference]${FG_RESET}"
-echo -e "${FG_GREEN}${INFERENCE_JOB_COMMANDS[*]}${FG_RESET}"
-python "${INFERENCE_JOB_COMMANDS[@]}"
+# Execute training
+echo -e "${FG_YELLOW}[Execution - Training]${FG_RESET}"
+echo -e "${FG_GREEN}${TRAINING_JOB_COMMANDS[*]}${FG_RESET}"
+python "${TRAINING_JOB_COMMANDS[@]}"
 
-echo -e "${FG_GREEN}Inference Job completed${FG_RESET}"
+echo -e "${FG_GREEN}Training Job completed${FG_RESET}"

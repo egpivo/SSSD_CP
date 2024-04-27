@@ -4,14 +4,14 @@
 FROM egpivo/sssd:latest AS builder
 
 LABEL authors="Joseph Wang <egpivo@gmail.com>" \
-      version="0.0.9"
+      version="0.0.10"
 
 # Set the working directory in the container
 WORKDIR /sssd
 
 # Copy only necessary project files and Conda environment setup
 COPY scripts/ scripts/
-COPY envs/conda envs/conda/
+COPY envs/ envs/
 COPY bin bin/
 COPY sssd sssd/
 COPY pyproject.toml pyproject.toml
@@ -40,6 +40,8 @@ RUN echo "conda activate sssd" >> ~/.bashrc
 # Copy necessary files from the build stage
 COPY --from=builder /sssd/bin bin/
 COPY --from=builder /sssd/scripts scripts/
+COPY --from=builder /sssd/envs envs/
+COPY --from=builder /sssd/pyproject.toml pyproject.toml
 
 # Set the entrypoint
-ENTRYPOINT ["/bin/bash", "-c", "/bin/bash scripts/diffusion_process.sh --model_config configs/$MODEL_CONFIG --training_config configs/$TRAINING_CONFIG --inference_config configs/$INFERENCE_CONFIG"]
+ENTRYPOINT ["/bin/bash", "-c", "/bin/bash scripts/docker/$ENTRYPOINT_SCRIPT"]

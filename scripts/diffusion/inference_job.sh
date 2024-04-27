@@ -1,38 +1,33 @@
 #!/bin/bash
 #
-# Execute a diffusion process - either training or inference
+# Execute a diffusion process - inference
 #
 # Parameters:
 #    - Mandatory:
 #        - -m/--model_config: model configuration path
-#    - Optional:
-#        - -t/--training_config: training configuration path
 #        - -i/--inference_config: inference configuration path
+#    - Optional:
 #        - -u/--update_conda_env: flag to update Conda environment
 #
 # Examples:
-#    - Execute whole process: ./diffusion_process.sh -m configs/model.yaml -t configs/training.yaml -i configs/inference.yaml
-#    - Execute only training process: ./diffusion_process.sh -m configs/model.yaml -t configs/training.yaml
-#    - Execute only inference process: ./diffusion_process.sh -m configs/model.yaml -i configs/inference.yaml
+#    - Execute the script: ./inference_job.sh -m configs/model.yaml -i configs/inference.yaml
 #
 
-DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PACKAGE_BASE_PATH="${DIR}/.."
+set -euo pipefail
+
+INFERENCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PACKAGE_BASE_PATH="${INFERENCE_DIR}/../.."
 
 MODEL_CONFIG=""
-TRAINING_CONFIG=""
 INFERENCE_CONFIG=""
 DOES_UPDATE_CONDA_ENV="false"
+CONDA_ENV="sssd"
 
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -m|--model_config)
       MODEL_CONFIG="$2"
-      shift 2
-      ;;
-    -t|--training_config)
-      TRAINING_CONFIG="$2"
       shift 2
       ;;
     -i|--inference_config)
@@ -51,8 +46,8 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Source utility functions
-if [[ -f "${DIR}/utils.sh" ]]; then
-  source "${DIR}/utils.sh"
+if [[ -f "${PACKAGE_BASE_PATH}/bin/utils.sh" ]]; then
+  source "${PACKAGE_BASE_PATH}/bin/utils.sh"
 else
   echo "Error: utils.sh not found" >&2
   exit "${ERROR_EXITCODE}"
@@ -72,24 +67,27 @@ else
   exit "${ERROR_EXITCODE}"
 fi
 
-CONDA_ENV="sssd"
 
-set -euo pipefail
-
-# Validate mandatory parameter
+# Check if the configuration files exist
 check_file_exists "${MODEL_CONFIG}"
-
+check_file_exists "${INFERENCE_CONFIG}"
 
 # Initialize Conda environment if specified
 if [ x"${DOES_UPDATE_CONDA_ENV}x" == "xtruex" ]; then
   update_conda_environment "${PACKAGE_BASE_PATH}" "${CONDA_ENV}"
 fi
-# Execute training if the training config exists and the file exists
-if [[ -n "${TRAINING_CONFIG}" && -f "${TRAINING_CONFIG}" ]]; then
-  . "${DIR}/training_job.sh" -m "${MODEL_CONFIG}" -t "${TRAINING_CONFIG}"
-fi
+activate_conda_environment "${CONDA_ENV}"
 
-# Execute inference if the inference config exists and the file exists
-if [[ -n "${INFERENCE_CONFIG}" && -f "${INFERENCE_CONFIG}" ]]; then
-  . "${DIR}/inference_job.sh" -m "${MODEL_CONFIG}" -i "${INFERENCE_CONFIG}"
-fi
+# Define inference job commands
+INFERENCE_JOB_COMMANDS=(
+  "${INFERENCE_DIR}/infer.py"
+  --model_config "${MODEL_CONFIG}"
+  --inference_config "${INFERENCE_CONFIG}"
+)
+
+# Execute inference
+echo -e "${FG_YELLOW}[Execution - Inference]${FG_RESET}"
+echo -e "${FG_GREEN}${INFERENCE_JOB_COMMANDS[*]}${FG_RESET}"
+python "${INFERENCE_JOB_COMMANDS[@]}"
+
+echo -e "${FG_GREEN}Inference Job completed${FG_RESET}"

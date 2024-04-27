@@ -35,8 +35,8 @@ test: install
 	$(EXECUTABLE) pytest --cov=sssd
 
 ## Run diffusion process on local machine
-run-local:
-	$(SHELL) scripts/diffusion_process.sh \
+run-local-diffusion:
+	$(SHELL) scripts/diffusion/diffusion_process.sh \
 		-m configs/model.yaml \
 		-t configs/training.yaml \
 		-i configs/inference.yaml \
@@ -52,6 +52,10 @@ push-docker:
 
 run-docker:
 	docker compose up -d
+
+## Jupyter server
+run-jupyter:
+	$(SHELL) envs/notebook/start_jupyter_lab.sh --port 8501
 
 ## Help
 help:
