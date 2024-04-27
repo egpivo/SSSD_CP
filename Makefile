@@ -55,7 +55,7 @@ run-docker:
 
 ## Jupyter server
 run-jupyter:
-	$(SHELL) envs/jupyter/start_jupyter_lab.sh --port
+	$(SHELL) envs/notebook/start_jupyter_lab.sh --port 8501
 
 ## Help
 help:

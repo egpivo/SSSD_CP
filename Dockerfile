@@ -41,9 +41,5 @@ RUN echo "conda activate sssd" >> ~/.bashrc
 COPY --from=builder /sssd/bin bin/
 COPY --from=builder /sssd/scripts scripts/
 
-# Set the entrypoint script as an argument
-ARG ENTRYPOINT_SCRIPT
-COPY $ENTRYPOINT_SCRIPT entrypoint.sh
-
 # Set the entrypoint
-ENTRYPOINT ["/bin/bash", "-c", "/bin/bash /sssd/entrypoint.sh"]
+ENTRYPOINT ["/bin/bash", "-c", "/bin/bash scripts/docker/$ENTRYPOINT_SCRIPT"]
