@@ -6,12 +6,10 @@ services:
       - ./datasets/:/sssd/datasets
       - ./configs/:/sssd/configs
       - ./results:/sssd/results
-      - ./sssd:/sssd/sssd
-      - ./notebooks:/sssd/notebooks
     ports:
       - 8501:8080
     environment:
-      ENTRYPOINT_SCRIPT: "run_diffusion.sh" # change run_notebook.sh for running Jupyter env
+      ENTRYPOINT_SCRIPT: "run_diffusion.sh"
       PORT: 8080
       MODEL_CONFIG: "model.yaml"  # Path to the model configuration file in the `configs/` directory
       TRAINING_CONFIG: "training.yaml"  # Path to the training configuration file in the `configs/` directory. Leave empty ("") for no execution

@@ -1,0 +1,23 @@
+version: "latest"
+services:
+  sssd:
+    image: egpivo/sssd:latest
+    volumes:
+      - ./datasets/:/sssd/datasets
+      - ./configs/:/sssd/configs
+      - ./results:/sssd/results
+      - ./sssd:/sssd/sssd
+      - ./notebooks:/sssd/notebooks
+    ports:
+      - 8501:8080
+    environment:
+      ENTRYPOINT_SCRIPT: "run_notebook.sh"
+      PORT: 8080
+    shm_size: "2GB"  # Increase shared memory size for runtime if the number of GPUs increases
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["0"]  # Specify the GPU ids, e.g., ["0", "2"]; or ["all"] for all GPUs
+              capabilities: [gpu]
