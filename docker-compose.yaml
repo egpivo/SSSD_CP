@@ -6,6 +6,8 @@ services:
       - ./datasets/:/sssd/datasets
       - ./configs/:/sssd/configs
       - ./results:/sssd/results
+      - ./sssd:/sssd/sssd
+      - ./notebooks:/sssd/notebooks
     ports:
       - 8501:8080
     environment:
