@@ -41,6 +41,8 @@ RUN echo "conda activate sssd" >> ~/.bashrc
 COPY --from=builder /sssd/bin bin/
 COPY --from=builder /sssd/scripts scripts/
 COPY --from=builder /sssd/envs envs/
+COPY --from=builder /sssd/notebooks sssd/
+COPY --from=builder /sssd/sssd sssd/
 COPY --from=builder /sssd/pyproject.toml pyproject.toml
 
 # Set the entrypoint
