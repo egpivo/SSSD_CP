@@ -13,6 +13,7 @@ WORKDIR /sssd
 COPY scripts/ scripts/
 COPY envs/ envs/
 COPY bin bin/
+COPY notebooks notebooks/
 COPY sssd sssd/
 COPY pyproject.toml pyproject.toml
 COPY README.md README.md
