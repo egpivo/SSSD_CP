@@ -1,4 +1,3 @@
-import logging
 import math
 from functools import partial
 
@@ -8,8 +7,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange, repeat
-from pytorch_lightning.utilities import rank_zero_only
 from scipy import special as ss
+
+from sssd.utils.logger import setup_logger
 
 contract = oe.contract
 contract_expression = oe.contract_expression
@@ -21,29 +21,7 @@ the notebook, please see more documentation of use there. Additional at this fil
 the cauchy kernel."""
 
 
-def get_logger(name=__name__, level=logging.INFO) -> logging.Logger:
-    """Initializes multi-GPU-friendly python logger."""
-
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
-
-    # this ensures all logging levels get marked with the rank zero decorator
-    # otherwise logs would get multiplied for each GPU process in multi-GPU setup
-    for level in (
-        "debug",
-        "info",
-        "warning",
-        "error",
-        "exception",
-        "fatal",
-        "critical",
-    ):
-        setattr(logger, level, rank_zero_only(getattr(logger, level)))
-
-    return logger
-
-
-log = get_logger(__name__)
+LOGGER = setup_logger()
 
 """ Cauchy kernel """
 
@@ -52,7 +30,7 @@ try:  # Try CUDA extension
 
     has_cauchy_extension = True
 except:
-    log.warn(
+    LOGGER.warning(
         "CUDA extension for cauchy multiplication not found. Install by going to extensions/cauchy/ and running `python setup.py install`. This should speed up end-to-end training by 10-50%"
     )
     has_cauchy_extension = False
@@ -92,7 +70,7 @@ try:  # Try pykeops
 except ImportError:
     has_pykeops = False
     if not has_cauchy_extension:
-        log.error(
+        LOGGER.error(
             "Falling back on slow Cauchy kernel. Install at least one of pykeops or the CUDA extension for efficiency."
         )
 
@@ -791,7 +769,7 @@ class SSKernelNPLR(nn.Module):
     @torch.no_grad()
     def double_length(self):
         if self.verbose:
-            log.info(f"S4: Doubling length from L = {self.L} to {2*self.L}")
+            LOGGER.info(f"S4: Doubling length from L = {self.L} to {2*self.L}")
         self._setup_C(double_length=True)
 
     def _setup_linear(self):
@@ -1122,10 +1100,7 @@ class S4(nn.Module):
 
         super().__init__()
         if verbose:
-            import sssd.utils.train
-
-            log = sssd.utils.train.get_logger(__name__)
-            log.info(f"Constructing S4 (H, N, L) = ({d_model}, {d_state}, {l_max})")
+            LOGGER.info(f"Constructing S4 (H, N, L) = ({d_model}, {d_state}, {l_max})")
 
         self.h = d_model
         self.n = d_state
