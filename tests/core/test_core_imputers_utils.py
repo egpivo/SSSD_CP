@@ -1,60 +1,7 @@
 import pytest
-import torch.nn as nn
+import torch
 
-from sssd.core.imputers.utils import Activation, get_initializer
-
-
-def test_activation_identity():
-    activation_layer = Activation(activation=None)
-    assert isinstance(activation_layer, nn.Identity)
-
-    activation_layer = Activation(activation="id")
-    assert isinstance(activation_layer, nn.Identity)
-
-    activation_layer = Activation(activation="identity")
-    assert isinstance(activation_layer, nn.Identity)
-
-    activation_layer = Activation(activation="linear")
-    assert isinstance(activation_layer, nn.Identity)
-
-
-def test_activation_tanh():
-    activation_layer = Activation(activation="tanh")
-    assert isinstance(activation_layer, nn.Tanh)
-
-
-def test_activation_relu():
-    activation_layer = Activation(activation="relu")
-    assert isinstance(activation_layer, nn.ReLU)
-
-
-def test_activation_gelu():
-    activation_layer = Activation(activation="gelu")
-    assert isinstance(activation_layer, nn.GELU)
-
-
-def test_activation_swish():
-    activation_layer = Activation(activation="swish")
-    assert isinstance(activation_layer, nn.SiLU)
-
-    activation_layer = Activation(activation="silu")
-    assert isinstance(activation_layer, nn.SiLU)
-
-
-def test_activation_glu():
-    activation_layer = Activation(activation="glu", dim=1)
-    assert isinstance(activation_layer, nn.GLU)
-    assert activation_layer.dim == 1
-
-
-def test_activation_sigmoid():
-    activation_layer = Activation(activation="sigmoid")
-    assert isinstance(activation_layer, nn.Sigmoid)
-
-
-def test_activation_not_implemented():
-    with pytest.raises(NotImplementedError):
-        Activation(activation="unsupported")
+from sssd.core.imputers.utils import get_initializer, power
 
 
 def test_get_initializer_uniform():
@@ -90,3 +37,21 @@ def test_get_initializer_unsupported_activation():
 def test_get_initializer_unsupported_initializer():
     with pytest.raises(ValueError):
         get_initializer("unsupported")
+
+
+def test_power_without_v():
+    # Test case 1: L = 2, A is a 2x2 matrix
+    A = torch.tensor([[1, 2], [3, 4]], dtype=torch.float32)
+    L = 2
+    expected_result = torch.tensor([[7, 10], [15, 22]], dtype=torch.float32)
+    result = power(L, A)
+    assert torch.allclose(result, expected_result)
+
+    # Test case 2: L = 3, A is a 3x3 matrix
+    A = torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=torch.float32)
+    L = 3
+    expected_result = torch.tensor(
+        [[468, 576, 684], [1062, 1305, 1548], [1656, 2034, 2412]], dtype=torch.float32
+    )
+    result = power(L, A)
+    assert torch.allclose(result, expected_result)

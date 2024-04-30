@@ -12,9 +12,11 @@ clean: clean-pyc clean-build clean-test-coverage clean-docker
 clean-pyc:
 	find . -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -delete
 clean-build:
-	rm -fr build/ dist/ .eggs/ find . -name '*.egg-info' -o -name '*.egg' -exec rm -fr {} +
+	rm -fr build/ dist/ .eggs/ && \
+	find . -name '*.egg-info' -o -name '*.egg' -exec rm -fr {} +
 clean-test-coverage:
-	rm -f .coverage rm -rf .pytest_cache
+	rm -f .coverage && \
+	rm -rf .pytest_cache
 clean-docker:
 	docker system prune -f
 

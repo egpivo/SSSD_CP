@@ -1,43 +1,8 @@
 from functools import partial
 from typing import Callable, Optional
 
-import torch.nn as nn
+import torch
 import torch.nn.init as init
-
-
-def Activation(activation=None, dim=-1):
-    """
-    Returns an activation layer based on the specified activation type.
-
-    Args:
-        activation (str, optional): The activation type. Default is None.
-        dim (int, optional): The dimension for the GLU activation. Default is -1.
-
-    Returns:
-        nn.Module: The activation layer.
-
-    Raises:
-        NotImplementedError: If the specified activation type is not implemented.
-    """
-    activation = activation.lower() if activation else None
-    activation_map = {
-        None: nn.Identity(),
-        "id": nn.Identity(),
-        "identity": nn.Identity(),
-        "linear": nn.Identity(),
-        "tanh": nn.Tanh(),
-        "relu": nn.ReLU(),
-        "gelu": nn.GELU(),
-        "swish": nn.SiLU(),
-        "silu": nn.SiLU(),
-        "glu": nn.GLU(dim=dim),
-        "sigmoid": nn.Sigmoid(),
-    }
-
-    if activation in activation_map:
-        return activation_map[activation]
-    else:
-        raise NotImplementedError(f"Activation '{activation}' is not implemented.")
 
 
 def get_initializer(name: str, activation: Optional[str] = None) -> Callable:
@@ -98,3 +63,40 @@ def get_initializer(name: str, activation: Optional[str] = None) -> Callable:
         initializer = partial(init.constant_, val=1)
 
     return initializer
+
+
+def power(exponent: int, matrix: torch.Tensor) -> torch.Tensor:
+    """
+    Compute matrix raised to the power of the exponent using the square-and-multiply algorithm.
+
+    Args:
+        exponent (int): The exponent.
+        matrix (torch.Tensor): Square matrix of shape (..., N, N).
+
+    Returns:
+        torch.Tensor: The result of matrix raised to the power of the exponent.
+
+    Raises:
+        ValueError: If the input matrix is not square.
+        ValueError: If the exponent is negative.
+    """
+    # Check if the input matrix is square
+    if matrix.shape[-2] != matrix.shape[-1]:
+        raise ValueError("Input matrix must be square.")
+
+    # Check if the exponent is non-negative
+    if exponent < 0:
+        raise ValueError("Exponent must be non-negative.")
+
+    # Initialize an identity matrix of the same size as the input matrix
+    result = torch.eye(matrix.shape[-1], device=matrix.device, dtype=matrix.dtype)
+
+    # Compute matrix powers iteratively
+    while exponent > 0:
+        if exponent & 1:
+            result = torch.matmul(matrix, result)
+        exponent >>= 1
+        if exponent > 0:
+            matrix = torch.matmul(matrix, matrix)
+
+    return result
