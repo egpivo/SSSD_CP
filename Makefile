@@ -30,7 +30,6 @@ activate-conda-env:
 
 ## Testing
 test:
-	install
 	$(EXECUTABLE) pytest --cov=sssd
 
 ## Run diffusion process on local machine

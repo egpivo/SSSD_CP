@@ -1,5 +1,4 @@
 import math
-from functools import partial
 
 import numpy as np
 import opt_einsum as oe
@@ -9,6 +8,8 @@ import torch.nn.functional as F
 from einops import rearrange, repeat
 from scipy import special as ss
 
+from sssd.core.imputers.layers.linear import TransposedLinear
+from sssd.core.imputers.utils import Activation, get_initializer
 from sssd.utils.logger import setup_logger
 
 contract = oe.contract
@@ -105,78 +106,6 @@ else:
 
 
 """ simple nn.Module components """
-
-
-def Activation(activation=None, dim=-1):
-    if activation in [None, "id", "identity", "linear"]:
-        return nn.Identity()
-    elif activation == "tanh":
-        return nn.Tanh()
-    elif activation == "relu":
-        return nn.ReLU()
-    elif activation == "gelu":
-        return nn.GELU()
-    elif activation in ["swish", "silu"]:
-        return nn.SiLU()
-    elif activation == "glu":
-        return nn.GLU(dim=dim)
-    elif activation == "sigmoid":
-        return nn.Sigmoid()
-    else:
-        raise NotImplementedError(
-            "hidden activation '{}' is not implemented".format(activation)
-        )
-
-
-def get_initializer(name, activation=None):
-    if activation in [None, "id", "identity", "linear", "modrelu"]:
-        nonlinearity = "linear"
-    elif activation in ["relu", "tanh", "sigmoid"]:
-        nonlinearity = activation
-    elif activation in ["gelu", "swish", "silu"]:
-        nonlinearity = "relu"  # Close to ReLU so approximate with ReLU's gain
-    else:
-        raise NotImplementedError(
-            f"get_initializer: activation {activation} not supported"
-        )
-
-    if name == "uniform":
-        initializer = partial(torch.nn.init.kaiming_uniform_, nonlinearity=nonlinearity)
-    elif name == "normal":
-        initializer = partial(torch.nn.init.kaiming_normal_, nonlinearity=nonlinearity)
-    elif name == "xavier":
-        initializer = torch.nn.init.xavier_normal_
-    elif name == "zero":
-        initializer = partial(torch.nn.init.constant_, val=0)
-    elif name == "one":
-        initializer = partial(torch.nn.init.constant_, val=1)
-    else:
-        raise NotImplementedError(
-            f"get_initializer: initializer type {name} not supported"
-        )
-
-    return initializer
-
-
-class TransposedLinear(nn.Module):
-    """Linear module on the second-to-last dimension"""
-
-    def __init__(self, d_input, d_output, bias=True):
-        super().__init__()
-
-        self.weight = nn.Parameter(torch.empty(d_output, d_input))
-        nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))  # nn.Linear default init
-        # nn.init.kaiming_uniform_(self.weight, nonlinearity='linear') # should be equivalent
-
-        if bias:
-            self.bias = nn.Parameter(torch.empty(d_output, 1))
-            bound = 1 / math.sqrt(d_input)
-            nn.init.uniform_(self.bias, -bound, bound)
-        else:
-            self.bias = 0.0
-
-    def forward(self, x):
-        return contract("... u l, v u -> ... v l", x, self.weight) + self.bias
 
 
 def LinearActivation(
