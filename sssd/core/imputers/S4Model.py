@@ -8,8 +8,8 @@ import torch.nn.functional as F
 from einops import rearrange, repeat
 from scipy import special as ss
 
-from sssd.core.imputers.layers.linear import TransposedLinear
-from sssd.core.imputers.utils import Activation, get_initializer
+from sssd.core.imputers.layers.linear import LinearActivation
+from sssd.core.imputers.utils import Activation
 from sssd.utils.logger import setup_logger
 
 contract = oe.contract
@@ -103,50 +103,6 @@ if tuple(map(int, torch.__version__.split(".")[:2])) >= (1, 10):
     _resolve_conj = lambda x: x.conj().resolve_conj()
 else:
     _resolve_conj = lambda x: x.conj()
-
-
-""" simple nn.Module components """
-
-
-def LinearActivation(
-    d_input,
-    d_output,
-    bias=True,
-    zero_bias_init=False,
-    transposed=False,
-    initializer=None,
-    activation=None,
-    activate=False,  # Apply activation as part of this module
-    weight_norm=False,
-    **kwargs,
-):
-    """Returns a linear nn.Module with control over axes order, initialization, and activation"""
-
-    # Construct core module
-    linear_cls = TransposedLinear if transposed else nn.Linear
-    if activation == "glu":
-        d_output *= 2
-    linear = linear_cls(d_input, d_output, bias=bias, **kwargs)
-
-    # Initialize weight
-    if initializer is not None:
-        get_initializer(initializer, activation)(linear.weight)
-
-    # Initialize bias
-    if bias and zero_bias_init:
-        nn.init.zeros_(linear.bias)
-
-    # Weight norm
-    if weight_norm:
-        linear = nn.utils.parametrizations.weight_norm(linear)
-
-    if activate and activation is not None:
-        activation = Activation(activation, dim=-2 if transposed else -1)
-        linear = nn.Sequential(linear, activation)
-    return linear
-
-
-""" Misc functional utilities """
 
 
 def krylov(L, A, b, c=None, return_power=False):
@@ -1061,15 +1017,14 @@ class S4(nn.Module):
 
         # position-wise output transform to mix features
         self.output_linear = LinearActivation(
-            self.h * self.channels,
-            self.h,
-            transposed=self.transposed,
+            in_features=self.h * self.channels,
+            out_features=self.h,
+            is_transposed=self.transposed,
             initializer=initializer,
             activation=postact,
             activate=True,
             weight_norm=weight_norm,
         )
-
         # self.time_transformer = get_torch_trans(heads=8, layers=1, channels=self.h)
 
     def forward(self, u, **kwargs):  # absorbs return_output and transformer sssd mask

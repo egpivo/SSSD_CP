@@ -20,7 +20,6 @@ clean-docker:
 
 ## Installation
 install:
-	clean
 	$(SHELL) envs/conda/build_conda_env.sh -c sssd
 
 ## Activate Conda environment
