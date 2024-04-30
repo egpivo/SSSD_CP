@@ -19,9 +19,9 @@
 DIFFUSION_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PACKAGE_BASE_PATH="${DIFFUSION_DIR}/../.."
 
-MODEL_CONFIG=""
-TRAINING_CONFIG=""
-INFERENCE_CONFIG=""
+MODEL_CONFIG="${PACKAGE_BASE_PATH}/configs/model.yaml"
+TRAINING_CONFIG="${PACKAGE_BASE_PATH}/configs/training.yaml"
+INFERENCE_CONFIG="${PACKAGE_BASE_PATH}/configs/inference.yaml"
 DOES_UPDATE_CONDA_ENV="false"
 
 # Parse command-line arguments

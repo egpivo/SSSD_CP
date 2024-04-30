@@ -62,6 +62,8 @@ main() {
 
     echo -e "Install NVIDIA drivers"
     install_nvidia_drivers || { echo "Error: Failed to install NVIDIA drivers and CUDA."; exit 1; }
+
+    echo -e "Install AWS CLI"
     sudo DEBIAN_FRONTEND=noninteractive apt install -y awscli
 }
 
