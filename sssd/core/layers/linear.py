@@ -5,7 +5,7 @@ import opt_einsum as oe
 import torch
 import torch.nn as nn
 
-from sssd.core.imputers.layers.activation import Activation
+from sssd.core.layers.activation import Activation
 
 
 class TransposedLinear(nn.Module):

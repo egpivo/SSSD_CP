@@ -4,9 +4,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 
-from sssd.core.imputers.hippo.hippo import HippoSSKernel
-from sssd.core.imputers.layers.activation import Activation
-from sssd.core.imputers.layers.linear import LinearActivation
+from sssd.core.layers.activation import Activation
+from sssd.core.layers.linear import LinearActivation
+from sssd.core.s4.hippo.hippo import HippoSSKernel
 from sssd.utils.logger import setup_logger
 
 contract = oe.contract

@@ -9,6 +9,43 @@ Matrix = np.ndarray
 MeasureArgs = Dict[str, Union[float, int]]
 
 
+def power(exponent: int, matrix: torch.Tensor) -> torch.Tensor:
+    """
+    Compute matrix raised to the power of the exponent using the square-and-multiply algorithm.
+
+    Args:
+        exponent (int): The exponent.
+        matrix (torch.Tensor): Square matrix of shape (..., N, N).
+
+    Returns:
+        torch.Tensor: The result of matrix raised to the power of the exponent.
+
+    Raises:
+        ValueError: If the input matrix is not square.
+        ValueError: If the exponent is negative.
+    """
+    # Check if the input matrix is square
+    if matrix.shape[-2] != matrix.shape[-1]:
+        raise ValueError("Input matrix must be square.")
+
+    # Check if the exponent is non-negative
+    if exponent < 0:
+        raise ValueError("Exponent must be non-negative.")
+
+    # Initialize an identity matrix of the same size as the input matrix
+    result = torch.eye(matrix.shape[-1], device=matrix.device, dtype=matrix.dtype)
+
+    # Compute matrix powers iteratively
+    while exponent > 0:
+        if exponent & 1:
+            result = torch.matmul(matrix, result)
+        exponent >>= 1
+        if exponent > 0:
+            matrix = torch.matmul(matrix, matrix)
+
+    return result
+
+
 def embed_c2r(A: Matrix) -> Matrix:
     """
     Embed a complex-valued matrix into a real-valued matrix.

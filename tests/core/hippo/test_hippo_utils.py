@@ -2,11 +2,30 @@ import numpy as np
 import pytest
 import torch
 
-from sssd.core.imputers.hippo.utils import (
+from sssd.core.s4.hippo.utils import (
     TransitionMatrix,
     embed_c2r,
     generate_rank_correction_matrix,
+    power,
 )
+
+
+def test_power_without_v():
+    # Test case 1: L = 2, A is a 2x2 matrix
+    A = torch.tensor([[1, 2], [3, 4]], dtype=torch.float32)
+    L = 2
+    expected_result = torch.tensor([[7, 10], [15, 22]], dtype=torch.float32)
+    result = power(L, A)
+    assert torch.allclose(result, expected_result)
+
+    # Test case 2: L = 3, A is a 3x3 matrix
+    A = torch.tensor([[1, 2, 3], [4, 5, 6], [7, 8, 9]], dtype=torch.float32)
+    L = 3
+    expected_result = torch.tensor(
+        [[468, 576, 684], [1062, 1305, 1548], [1656, 2034, 2412]], dtype=torch.float32
+    )
+    result = power(L, A)
+    assert torch.allclose(result, expected_result)
 
 
 def test_transition_lagt():

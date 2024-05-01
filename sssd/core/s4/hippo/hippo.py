@@ -6,11 +6,11 @@ import torch
 import torch.nn as nn
 from einops import rearrange, repeat
 
-from sssd.core.imputers.hippo.utils import (
+from sssd.core.s4.hippo.utils import (
     TransitionMatrix,
     generate_rank_correction_matrix,
+    power,
 )
-from sssd.core.imputers.utils import power
 from sssd.utils.logger import setup_logger
 
 contract = oe.contract
