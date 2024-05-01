@@ -9,7 +9,7 @@ from einops import rearrange, repeat
 
 from sssd.core.imputers.layers.activation import Activation
 from sssd.core.imputers.layers.linear import LinearActivation
-from sssd.core.imputers.utils import power, transition
+from sssd.core.imputers.utils import TransitionMatrix, power
 from sssd.utils.logger import setup_logger
 
 contract = oe.contract
@@ -150,7 +150,7 @@ def nplr(measure, N, rank=1, dtype=torch.float):
         V = torch.eye(N, dtype=dtype)[..., : N // 2]  # Only used in testing
         return w, P, B, V
 
-    A, B = transition(measure, N)
+    A, B = TransitionMatrix(measure, N)
     A = torch.as_tensor(A, dtype=dtype)  # (N, N)
     B = torch.as_tensor(B, dtype=dtype)[:, 0]  # (N,)
 

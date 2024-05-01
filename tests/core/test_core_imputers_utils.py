@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import torch
 
-from sssd.core.imputers.utils import embed_c2r, get_initializer, power, transition
+from sssd.core.imputers.utils import TransitionMatrix, embed_c2r, get_initializer, power
 
 
 def test_get_initializer_uniform():
@@ -61,7 +61,7 @@ def test_power_without_v():
 def test_transition_lagt():
     N = 10
     beta = 1.5
-    A, B = transition("lagt", N, beta=beta)
+    A, B = TransitionMatrix("lagt", N, beta=beta)
     assert A.shape == (N, N)
     assert B.shape == (N, 1)
     assert np.allclose(A, np.eye(N) / 2 - np.tril(np.ones((N, N))))
@@ -72,42 +72,42 @@ def test_transition_glagt():
     N = 10
     alpha = 0.5
     beta = 0.01
-    A, B = transition("glagt", N, alpha=alpha, beta=beta)
+    A, B = TransitionMatrix("glagt", N, alpha=alpha, beta=beta)
     assert A.shape == (N, N)
     assert B.shape == (N, 1)
 
 
 def test_transition_legt():
     N = 10
-    A, B = transition("legt", N)
+    A, B = TransitionMatrix("legt", N)
     assert A.shape == (N, N)
     assert B.shape == (N, 1)
 
 
 def test_transition_legs():
     N = 10
-    A, B = transition("legs", N)
+    A, B = TransitionMatrix("legs", N)
     assert A.shape == (N, N)
     assert B.shape == (N, 1)
 
 
 def test_transition_fourier():
     N = 10
-    A, B = transition("fourier", N)
+    A, B = TransitionMatrix("fourier", N)
     assert A.shape == (N, N)
     assert B.shape == (N, 1)
 
 
 def test_transition_random():
     N = 10
-    A, B = transition("random", N)
+    A, B = TransitionMatrix("random", N)
     assert A.shape == (N, N)
     assert B.shape == (N, 1)
 
 
 def test_transition_diagonal():
     N = 10
-    A, B = transition("diagonal", N)
+    A, B = TransitionMatrix("diagonal", N)
     assert A.shape == (N, N)
     assert B.shape == (N, 1)
 
@@ -115,7 +115,7 @@ def test_transition_diagonal():
 def test_transition_invalid_measure():
     N = 10
     with pytest.raises(NotImplementedError):
-        transition("invalid_measure", N)
+        TransitionMatrix("invalid_measure", N)
 
 
 def test_embed_c2r():
