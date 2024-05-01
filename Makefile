@@ -5,29 +5,21 @@ MODEL_CONFIG ?= configs/model.yaml
 TRAINING_CONFIG ?= configs/training.yaml
 INFERENCE_CONFIG ?= configs/inference.config
 
-.PHONY: clean install activate-conda-env test run-local-diffusion build-docker push-docker run-docker-diffusion run-local-jupyter run-docker-jupyter help
+.PHONY: clean install-dev test run-local-diffusion build-docker push-docker run-docker-diffusion run-local-jupyter run-docker-jupyter help
 
 ## Clean targets
-clean: clean-pyc clean-build clean-test-coverage clean-docker
-clean-pyc:
+clean:
 	find . -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -delete
-clean-build:
 	rm -fr build/ dist/ .eggs/ && \
 	find . -name '*.egg-info' -o -name '*.egg' -exec rm -fr {} +
-clean-test-coverage:
 	rm -f .coverage && \
 	rm -rf .pytest_cache
-clean-docker:
 	docker system prune -f
 
 ## Installation
-install:
+install-dev:
 	$(SHELL) envs/conda/build_conda_env.sh -c sssd
-
-## Activate Conda environment
-activate-conda-env:
-	install
-	eval "$$(conda shell.bash hook)" && conda activate sssd
+	@echo "Development dependencies installed successfully."
 
 ## Testing
 test:
@@ -62,8 +54,7 @@ run-docker-jupyter:
 help:
 	@echo "Available targets:"
 	@echo "clean : Clean up temporary files"
-	@echo "install : Install sssd with dependencies"
-	@echo "activate-conda-env : Activate Conda environment"
+	@echo "install-dev : Install development dependencies"
 	@echo "test : Run tests"
 	@echo "run-local-diffusion : Run diffusion process on local machine"
 	@echo "build-docker : Build Docker image"

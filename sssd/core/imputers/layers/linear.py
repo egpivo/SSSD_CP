@@ -114,15 +114,8 @@ class LinearActivation(nn.Module):
             self.linear = nn.utils.weight_norm(self.linear)
 
     def forward(self, x):
-        # if self.is_transposed:
-        #     x = x.unsqueeze(-1)  # Add the last dimension for TransposedLinear
-
         x = self.linear(x)
 
         if self.activation is not None:
             x = self.activation(x)
-        #
-        # if self.is_transposed:
-        #     x = x.squeeze(-1)  # Remove the last dimension for TransposedLinear
-
         return x
