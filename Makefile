@@ -3,7 +3,7 @@ EXECUTABLE := poetry run
 DOCKER_USERNAME := "egpivo"
 MODEL_CONFIG ?= configs/model.yaml
 TRAINING_CONFIG ?= configs/training.yaml
-INFERENCE_CONFIG ?= configs/inference.config
+INFERENCE_CONFIG ?= configs/inference.yaml
 
 .PHONY: clean install-dev test run-local-diffusion build-docker push-docker run-docker-diffusion run-local-jupyter run-docker-jupyter help
 
