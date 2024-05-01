@@ -9,7 +9,11 @@ from einops import rearrange, repeat
 
 from sssd.core.imputers.layers.activation import Activation
 from sssd.core.imputers.layers.linear import LinearActivation
-from sssd.core.imputers.utils import TransitionMatrix, power
+from sssd.core.imputers.utils import (
+    TransitionMatrix,
+    generate_rank_correction_matrix,
+    power,
+)
 from sssd.utils.logger import setup_logger
 
 contract = oe.contract
@@ -102,39 +106,6 @@ else:
 """ HiPPO utilities """
 
 
-def rank_correction(measure, N, rank=1, dtype=torch.float):
-    """Return low-rank matrix L such that A + L is normal"""
-
-    if measure == "legs":
-        assert rank >= 1
-        P = torch.sqrt(0.5 + torch.arange(N, dtype=dtype)).unsqueeze(0)  # (1 N)
-    elif measure == "legt":
-        assert rank >= 2
-        P = torch.sqrt(1 + 2 * torch.arange(N, dtype=dtype))  # (N)
-        P0 = P.clone()
-        P0[0::2] = 0.0
-        P1 = P.clone()
-        P1[1::2] = 0.0
-        P = torch.stack([P0, P1], dim=0)  # (2 N)
-    elif measure == "lagt":
-        assert rank >= 1
-        P = 0.5**0.5 * torch.ones(1, N, dtype=dtype)
-    elif measure == "fourier":
-        P = torch.ones(N, dtype=dtype)  # (N)
-        P0 = P.clone()
-        P0[0::2] = 0.0
-        P1 = P.clone()
-        P1[1::2] = 0.0
-        P = torch.stack([P0, P1], dim=0)  # (2 N)
-    else:
-        raise NotImplementedError
-
-    d = P.size(0)
-    if rank > d:
-        P = torch.cat([P, torch.zeros(rank - d, N, dtype=dtype)], dim=0)  # (rank N)
-    return P
-
-
 def nplr(measure, N, rank=1, dtype=torch.float):
     """Return w, p, q, V, B such that
     (w - p q^*, B) is unitarily equivalent to the original HiPPO A, B by the matrix V
@@ -154,7 +125,7 @@ def nplr(measure, N, rank=1, dtype=torch.float):
     A = torch.as_tensor(A, dtype=dtype)  # (N, N)
     B = torch.as_tensor(B, dtype=dtype)[:, 0]  # (N,)
 
-    P = rank_correction(measure, N, rank=rank, dtype=dtype)
+    P = generate_rank_correction_matrix(measure, N, rank=rank, dtype=dtype)
     AP = A + torch.sum(P.unsqueeze(-2) * P.unsqueeze(-1), dim=-3)
     w, V = torch.linalg.eig(AP)  # (..., N) (..., N, N)
     # V w V^{-1} = A

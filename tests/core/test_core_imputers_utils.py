@@ -2,7 +2,13 @@ import numpy as np
 import pytest
 import torch
 
-from sssd.core.imputers.utils import TransitionMatrix, embed_c2r, get_initializer, power
+from sssd.core.imputers.utils import (
+    TransitionMatrix,
+    embed_c2r,
+    generate_rank_correction_matrix,
+    get_initializer,
+    power,
+)
 
 
 def test_get_initializer_uniform():
@@ -174,3 +180,31 @@ def test_embed_c2r():
         assert (
             str(e) == "Expected 2 dimensions, got 1"
         ), f"Unexpected error message: {str(e)}"
+
+
+@pytest.mark.parametrize(
+    "measure, N, rank, expected_shape",
+    [
+        ("legs", 5, 1, (1, 5)),
+        ("legs", 10, 2, (2, 10)),
+        ("legt", 5, 2, (2, 5)),
+        ("legt", 10, 3, (3, 10)),
+        ("lagt", 5, 1, (1, 5)),
+        ("lagt", 10, 2, (2, 10)),
+        ("fourier", 5, 2, (2, 5)),
+        ("fourier", 10, 3, (3, 10)),
+    ],
+)
+def test_rank_correction(measure, N, rank, expected_shape):
+    P = generate_rank_correction_matrix(measure, N, rank)
+    assert P.shape == expected_shape
+
+
+def test_rank_correction_invalid_measure():
+    with pytest.raises(NotImplementedError):
+        generate_rank_correction_matrix("invalid_measure", 5, 1)
+
+
+def test_rank_correction_dtype():
+    P = generate_rank_correction_matrix("legs", 5, 1, dtype=torch.float64)
+    assert P.dtype == torch.float64
