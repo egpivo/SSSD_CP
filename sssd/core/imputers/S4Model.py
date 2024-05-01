@@ -6,21 +6,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange, repeat
-from scipy import special as ss
 
 from sssd.core.imputers.layers.activation import Activation
 from sssd.core.imputers.layers.linear import LinearActivation
-from sssd.core.imputers.utils import power
+from sssd.core.imputers.utils import power, transition
 from sssd.utils.logger import setup_logger
 
 contract = oe.contract
 contract_expression = oe.contract_expression
-
-
-""" Standalone CSDI + S4 imputer for random missing, non-random missing and black-out missing.
-The notebook contains CSDI and S4 functions and utilities. However the imputer is located in the last Class of
-the notebook, please see more documentation of use there. Additional at this file can be added for CUDA multiplication
-the cauchy kernel."""
 
 
 LOGGER = setup_logger()
@@ -109,85 +102,6 @@ else:
 """ HiPPO utilities """
 
 
-def embed_c2r(A):
-    A = rearrange(A, "... m n -> ... m () n ()")
-    A = np.pad(A, ((0, 0), (0, 1), (0, 0), (0, 1))) + np.pad(
-        A, ((0, 0), (1, 0), (0, 0), (1, 0))
-    )
-    return rearrange(A, "m x n y -> (m x) (n y)")
-
-
-def transition(measure, N, **measure_args):
-    """A, B transition matrices for different measures
-
-    measure: the type of measure
-      legt - Legendre (translated)
-      legs - Legendre (scaled)
-      glagt - generalized Laguerre (translated)
-      lagt, tlagt - previous versions of (tilted) Laguerre with slightly different normalization
-    """
-    # Laguerre (translated)
-    if measure == "lagt":
-        b = measure_args.get("beta", 1.0)
-        A = np.eye(N) / 2 - np.tril(np.ones((N, N)))
-        B = b * np.ones((N, 1))
-    # Generalized Laguerre
-    # alpha 0, beta small is most stable (limits to the 'lagt' measure)
-    # alpha 0, beta 1 has transition matrix A = [lower triangular 1]
-    elif measure == "glagt":
-        alpha = measure_args.get("alpha", 0.0)
-        beta = measure_args.get("beta", 0.01)
-        A = -np.eye(N) * (1 + beta) / 2 - np.tril(np.ones((N, N)), -1)
-        B = ss.binom(alpha + np.arange(N), np.arange(N))[:, None]
-
-        L = np.exp(
-            0.5 * (ss.gammaln(np.arange(N) + alpha + 1) - ss.gammaln(np.arange(N) + 1))
-        )
-        A = (1.0 / L[:, None]) * A * L[None, :]
-        B = (
-            (1.0 / L[:, None])
-            * B
-            * np.exp(-0.5 * ss.gammaln(1 - alpha))
-            * beta ** ((1 - alpha) / 2)
-        )
-    # Legendre (translated)
-    elif measure == "legt":
-        Q = np.arange(N, dtype=np.float64)
-        R = (2 * Q + 1) ** 0.5
-        j, i = np.meshgrid(Q, Q)
-        A = R[:, None] * np.where(i < j, (-1.0) ** (i - j), 1) * R[None, :]
-        B = R[:, None]
-        A = -A
-    # Legendre (scaled)
-    elif measure == "legs":
-        q = np.arange(N, dtype=np.float64)
-        col, row = np.meshgrid(q, q)
-        r = 2 * q + 1
-        M = -(np.where(row >= col, r, 0) - np.diag(q))
-        T = np.sqrt(np.diag(2 * q + 1))
-        A = T @ M @ np.linalg.inv(T)
-        B = np.diag(T)[:, None]
-        B = (
-            B.copy()
-        )  # Otherwise "UserWarning: given NumPY array is not writeable..." after torch.as_tensor(B)
-    elif measure == "fourier":
-        freqs = np.arange(N // 2)
-        d = np.stack([freqs, np.zeros(N // 2)], axis=-1).reshape(-1)[:-1]
-        A = 2 * np.pi * (np.diag(d, 1) - np.diag(d, -1))
-        A = A - embed_c2r(np.ones((N // 2, N // 2)))
-        B = embed_c2r(np.ones((N // 2, 1)))[..., :1]
-    elif measure == "random":
-        A = np.random.randn(N, N) / N
-        B = np.random.randn(N, 1)
-    elif measure == "diagonal":
-        A = -np.diag(np.exp(np.random.randn(N)))
-        B = np.random.randn(N, 1)
-    else:
-        raise NotImplementedError
-
-    return A, B
-
-
 def rank_correction(measure, N, rank=1, dtype=torch.float):
     """Return low-rank matrix L such that A + L is normal"""
 
@@ -255,28 +169,6 @@ def nplr(measure, N, rank=1, dtype=torch.float):
     P = contract("ij, ...j -> ...i", V_inv, P.to(V))  # V^* P
 
     return w, P, B, V
-
-
-def bilinear(dt, A, B=None):
-    """
-    dt: (...) timescales
-    A: (... N N)
-    B: (... N)
-    """
-    N = A.shape[-1]
-    I = torch.eye(N).to(A)
-    A_backwards = I - dt[:, None, None] / 2 * A
-    A_forwards = I + dt[:, None, None] / 2 * A
-
-    if B is None:
-        dB = None
-    else:
-        dB = dt[..., None] * torch.linalg.solve(A_backwards, B.unsqueeze(-1)).squeeze(
-            -1
-        )  # (... N)
-
-    dA = torch.linalg.solve(A_backwards, A_forwards)  # (... N N)
-    return dA, dB
 
 
 class SSKernelNPLR(nn.Module):

@@ -1,8 +1,11 @@
 from functools import partial
 from typing import Callable, Optional
 
+import numpy as np
 import torch
 import torch.nn.init as init
+from einops import rearrange
+from scipy import special as ss
 
 
 def get_initializer(name: str, activation: Optional[str] = None) -> Callable:
@@ -20,7 +23,7 @@ def get_initializer(name: str, activation: Optional[str] = None) -> Callable:
     Raises:
         ValueError: If the specified activation or initializer type is not supported.
     """
-    SUPPORTED_ACTIVATIONS = {
+    supported_activations = {
         None,
         "id",
         "identity",
@@ -33,13 +36,14 @@ def get_initializer(name: str, activation: Optional[str] = None) -> Callable:
         "swish",
         "silu",
     }
-    SUPPORTED_INITIALIZERS = {"uniform", "normal", "xavier", "zero", "one"}
-    if activation not in SUPPORTED_ACTIVATIONS:
+    supported_initializers = {"uniform", "normal", "xavier", "zero", "one"}
+    if activation not in supported_activations:
         raise ValueError(f"Unsupported activation: '{activation}'")
+    if name not in supported_initializers:
+        raise ValueError(f"Unsupported initializer: '{name}'")
 
     name = name.lower()
     activation = activation.lower() if activation else None
-
     nonlinearity = (
         "linear"
         if activation in {None, "id", "identity", "linear", "modrelu"}
@@ -47,9 +51,6 @@ def get_initializer(name: str, activation: Optional[str] = None) -> Callable:
         if activation in {"relu", "tanh", "sigmoid"}
         else "relu"
     )
-
-    if name not in SUPPORTED_INITIALIZERS:
-        raise ValueError(f"Unsupported initializer: '{name}'")
 
     if name == "uniform":
         initializer = partial(init.kaiming_uniform_, nonlinearity=nonlinearity)
@@ -100,3 +101,86 @@ def power(exponent: int, matrix: torch.Tensor) -> torch.Tensor:
             matrix = torch.matmul(matrix, matrix)
 
     return result
+
+
+def embed_c2r(A):
+    """The original code assume that dim(A) should be 2 based on padding."""
+    if A.ndim != 2:
+        raise ValueError(f"Expected 2 dimensions, got {A.ndim}")
+
+    A = rearrange(A, "... m n -> ... m () n ()")
+    A = np.pad(A, ((0, 0), (0, 1), (0, 0), (0, 1))) + np.pad(
+        A, ((0, 0), (1, 0), (0, 0), (1, 0))
+    )
+    return rearrange(A, "m x n y -> (m x) (n y)")
+
+
+def transition(measure, N, **measure_args):
+    """A, B transition matrices for different measures
+
+    measure: the type of measure
+      legt - Legendre (translated)
+      legs - Legendre (scaled)
+      glagt - generalized Laguerre (translated)
+      lagt, tlagt - previous versions of (tilted) Laguerre with slightly different normalization
+    """
+    # Laguerre (translated)
+    if measure == "lagt":
+        b = measure_args.get("beta", 1.0)
+        A = np.eye(N) / 2 - np.tril(np.ones((N, N)))
+        B = b * np.ones((N, 1))
+    # Generalized Laguerre
+    # alpha 0, beta small is most stable (limits to the 'lagt' measure)
+    # alpha 0, beta 1 has transition matrix A = [lower triangular 1]
+    elif measure == "glagt":
+        alpha = measure_args.get("alpha", 0.0)
+        beta = measure_args.get("beta", 0.01)
+        A = -np.eye(N) * (1 + beta) / 2 - np.tril(np.ones((N, N)), -1)
+        B = ss.binom(alpha + np.arange(N), np.arange(N))[:, None]
+
+        L = np.exp(
+            0.5 * (ss.gammaln(np.arange(N) + alpha + 1) - ss.gammaln(np.arange(N) + 1))
+        )
+        A = (1.0 / L[:, None]) * A * L[None, :]
+        B = (
+            (1.0 / L[:, None])
+            * B
+            * np.exp(-0.5 * ss.gammaln(1 - alpha))
+            * beta ** ((1 - alpha) / 2)
+        )
+    # Legendre (translated)
+    elif measure == "legt":
+        Q = np.arange(N, dtype=np.float64)
+        R = (2 * Q + 1) ** 0.5
+        j, i = np.meshgrid(Q, Q)
+        A = R[:, None] * np.where(i < j, (-1.0) ** (i - j), 1) * R[None, :]
+        B = R[:, None]
+        A = -A
+    # Legendre (scaled)
+    elif measure == "legs":
+        q = np.arange(N, dtype=np.float64)
+        col, row = np.meshgrid(q, q)
+        r = 2 * q + 1
+        M = -(np.where(row >= col, r, 0) - np.diag(q))
+        T = np.sqrt(np.diag(2 * q + 1))
+        A = T @ M @ np.linalg.inv(T)
+        B = np.diag(T)[:, None]
+        B = (
+            B.copy()
+        )  # Otherwise "UserWarning: given NumPY array is not writeable..." after torch.as_tensor(B)
+    elif measure == "fourier":
+        freqs = np.arange(N // 2)
+        d = np.stack([freqs, np.zeros(N // 2)], axis=-1).reshape(-1)[:-1]
+        A = 2 * np.pi * (np.diag(d, 1) - np.diag(d, -1))
+        A = A - embed_c2r(np.ones((N // 2, N // 2)))
+        B = embed_c2r(np.ones((N // 2, 1)))[..., :1]
+    elif measure == "random":
+        A = np.random.randn(N, N) / N
+        B = np.random.randn(N, 1)
+    elif measure == "diagonal":
+        A = -np.diag(np.exp(np.random.randn(N)))
+        B = np.random.randn(N, 1)
+    else:
+        raise NotImplementedError
+
+    return A, B
