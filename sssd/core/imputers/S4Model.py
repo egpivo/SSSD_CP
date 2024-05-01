@@ -7,13 +7,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange, repeat
 
-from sssd.core.imputers.layers.activation import Activation
-from sssd.core.imputers.layers.linear import LinearActivation
-from sssd.core.imputers.utils import (
+from sssd.core.imputers.hippo.utils import (
     TransitionMatrix,
     generate_rank_correction_matrix,
-    power,
 )
+from sssd.core.imputers.layers.activation import Activation
+from sssd.core.imputers.layers.linear import LinearActivation
+from sssd.core.imputers.utils import power
 from sssd.utils.logger import setup_logger
 
 contract = oe.contract
