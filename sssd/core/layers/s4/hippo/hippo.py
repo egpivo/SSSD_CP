@@ -11,6 +11,13 @@ from sssd.utils.logger import setup_logger
 
 contract = oe.contract
 contract_expression = oe.contract_expression
+_c2r = torch.view_as_real
+_r2c = torch.view_as_complex
+_conj = lambda x: torch.cat([x, x.conj()], dim=-1)
+if tuple(map(int, torch.__version__.split(".")[:2])) >= (1, 10):
+    _resolve_conj = lambda x: x.conj().resolve_conj()
+else:
+    _resolve_conj = lambda x: x.conj()
 
 
 LOGGER = setup_logger()
@@ -84,15 +91,6 @@ except ImportError:
                 z.unsqueeze(-2) - w.unsqueeze(-1)
             )  # (... N L)
             return torch.sum(cauchy_matrix, dim=-2)
-
-
-_c2r = torch.view_as_real
-_r2c = torch.view_as_complex
-_conj = lambda x: torch.cat([x, x.conj()], dim=-1)
-if tuple(map(int, torch.__version__.split(".")[:2])) >= (1, 10):
-    _resolve_conj = lambda x: x.conj().resolve_conj()
-else:
-    _resolve_conj = lambda x: x.conj()
 
 
 class SSKernelNPLR(nn.Module):

@@ -300,30 +300,3 @@ def normal_plus_low_rank(
     P = CONTRACT("ij, ...j -> ...i", V_inv, P.to(V.dtype))  # V^* P
 
     return w, P, B, V
-
-    def cauchy_conj(v, z, w):
-        """Pykeops version"""
-        expr_num = "z * ComplexReal(v) - Real2Complex(Sum(v * w))"
-        expr_denom = "ComplexMult(z-w, z-Conj(w))"
-
-        cauchy_mult = Genred(
-            f"ComplexDivide({expr_num}, {expr_denom})",
-            # expr_num,
-            # expr_denom,
-            [
-                "v = Vj(2)",
-                "z = Vi(2)",
-                "w = Vj(2)",
-            ],
-            reduction_op="Sum",
-            axis=1,
-            dtype="float32" if v.dtype == torch.cfloat else "float64",
-        )
-
-        v, z, w = _broadcast_dims(v, z, w)
-        v = _c2r(v)
-        z = _c2r(z)
-        w = _c2r(w)
-
-        r = 2 * cauchy_mult(v, z, w, backend="GPU")
-        return _r2c(r)
