@@ -243,7 +243,7 @@ def normal_plus_low_rank(
     measure: str,
     matrix_size: int,
     correction_rank: int = 1,
-    dtype: Union[torch.float, torch.cfloat] = torch.float,
+    dtype: Union[type(torch.float), type(torch.cfloat)] = torch.float,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """Normal plus Low-rank
     Return eigenvalues, correction_matrix, transformed_vector, unitary_matrix such that
@@ -255,8 +255,8 @@ def normal_plus_low_rank(
 
     Args:
     - measure: The type of measure used for the HiPPO matrix.
-    - N: The size of the HiPPO matrix.
-    - rank: The rank for the correction matrix P.
+    - matrix_size: The size of the HiPPO matrix.
+    - correction_rank: The rank for the correction matrix P.
     - dtype: The data type for the tensors.
 
     Returns:
@@ -269,22 +269,24 @@ def normal_plus_low_rank(
         torch.float,
         torch.cfloat,
     ), "dtype must be torch.float or torch.cfloat"
-
+    half_size = matrix_size // 2
     if measure == "random":
         dtype = torch.cfloat if dtype == torch.float else torch.cdouble
-        w = -torch.exp(torch.randn(N // 2, dtype=dtype)) + 1j * torch.randn(
-            N // 2, dtype=dtype
+        w = -torch.exp(torch.randn(half_size, dtype=dtype)) + 1j * torch.randn(
+            matrix_size // 2, dtype=dtype
         )
-        P = torch.randn(rank, N // 2, dtype=dtype)
-        B = torch.randn(N // 2, dtype=dtype)
-        V = torch.eye(N, dtype=dtype)[..., : N // 2]  # Only used in testing
+        P = torch.randn(correction_rank, half_size, dtype=dtype)
+        B = torch.randn(half_size, dtype=dtype)
+        V = torch.eye(matrix_size, dtype=dtype)[..., :half_size]  # Only used in testing
         return w, P, B, V
 
-    A, B = TransitionMatrix(measure, N)
+    A, B = TransitionMatrix(measure, matrix_size)
     A = torch.as_tensor(A, dtype=dtype)
     B = torch.as_tensor(B, dtype=dtype)[:, 0]
 
-    P = generate_rank_correction_matrix(measure, N, rank=rank, dtype=dtype)
+    P = generate_rank_correction_matrix(
+        measure, matrix_size, rank=correction_rank, dtype=dtype
+    )
     AP = A + torch.einsum("...i,...j->...ij", P, P.conj()).sum(dim=-3)
     w, V = torch.linalg.eig(AP)
 

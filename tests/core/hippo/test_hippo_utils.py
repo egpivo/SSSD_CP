@@ -237,7 +237,7 @@ def test_nplr_v_unitary(setup_data):
 # Test to ensure that 'P' has the correct rank
 def test_nplr_p_rank(setup_data):
     _, N, rank, dtype = setup_data
-    _, P, _, _ = normal_plus_low_rank("random", N, rank=rank, dtype=dtype)
+    _, P, _, _ = normal_plus_low_rank("random", N, correction_rank=rank, dtype=dtype)
     assert P.shape[0] == rank, f"Matrix P should have rank {rank}"
 
 
@@ -249,7 +249,7 @@ def test_nplr_invalid_measure():
 
 def test_nplr_b_transformed(setup_data):
     measure, N, rank, dtype = setup_data
-    _, _, _, V = normal_plus_low_rank(measure, N, rank=rank, dtype=dtype)
+    _, _, _, V = normal_plus_low_rank(measure, N, correction_rank=rank, dtype=dtype)
     _, B = TransitionMatrix(measure, N)
     B = torch.as_tensor(B, dtype=V.dtype)[:, 0]
     V_inv = V.conj().transpose(-1, -2)  # Assuming V_inv is 5 x 10

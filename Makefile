@@ -41,14 +41,14 @@ push-docker:
 	docker push $(DOCKER_USERNAME)/sssd:latest
 
 run-docker-diffusion:
-	docker compose -f services/diffusion-docker-compose.yml up -d
+	docker compose -f services/model-docker-compose.yaml up -d
 
 ## Jupyter server
 run-local-jupyter:
 	$(SHELL) envs/jupyter/start_jupyter_lab.sh --port 8501
 
 run-docker-jupyter:
-	docker compose -f services/jupyter-docker-compose.yml up -d
+	docker compose -f services/jupyter-docker-compose.yaml up -d
 
 ## Help
 help:
