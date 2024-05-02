@@ -41,7 +41,7 @@ push-docker:
 	docker push $(DOCKER_USERNAME)/sssd:latest
 
 run-docker-diffusion:
-	docker compose -f services/model-docker-compose.yaml up -d
+	docker compose -f services/diffusion-docker-compose.yaml up -d
 
 ## Jupyter server
 run-local-jupyter:

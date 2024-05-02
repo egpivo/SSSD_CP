@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import torch
 
-from sssd.core.s4.hippo.utils import (
+from sssd.core.layers.s4.hippo.utils import (
     TransitionMatrix,
     embed_c2r,
     generate_rank_correction_matrix,

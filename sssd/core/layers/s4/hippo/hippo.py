@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 from einops import rearrange, repeat
 
-from sssd.core.s4.hippo.utils import normal_plus_low_rank, power
+from sssd.core.layers.s4.hippo.utils import normal_plus_low_rank, power
 from sssd.utils.logger import setup_logger
 
 contract = oe.contract
@@ -31,6 +31,14 @@ try:  # Try pykeops
     from pykeops.torch import Genred
 
     has_pykeops = True
+
+    def _broadcast_dims(*tensors):
+        max_dim = max([len(tensor.shape) for tensor in tensors])
+        tensors = [
+            tensor.view((1,) * (max_dim - len(tensor.shape)) + tensor.shape)
+            for tensor in tensors
+        ]
+        return tensors
 
     def cauchy_conj(v, z, w):
         """Pykeops version"""
@@ -76,15 +84,6 @@ except ImportError:
                 z.unsqueeze(-2) - w.unsqueeze(-1)
             )  # (... N L)
             return torch.sum(cauchy_matrix, dim=-2)
-
-
-def _broadcast_dims(*tensors):
-    max_dim = max([len(tensor.shape) for tensor in tensors])
-    tensors = [
-        tensor.view((1,) * (max_dim - len(tensor.shape)) + tensor.shape)
-        for tensor in tensors
-    ]
-    return tensors
 
 
 _c2r = torch.view_as_real

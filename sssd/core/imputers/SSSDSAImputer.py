@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from einops import rearrange
 
 from sssd.core.layers.linear import LinearActivation
-from sssd.core.s4.S4Model import S4
+from sssd.core.layers.s4.s4_layer import S4
 from sssd.core.utils import calc_diffusion_step_embedding
 
 
