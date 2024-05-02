@@ -6,7 +6,7 @@ from sssd.core.s4.hippo.utils import (
     TransitionMatrix,
     embed_c2r,
     generate_rank_correction_matrix,
-    nplr,
+    normal_plus_low_rank,
     power,
 )
 
@@ -187,7 +187,7 @@ def setup_data():
 
 def test_nplr_shapes_and_types(setup_data):
     measure, N, rank, dtype = setup_data
-    w, P, B, V = nplr(measure, N, rank, dtype)
+    w, P, B, V = normal_plus_low_rank(measure, N, rank, dtype)
 
     # Check if the shapes are correct
     assert w.shape == (N // 2,)
@@ -205,7 +205,7 @@ def test_nplr_shapes_and_types(setup_data):
 def test_nplr_values(setup_data):
     torch.manual_seed(1)
     measure, N, rank, dtype = setup_data
-    w, P, B, V = nplr(measure, N, rank, dtype)
+    w, P, B, V = normal_plus_low_rank(measure, N, rank, dtype)
 
     # Check if the imaginary parts of w are within the range [-2, 2]
     assert torch.all(
@@ -217,7 +217,7 @@ def test_nplr_values(setup_data):
 # Test to ensure that the eigenvalues 'w' are complex numbers
 def test_nplr_w_complex(setup_data):
     _, N, _, dtype = setup_data
-    w, _, _, _ = nplr("random", N, dtype=dtype)
+    w, _, _, _ = normal_plus_low_rank("random", N, dtype=dtype)
     assert all(
         torch.is_complex(val) for val in w
     ), "Eigenvalues w should be complex numbers"
@@ -226,7 +226,7 @@ def test_nplr_w_complex(setup_data):
 # Test to ensure that the matrix 'V' is unitary
 def test_nplr_v_unitary(setup_data):
     _, N, _, dtype = setup_data
-    _, _, _, V = nplr("random", N, dtype=dtype)
+    _, _, _, V = normal_plus_low_rank("random", N, dtype=dtype)
     V_inv = V.conj().transpose(-1, -2)
     identity = torch.eye(
         V.shape[-1], dtype=dtype
@@ -237,19 +237,19 @@ def test_nplr_v_unitary(setup_data):
 # Test to ensure that 'P' has the correct rank
 def test_nplr_p_rank(setup_data):
     _, N, rank, dtype = setup_data
-    _, P, _, _ = nplr("random", N, rank=rank, dtype=dtype)
+    _, P, _, _ = normal_plus_low_rank("random", N, rank=rank, dtype=dtype)
     assert P.shape[0] == rank, f"Matrix P should have rank {rank}"
 
 
 # Test to check if 'nplr' function handles invalid 'measure' input
 def test_nplr_invalid_measure():
     with pytest.raises(NotImplementedError):
-        nplr("invalid_measure", 10)
+        normal_plus_low_rank("invalid_measure", 10)
 
 
 def test_nplr_b_transformed(setup_data):
     measure, N, rank, dtype = setup_data
-    _, _, _, V = nplr(measure, N, rank=rank, dtype=dtype)
+    _, _, _, V = normal_plus_low_rank(measure, N, rank=rank, dtype=dtype)
     _, B = TransitionMatrix(measure, N)
     B = torch.as_tensor(B, dtype=V.dtype)[:, 0]
     V_inv = V.conj().transpose(-1, -2)  # Assuming V_inv is 5 x 10

@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 from einops import rearrange, repeat
 
-from sssd.core.s4.hippo.utils import nplr, power
+from sssd.core.s4.hippo.utils import normal_plus_low_rank, power
 from sssd.utils.logger import setup_logger
 
 contract = oe.contract
@@ -94,9 +94,6 @@ if tuple(map(int, torch.__version__.split(".")[:2])) >= (1, 10):
     _resolve_conj = lambda x: x.conj().resolve_conj()
 else:
     _resolve_conj = lambda x: x.conj()
-
-
-""" HiPPO utilities """
 
 
 class SSKernelNPLR(nn.Module):
@@ -639,7 +636,9 @@ class HippoSSKernel(nn.Module):
             math.log(dt_max) - math.log(dt_min)
         ) + math.log(dt_min)
 
-        w, p, B, _ = nplr(measure, self.N, rank, dtype=dtype)
+        w, p, B, _ = normal_plus_low_rank(
+            measure=measure, matrix_size=self.N, correction_rank=rank, dtype=dtype
+        )
         C = torch.randn(channels, self.H, self.N // 2, dtype=cdtype)
         self.kernel = SSKernelNPLR(
             L,
