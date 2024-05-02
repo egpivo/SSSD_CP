@@ -6,11 +6,7 @@ import torch
 import torch.nn as nn
 from einops import rearrange, repeat
 
-from sssd.core.s4.hippo.utils import (
-    TransitionMatrix,
-    generate_rank_correction_matrix,
-    power,
-)
+from sssd.core.s4.hippo.utils import nplr, power
 from sssd.utils.logger import setup_logger
 
 contract = oe.contract
@@ -101,42 +97,6 @@ else:
 
 
 """ HiPPO utilities """
-
-
-def nplr(measure, N, rank=1, dtype=torch.float):
-    """Return w, p, q, V, B such that
-    (w - p q^*, B) is unitarily equivalent to the original HiPPO A, B by the matrix V
-    i.e. A = V[w - p q^*]V^*, B = V B
-    """
-    assert dtype == torch.float or torch.cfloat
-    if measure == "random":
-        dtype = torch.cfloat if dtype == torch.float else torch.cdouble
-        # w = torch.randn(N//2, dtype=dtype)
-        w = -torch.exp(torch.randn(N // 2)) + 1j * torch.randn(N // 2)
-        P = torch.randn(rank, N // 2, dtype=dtype)
-        B = torch.randn(N // 2, dtype=dtype)
-        V = torch.eye(N, dtype=dtype)[..., : N // 2]  # Only used in testing
-        return w, P, B, V
-
-    A, B = TransitionMatrix(measure, N)
-    A = torch.as_tensor(A, dtype=dtype)  # (N, N)
-    B = torch.as_tensor(B, dtype=dtype)[:, 0]  # (N,)
-
-    P = generate_rank_correction_matrix(measure, N, rank=rank, dtype=dtype)
-    AP = A + torch.sum(P.unsqueeze(-2) * P.unsqueeze(-1), dim=-3)
-    w, V = torch.linalg.eig(AP)  # (..., N) (..., N, N)
-    # V w V^{-1} = A
-
-    # Only keep one of the conjugate pairs
-    w = w[..., 0::2].contiguous()
-    V = V[..., 0::2].contiguous()
-
-    V_inv = V.conj().transpose(-1, -2)
-
-    B = contract("ij, j -> i", V_inv, B.to(V))  # V^* B
-    P = contract("ij, ...j -> ...i", V_inv, P.to(V))  # V^* P
-
-    return w, P, B, V
 
 
 class SSKernelNPLR(nn.Module):
@@ -706,10 +666,3 @@ class HippoSSKernel(nn.Module):
 
     def default_state(self, *args, **kwargs):
         return self.kernel.default_state(*args, **kwargs)
-
-
-def get_torch_trans(heads=8, layers=1, channels=64):
-    encoder_layer = nn.TransformerEncoderLayer(
-        d_model=channels, nhead=heads, dim_feedforward=64, activation="gelu"
-    )
-    return nn.TransformerEncoder(encoder_layer, num_layers=layers)

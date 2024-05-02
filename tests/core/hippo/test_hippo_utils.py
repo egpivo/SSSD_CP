@@ -6,6 +6,7 @@ from sssd.core.s4.hippo.utils import (
     TransitionMatrix,
     embed_c2r,
     generate_rank_correction_matrix,
+    nplr,
     power,
 )
 
@@ -172,3 +173,89 @@ def test_rank_correction_invalid_measure():
 def test_rank_correction_dtype():
     P = generate_rank_correction_matrix("legs", 5, 1, dtype=torch.float64)
     assert P.dtype == torch.float64
+
+
+# nplr
+@pytest.fixture
+def setup_data():
+    measure = "random"
+    N = 10
+    rank = 1
+    dtype = torch.float
+    return measure, N, rank, dtype
+
+
+def test_nplr_shapes_and_types(setup_data):
+    measure, N, rank, dtype = setup_data
+    w, P, B, V = nplr(measure, N, rank, dtype)
+
+    # Check if the shapes are correct
+    assert w.shape == (N // 2,)
+    assert P.shape == (rank, N // 2)
+    assert B.shape == (N // 2,)
+    assert V.shape == (N, N // 2)
+
+    # Check if the types are correct
+    assert w.dtype == (torch.cfloat if dtype == torch.float else torch.cdouble)
+    assert P.dtype == w.dtype
+    assert B.dtype == w.dtype
+    assert V.dtype == w.dtype
+
+
+def test_nplr_values(setup_data):
+    torch.manual_seed(1)
+    measure, N, rank, dtype = setup_data
+    w, P, B, V = nplr(measure, N, rank, dtype)
+
+    # Check if the imaginary parts of w are within the range [-2, 2]
+    assert torch.all(
+        (w.imag >= -2) & (w.imag <= 2)
+    ), "Imaginary part of w should be within [-3, 3]"
+    assert torch.all(torch.abs(P) <= 5), "Elements of P should be within [-5, 5]"
+
+
+# Test to ensure that the eigenvalues 'w' are complex numbers
+def test_nplr_w_complex(setup_data):
+    _, N, _, dtype = setup_data
+    w, _, _, _ = nplr("random", N, dtype=dtype)
+    assert all(
+        torch.is_complex(val) for val in w
+    ), "Eigenvalues w should be complex numbers"
+
+
+# Test to ensure that the matrix 'V' is unitary
+def test_nplr_v_unitary(setup_data):
+    _, N, _, dtype = setup_data
+    _, _, _, V = nplr("random", N, dtype=dtype)
+    V_inv = V.conj().transpose(-1, -2)
+    identity = torch.eye(
+        V.shape[-1], dtype=dtype
+    )  # Ensure the identity matrix matches the dimensions of V
+    assert torch.allclose((V_inv @ V).real, identity), "Matrix V should be unitary"
+
+
+# Test to ensure that 'P' has the correct rank
+def test_nplr_p_rank(setup_data):
+    _, N, rank, dtype = setup_data
+    _, P, _, _ = nplr("random", N, rank=rank, dtype=dtype)
+    assert P.shape[0] == rank, f"Matrix P should have rank {rank}"
+
+
+# Test to check if 'nplr' function handles invalid 'measure' input
+def test_nplr_invalid_measure():
+    with pytest.raises(NotImplementedError):
+        nplr("invalid_measure", 10)
+
+
+def test_nplr_b_transformed(setup_data):
+    measure, N, rank, dtype = setup_data
+    _, _, _, V = nplr(measure, N, rank=rank, dtype=dtype)
+    _, B = TransitionMatrix(measure, N)
+    B = torch.as_tensor(B, dtype=V.dtype)[:, 0]
+    V_inv = V.conj().transpose(-1, -2)  # Assuming V_inv is 5 x 10
+    B_transformed = torch.einsum(
+        "ij,j->i", V_inv, B.to(V)
+    )  # Equivalent to CONTRACT("ij, j -> i", V_inv, B)
+    assert torch.all(
+        B_transformed.imag.abs() <= 1e-6
+    ), "Transformed B should have negligible imaginary part"

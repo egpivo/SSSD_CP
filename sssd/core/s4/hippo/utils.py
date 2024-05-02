@@ -1,12 +1,14 @@
 from typing import Dict, Tuple, Union
 
 import numpy as np
+import opt_einsum
 import torch
 from einops import rearrange
 from scipy import special as ss
 
 Matrix = np.ndarray
 MeasureArgs = Dict[str, Union[float, int]]
+CONTRACT = opt_einsum.contract
 
 
 def power(exponent: int, matrix: torch.Tensor) -> torch.Tensor:
@@ -235,3 +237,39 @@ def generate_rank_correction_matrix(
     if rank > d:
         P = torch.cat([P, torch.zeros(rank - d, N, dtype=dtype)], dim=0)  # (rank, N)
     return P
+
+
+def nplr(measure, N, rank=1, dtype=torch.float):
+    """Return w, p, q, V, B such that
+    (w - p q^*, B) is unitarily equivalent to the original HiPPO A, B by the matrix V
+    i.e. A = V[w - p q^*]V^*, B = V B
+    """
+    assert dtype == torch.float or torch.cfloat
+    if measure == "random":
+        dtype = torch.cfloat if dtype == torch.float else torch.cdouble
+        # w = torch.randn(N//2, dtype=dtype)
+        w = -torch.exp(torch.randn(N // 2)) + 1j * torch.randn(N // 2)
+        P = torch.randn(rank, N // 2, dtype=dtype)
+        B = torch.randn(N // 2, dtype=dtype)
+        V = torch.eye(N, dtype=dtype)[..., : N // 2]  # Only used in testing
+        return w, P, B, V
+
+    A, B = TransitionMatrix(measure, N)
+    A = torch.as_tensor(A, dtype=dtype)  # (N, N)
+    B = torch.as_tensor(B, dtype=dtype)[:, 0]  # (N,)
+
+    P = generate_rank_correction_matrix(measure, N, rank=rank, dtype=dtype)
+    AP = A + torch.sum(P.unsqueeze(-2) * P.unsqueeze(-1), dim=-3)
+    w, V = torch.linalg.eig(AP)  # (..., N) (..., N, N)
+    # V w V^{-1} = A
+
+    # Only keep one of the conjugate pairs
+    w = w[..., 0::2].contiguous()
+    V = V[..., 0::2].contiguous()
+
+    V_inv = V.conj().transpose(-1, -2)
+
+    B = CONTRACT("ij, j -> i", V_inv, B.to(V))  # V^* B
+    P = CONTRACT("ij, ...j -> ...i", V_inv, P.to(V))  # V^* P
+
+    return w, P, B, V
