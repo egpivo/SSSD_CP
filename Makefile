@@ -5,60 +5,75 @@ MODEL_CONFIG ?= configs/model.yaml
 TRAINING_CONFIG ?= configs/training.yaml
 INFERENCE_CONFIG ?= configs/inference.yaml
 
-.PHONY: clean install-dev test run-local-diffusion build-docker push-docker run-docker-diffusion run-local-jupyter run-docker-jupyter help
+.PHONY: clean install-dev test run-local-diffusion build-docker push-docker run-docker-diffusion run-docker-diffusion-log run-local-jupyter run-docker-jupyter run-docker-jupyter-log help
 
-## Clean targets
+## Clean up temporary files and Docker system
 clean:
-	find . -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -delete
-	rm -fr build/ dist/ .eggs/ && \
-	find . -name '*.egg-info' -o -name '*.egg' -exec rm -fr {} +
-	rm -f .coverage && \
-	rm -rf .pytest_cache
-	docker system prune -f
+	@echo "Cleaning up..."
+	@find . -type f -name '*.py[co]' -delete
+	@find . -type d -name __pycache__ -delete
+	@rm -rf build/ dist/ .eggs/
+	@find . -name '*.egg-info' -exec rm -rf {} +
+	@rm -f .coverage
+	@rm -rf .pytest_cache
+	@docker system prune -f
 
-## Installation
+## Install development dependencies
 install-dev:
-	$(SHELL) envs/conda/build_conda_env.sh -c sssd
-	@echo "Development dependencies installed successfully."
+	@echo "Installing development dependencies..."
+	@$(SHELL) envs/conda/build_conda_env.sh -c sssd
 
-## Testing
+## Run tests
 test:
-	$(EXECUTABLE) pytest --cov=sssd
+	@echo "Running tests..."
+	@$(EXECUTABLE) pytest --cov=sssd
 
 ## Run diffusion process on local machine
 run-local-diffusion:
-	$(SHELL) scripts/diffusion/diffusion_process.sh \
-		--model_config $(MODEL_CONFIG) \
-		--training_config $(TRAINING_CONFIG) \
-		--inference_config $(INFERENCE_CONFIG)
+	@echo "Running local diffusion process..."
+	@$(SHELL) scripts/diffusion/diffusion_process.sh --model_config $(MODEL_CONFIG) --training_config $(TRAINING_CONFIG) --inference_config $(INFERENCE_CONFIG)
 
-## Docker commands
+## Docker-related commands
 build-docker:
-	docker build -t $(DOCKER_USERNAME)/sssd:latest -f Dockerfile .
+	@echo "Building Docker image..."
+	@docker build -t $(DOCKER_USERNAME)/sssd:latest -f Dockerfile .
 
 push-docker:
-	docker tag $(DOCKER_USERNAME)/sssd:latest $(DOCKER_USERNAME)/sssd:latest
-	docker push $(DOCKER_USERNAME)/sssd:latest
+	@echo "Pushing Docker image to Docker Hub..."
+	@docker push $(DOCKER_USERNAME)/sssd:latest
 
 run-docker-diffusion:
-	docker compose -f services/diffusion-docker-compose.yaml up -d
+	@echo "Starting Docker Compose for diffusion process..."
+	@docker compose -f services/diffusion-docker-compose.yaml up -d
 
-## Jupyter server
+run-docker-diffusion-log:
+	@echo "Fetching logs for Docker diffusion process..."
+	@docker compose -f services/diffusion-docker-compose.yaml logs -f
+
+## Jupyter server commands
 run-local-jupyter:
-	$(SHELL) envs/jupyter/start_jupyter_lab.sh --port 8501
+	@echo "Starting local Jupyter server..."
+	@$(SHELL) envs/jupyter/start_jupyter_lab.sh --port 8501
 
 run-docker-jupyter:
-	docker compose -f services/jupyter-docker-compose.yaml up -d
+	@echo "Starting Jupyter server using Docker Compose..."
+	@docker compose -f services/jupyter-docker-compose.yaml up -d
 
-## Help
+run-docker-jupyter-log:
+	@echo "Fetching logs for Docker Jupyter server..."
+	@docker compose -f services/jupyter-docker-compose.yaml logs -f
+
+## Display help information
 help:
 	@echo "Available targets:"
-	@echo "clean : Clean up temporary files"
-	@echo "install-dev : Install development dependencies"
-	@echo "test : Run tests"
-	@echo "run-local-diffusion : Run diffusion process on local machine"
-	@echo "build-docker : Build Docker image"
-	@echo "push-docker : Push Docker image to Docker Hub"
-	@echo "run-docker-diffusion : Run Docker Compose for diffusion process"
-	@echo "run-local-jupyter : Start Jupyter server locally"
-	@echo "run-docker-jupyter : Start Jupyter server using Docker Compose"
+	@echo "  clean                : Clean up temporary files and Docker system"
+	@echo "  install-dev          : Install development dependencies"
+	@echo "  test                 : Run tests"
+	@echo "  run-local-diffusion  : Run diffusion process on local machine"
+	@echo "  build-docker         : Build Docker image"
+	@echo "  push-docker          : Push Docker image to Docker Hub"
+	@echo "  run-docker-diffusion : Start Docker Compose for diffusion process"
+	@echo "  run-docker-diffusion-log : Fetch logs for Docker diffusion process"
+	@echo "  run-local-jupyter    : Start Jupyter server locally"
+	@echo "  run-docker-jupyter   : Start Jupyter server using Docker Compose"
+	@echo "  run-docker-jupyter-log : Fetch logs for Docker Jupyter server"
