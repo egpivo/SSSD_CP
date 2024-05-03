@@ -23,7 +23,7 @@ LOGGER = setup_logger()
 """ Cauchy kernel """
 
 try:  # Try CUDA extension
-    from extensions.cauchy.cauchy import cauchy_mult
+    from sssd.core.layers.s4.hippo.cauchy import cauchy_mult
 
     has_cauchy_extension = True
 except:
@@ -498,10 +498,10 @@ class SSKernelNPLR(nn.Module):
             # use conjugate symmetry by default, which affects the output projection
             self.dC = 2 * self.dC[:, :, : self.N]
         elif mode == "diagonal":
-            # Eigendecomposition of the A matrix
+            # Eigen-decomposition of the A matrix
             L, V = torch.linalg.eig(self.dA)
             V_inv = torch.linalg.inv(V)
-            # Check that the eigendedecomposition is correct
+            # Check that the eigen-decomposition is correct
             if self.verbose:
                 LOGGER.info(
                     "Diagonalization error:",
