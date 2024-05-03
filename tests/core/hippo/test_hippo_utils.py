@@ -5,7 +5,7 @@ import torch
 from sssd.core.layers.s4.hippo.utils import (
     TransitionMatrix,
     embed_c2r,
-    generate_rank_correction_matrix,
+    generate_low_rank_matrix,
     normal_plus_low_rank,
     power,
 )
@@ -161,17 +161,17 @@ def test_embed_c2r():
     ],
 )
 def test_rank_correction(measure, N, rank, expected_shape):
-    P = generate_rank_correction_matrix(measure, N, rank)
+    P = generate_low_rank_matrix(measure, N, rank)
     assert P.shape == expected_shape
 
 
 def test_rank_correction_invalid_measure():
     with pytest.raises(NotImplementedError):
-        generate_rank_correction_matrix("invalid_measure", 5, 1)
+        generate_low_rank_matrix("invalid_measure", 5, 1)
 
 
 def test_rank_correction_dtype():
-    P = generate_rank_correction_matrix("legs", 5, 1, dtype=torch.float64)
+    P = generate_low_rank_matrix("legs", 5, 1, dtype=torch.float64)
     assert P.dtype == torch.float64
 
 

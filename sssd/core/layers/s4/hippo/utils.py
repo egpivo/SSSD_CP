@@ -190,7 +190,7 @@ class TransitionMatrix:
         return A, B
 
 
-def generate_rank_correction_matrix(
+def generate_low_rank_matrix(
     measure: str, N: int, rank: int = 1, dtype: torch.dtype = torch.float
 ) -> torch.Tensor:
     """
@@ -284,7 +284,7 @@ def normal_plus_low_rank(
     A = torch.as_tensor(A, dtype=dtype)
     B = torch.as_tensor(B, dtype=dtype)[:, 0]
 
-    P = generate_rank_correction_matrix(
+    P = generate_low_rank_matrix(
         measure, matrix_size, rank=correction_rank, dtype=dtype
     )
     AP = A + torch.einsum("...i,...j->...ij", P, P.conj()).sum(dim=-3)
