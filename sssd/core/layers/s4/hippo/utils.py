@@ -1,4 +1,4 @@
-from typing import Dict, Tuple, Union
+from typing import Dict, List, Tuple, Union
 
 import numpy as np
 import opt_einsum
@@ -300,3 +300,38 @@ def normal_plus_low_rank(
     P = CONTRACT("ij, ...j -> ...i", V_inv, P.to(V.dtype))  # V^* P
 
     return w, P, B, V
+
+
+def broadcast_dims(*tensors: torch.Tensor) -> List[torch.Tensor]:
+    max_dim = max(tensor.dim() for tensor in tensors)
+    tensors = [
+        tensor.view((1,) * (max_dim - tensor.dim()) + tensor.shape)
+        for tensor in tensors
+    ]
+    return tensors
+
+
+def cauchy_slow(v: torch.Tensor, z: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the sum of the Cauchy matrix along the second-to-last dimension.
+
+    Args:
+        v (torch.Tensor): Tensor of shape (..., N).
+        z (torch.Tensor): Tensor of shape (..., L).
+        w (torch.Tensor): Tensor of shape (..., N).
+
+    Returns:
+        torch.Tensor: The resulting tensor of shape (..., L) after computing
+                      the sum of the Cauchy matrix along the second-to-last dimension.
+    """
+    # Expand dimensions of v, z, and w to align for broadcasting
+    v_expanded = v.unsqueeze(-1)
+    z_expanded = z.unsqueeze(-2)
+    w_expanded = w.unsqueeze(-1)
+
+    # Compute the Cauchy matrix wiht Shape: (..., N, L)
+    cauchy_matrix = v_expanded / (z_expanded - w_expanded)
+
+    # Sum over the second-to-last dimension (N) to get the result
+    result = torch.sum(cauchy_matrix, dim=-2)
+    return result

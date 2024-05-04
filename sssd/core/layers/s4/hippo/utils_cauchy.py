@@ -1,5 +1,7 @@
 import torch
 
+from sssd.core.layers.s4.hippo.utils import broadcast_dims, cauchy_slow
+
 
 def cauchy_conj(v, z, w):
     if torch.cuda.is_available():
@@ -27,7 +29,7 @@ def cauchy_conj(v, z, w):
                 dtype="float32" if v.dtype == torch.cfloat else "float64",
             )
 
-            v, z, w = _broadcast_dims(v, z, w)
+            v, z, w = broadcast_dims(v, z, w)
             v = _c2r(v)
             z = _c2r(z)
             w = _c2r(w)
@@ -40,25 +42,6 @@ def cauchy_conj(v, z, w):
     else:
         # Fallback to a slower method if GPU is not available
         return cauchy_slow(v, z, w)
-
-
-def cauchy_slow(v, z, w):
-    """
-    v, w: (..., N)
-    z: (..., L)
-    returns: (..., L)
-    """
-    cauchy_matrix = v.unsqueeze(-1) / (z.unsqueeze(-2) - w.unsqueeze(-1))  # (... N L)
-    return torch.sum(cauchy_matrix, dim=-2)
-
-
-def _broadcast_dims(*tensors):
-    max_dim = max([len(tensor.shape) for tensor in tensors])
-    tensors = [
-        tensor.view((1,) * (max_dim - len(tensor.shape)) + tensor.shape)
-        for tensor in tensors
-    ]
-    return tensors
 
 
 _c2r = torch.view_as_real

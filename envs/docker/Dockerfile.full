@@ -1,5 +1,5 @@
 # Stage 1: Build stage
-FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime AS builder
+FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-devel AS builder
 
 LABEL authors="Joseph Wang <egpivo@gmail.com>"\
       version="0.0.12"
@@ -22,4 +22,31 @@ RUN bash envs/conda/build_conda_env.sh && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-ENTRYPOINT ["/bin/bash"]
+# Stage 2: Final production image
+FROM continuumio/miniconda3:latest
+# Copy necessary CUDA libraries and binaries from the builder stage
+COPY --from=builder /usr/local/cuda /usr/local/cuda
+# Set environment variables for CUDA
+ENV PATH=/opt/conda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+ENV LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
+
+# Set the working directory in the container
+WORKDIR /sssd
+
+# Copy the Conda environment directory from the build stage to the appropriate location
+COPY --from=builder /opt/conda/envs/sssd/ /opt/conda/envs/sssd/
+
+# Set up Conda environment
+ENV PATH /opt/conda/envs/sssd/bin:$PATH
+RUN echo "conda activate sssd" >> ~/.bashrc
+
+# Copy necessary files from the build stage
+COPY --from=builder /sssd/bin bin/
+COPY --from=builder /sssd/scripts scripts/
+COPY --from=builder /sssd/envs envs/
+COPY --from=builder /sssd/notebooks notebooks/
+COPY --from=builder /sssd/sssd sssd/
+COPY --from=builder /sssd/pyproject.toml pyproject.toml
+
+
+ENTRYPOINT ["/bin/bash", "-c", "/bin/bash scripts/docker/$ENTRYPOINT_SCRIPT"]

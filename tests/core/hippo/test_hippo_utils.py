@@ -4,6 +4,8 @@ import torch
 
 from sssd.core.layers.s4.hippo.utils import (
     TransitionMatrix,
+    broadcast_dims,
+    cauchy_slow,
     embed_c2r,
     generate_low_rank_matrix,
     normal_plus_low_rank,
@@ -259,3 +261,74 @@ def test_nplr_b_transformed(setup_data):
     assert torch.all(
         B_transformed.imag.abs() <= 1e-6
     ), "Transformed B should have negligible imaginary part"
+
+
+def testbroadcast_dims():
+    # Test case 1: tensors with different dimensions
+    tensor1 = torch.randn(3, 4)
+    tensor2 = torch.randn(2, 5, 6)
+    tensor3 = torch.randn(7, 1)
+    result = broadcast_dims(tensor1, tensor2, tensor3)
+    assert all(
+        tensor.dim() == max(tensor1.dim(), tensor2.dim(), tensor3.dim())
+        for tensor in result
+    )
+
+    # Test case 2: tensors with the same dimensions
+    tensor4 = torch.randn(2, 3, 4)
+    tensor5 = torch.randn(2, 3, 4)
+    result = broadcast_dims(tensor4, tensor5)
+    assert all(tensor.dim() == max(tensor4.dim(), tensor5.dim()) for tensor in result)
+
+    # Test case 3: empty tensors
+    result = broadcast_dims(torch.empty(0), torch.empty(0))
+    assert all(tensor.dim() == 1 for tensor in result)
+
+    # Test case 4: tensors with different shapes
+    tensor6 = torch.randn(2, 3)
+    tensor7 = torch.randn(3, 2)
+    result = broadcast_dims(tensor6, tensor7)
+    assert all(tensor.dim() == max(tensor6.dim(), tensor7.dim()) for tensor in result)
+
+    # Test case 5: single tensor
+    tensor8 = torch.randn(3, 4, 5)
+    result = broadcast_dims(tensor8)
+    assert all(tensor.dim() == tensor8.dim() for tensor in result)
+
+
+def test_cauchy_slow():
+    # Define input shapes
+    shape = (3, 4)  # Example shape
+    N = 4
+    L = 3
+
+    # Generate random tensors for inputs
+    v = torch.randn(*shape, N)
+    z = torch.randn(*shape, L)
+    w = torch.randn(*shape, N)
+
+    # Call the function
+    result = cauchy_slow(v, z, w)
+
+    # Check if the output shape matches expectation
+    assert result.shape == (*shape, L)
+
+    # Check if the output contains valid values (e.g., not NaN or Inf)
+    assert torch.isfinite(result).all()
+
+    # Sample tensors for testing
+    v = torch.tensor([1.0, 2.0, 3.0])
+    z = torch.tensor([1.0, 2.0])
+    w = torch.tensor([0.5, 1.5, 2.5])
+
+    # Manually compute the Cauchy matrix and sum across the appropriate dimension
+    cauchy_matrix_manual = v.unsqueeze(-1) / (z.unsqueeze(-2) - w.unsqueeze(-1))
+    expected_result_manual = torch.sum(cauchy_matrix_manual, dim=-2)
+
+    # Use the cauchy_slow function to compute the result
+    result = cauchy_slow(v, z, w)
+
+    # Check if the result matches the expected result
+    assert torch.allclose(
+        result, expected_result_manual
+    ), "The result does not match the expected values"
