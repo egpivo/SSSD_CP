@@ -108,7 +108,7 @@ install_python_package() {
 
   echo -e "${FG_YELLOW}Installing python package${FG_RESET}"
   poetry lock --no-update
-  poetry install
+  poetry install --no-rrot
 
   # Install 3rd party packages
   echo -e "${FG_YELLOW}Installing 3rd party packages${FG_RESET}"
@@ -130,7 +130,7 @@ install_extensions_cauchy() {
   # Check if cauchy_mult is already installed
   if pip list | grep -q "cauchy_mult"; then
     echo -e "${FG_YELLOW}cauchy_mult is already installed.${FG_RESET}"
-    return 0
+    return "${SUCCESS_EXITCODE}"
   fi
 
   # Check if the s4 directory exists and is not empty
@@ -138,35 +138,35 @@ install_extensions_cauchy() {
     echo -e "${FG_YELLOW}Removing existing 's4' directory.${FG_RESET}"
     rm -rf "s4" || {
       echo -e "${FG_RED}Error: Failed to remove the existing 's4' directory.${FG_RESET}"
-      return 1
+      return "${ERROR_EXITCODE}"
     }
   fi
 
   # Clone the repository
   git clone --depth 1 --branch v3.0.0 https://github.com/state-spaces/s4.git || {
     echo -e "${FG_RED}Error: Failed to clone the repository.${FG_RESET}"
-    return 1
+    return "${ERROR_EXITCODE}"
   }
 
   # Change directory
   pushd "s4/extensions/cauchy" || {
     echo -e "${FG_RED}Error: Failed to navigate to the directory.${FG_RESET}"
-    return 1
+    return "${ERROR_EXITCODE}"
   }
 
   # Install the package
   echo -e "${FG_YELLOW}Installing cauchy-mult package${FG_RESET}"
   python setup.py install || {
     echo -e "${FG_RED}Error: Failed to install the cauchy-mult package.${FG_RESET}"
-    popd || return 1
+    popd || return "${ERROR_EXITCODE}"
     rm -rf "s4"
-    return 1
+    return "${ERROR_EXITCODE}"
   }
 
   # Clean up
   popd || {
     echo -e "${FG_RED}Error: Failed to return to the previous directory.${FG_RESET}"
-    return 1
+    return "${ERROR_EXITCODE}"
   }
   rm -rf "s4"
 }

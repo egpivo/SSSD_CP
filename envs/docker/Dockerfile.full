@@ -24,6 +24,7 @@ RUN bash envs/conda/build_conda_env.sh && \
 
 # Stage 2: Final production image
 FROM continuumio/miniconda3:latest
+
 # Copy necessary CUDA libraries and binaries from the builder stage
 COPY --from=builder /usr/local/cuda /usr/local/cuda
 # Set environment variables for CUDA
