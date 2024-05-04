@@ -108,7 +108,7 @@ install_python_package() {
 
   echo -e "${FG_YELLOW}Installing python package${FG_RESET}"
   poetry lock --no-update
-  poetry install --no-rrot
+  poetry install
 
   # Install 3rd party packages
   echo -e "${FG_YELLOW}Installing 3rd party packages${FG_RESET}"
