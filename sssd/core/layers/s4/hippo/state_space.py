@@ -5,6 +5,7 @@ import torch.nn as nn
 from einops import rearrange, repeat
 
 from sssd.core.layers.s4.hippo.utils import power
+from sssd.core.layers.s4.hippo.utils_cauchy import cauchy_conj, cauchy_slow
 from sssd.utils.logger import setup_logger
 
 contract = oe.contract
@@ -33,44 +34,9 @@ except:
     has_cauchy_extension = False
 
 try:  # Try pykeops
-    from pykeops.torch import Genred
+    pass
 
-    has_pykeops = True
-
-    def _broadcast_dims(*tensors):
-        max_dim = max([len(tensor.shape) for tensor in tensors])
-        tensors = [
-            tensor.view((1,) * (max_dim - len(tensor.shape)) + tensor.shape)
-            for tensor in tensors
-        ]
-        return tensors
-
-    def cauchy_conj(v, z, w):
-        """Pykeops version"""
-        expr_num = "z * ComplexReal(v) - Real2Complex(Sum(v * w))"
-        expr_denom = "ComplexMult(z-w, z-Conj(w))"
-
-        cauchy_mult = Genred(
-            f"ComplexDivide({expr_num}, {expr_denom})",
-            # expr_num,
-            # expr_denom,
-            [
-                "v = Vj(2)",
-                "z = Vi(2)",
-                "w = Vj(2)",
-            ],
-            reduction_op="Sum",
-            axis=1,
-            dtype="float32" if v.dtype == torch.cfloat else "float64",
-        )
-
-        v, z, w = _broadcast_dims(v, z, w)
-        v = _c2r(v)
-        z = _c2r(z)
-        w = _c2r(w)
-
-        r = 2 * cauchy_mult(v, z, w, backend="GPU")
-        return _r2c(r)
+    has_pykeops = torch.cuda.is_available()
 
 except ImportError:
     has_pykeops = False
@@ -78,17 +44,6 @@ except ImportError:
         LOGGER.error(
             "Falling back on slow Cauchy kernel. Install at least one of pykeops or the CUDA extension for efficiency."
         )
-
-        def cauchy_slow(v, z, w):
-            """
-            v, w: (..., N)
-            z: (..., L)
-            returns: (..., L)
-            """
-            cauchy_matrix = v.unsqueeze(-1) / (
-                z.unsqueeze(-2) - w.unsqueeze(-1)
-            )  # (... N L)
-            return torch.sum(cauchy_matrix, dim=-2)
 
 
 class SSKernelNPLR(nn.Module):
