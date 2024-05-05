@@ -4,8 +4,9 @@ import torch
 
 from sssd.core.layers.s4.hippo.utils import (
     TransitionMatrix,
+    cauchy_slow,
     embed_c2r,
-    generate_rank_correction_matrix,
+    generate_low_rank_matrix,
     normal_plus_low_rank,
     power,
 )
@@ -161,17 +162,17 @@ def test_embed_c2r():
     ],
 )
 def test_rank_correction(measure, N, rank, expected_shape):
-    P = generate_rank_correction_matrix(measure, N, rank)
+    P = generate_low_rank_matrix(measure, N, rank)
     assert P.shape == expected_shape
 
 
 def test_rank_correction_invalid_measure():
     with pytest.raises(NotImplementedError):
-        generate_rank_correction_matrix("invalid_measure", 5, 1)
+        generate_low_rank_matrix("invalid_measure", 5, 1)
 
 
 def test_rank_correction_dtype():
-    P = generate_rank_correction_matrix("legs", 5, 1, dtype=torch.float64)
+    P = generate_low_rank_matrix("legs", 5, 1, dtype=torch.float64)
     assert P.dtype == torch.float64
 
 
@@ -259,3 +260,41 @@ def test_nplr_b_transformed(setup_data):
     assert torch.all(
         B_transformed.imag.abs() <= 1e-6
     ), "Transformed B should have negligible imaginary part"
+
+
+def test_cauchy_slow():
+    # Define input shapes
+    shape = (3, 4)  # Example shape
+    N = 4
+    L = 3
+
+    # Generate random tensors for inputs
+    v = torch.randn(*shape, N)
+    z = torch.randn(*shape, L)
+    w = torch.randn(*shape, N)
+
+    # Call the function
+    result = cauchy_slow(v, z, w)
+
+    # Check if the output shape matches expectation
+    assert result.shape == (*shape, L)
+
+    # Check if the output contains valid values (e.g., not NaN or Inf)
+    assert torch.isfinite(result).all()
+
+    # Sample tensors for testing
+    v = torch.tensor([1.0, 2.0, 3.0])
+    z = torch.tensor([1.0, 2.0])
+    w = torch.tensor([0.5, 1.5, 2.5])
+
+    # Manually compute the Cauchy matrix and sum across the appropriate dimension
+    cauchy_matrix_manual = v.unsqueeze(-1) / (z.unsqueeze(-2) - w.unsqueeze(-1))
+    expected_result_manual = torch.sum(cauchy_matrix_manual, dim=-2)
+
+    # Use the cauchy_slow function to compute the result
+    result = cauchy_slow(v, z, w)
+
+    # Check if the result matches the expected result
+    assert torch.allclose(
+        result, expected_result_manual
+    ), "The result does not match the expected values"

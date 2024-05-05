@@ -1,8 +1,8 @@
 # Stage 1: Build stage
-FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-runtime AS builder
+FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-devel AS builder
 
 LABEL authors="Joseph Wang <egpivo@gmail.com>"\
-      version="0.0.12"
+      version="0.0.13"
 
 # Set the working directory in the container
 WORKDIR /sssd
@@ -14,6 +14,7 @@ COPY bin bin/
 COPY notebooks notebooks/
 COPY sssd sssd/
 COPY pyproject.toml pyproject.toml
+COPY README.md README.md
 
 # Build Conda environment and cleanup unnecessary files
 RUN bash envs/conda/build_conda_env.sh && \
@@ -24,6 +25,10 @@ RUN bash envs/conda/build_conda_env.sh && \
 
 # Stage 2: Final production image
 FROM continuumio/miniconda3:latest
+
+# Set environment variables for CUDA
+ENV PATH=/opt/conda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
+ENV LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
 
 # Set the working directory in the container
 WORKDIR /sssd
@@ -43,6 +48,4 @@ COPY --from=builder /sssd/notebooks notebooks/
 COPY --from=builder /sssd/sssd sssd/
 COPY --from=builder /sssd/pyproject.toml pyproject.toml
 
-
-# Set the entrypoint
 ENTRYPOINT ["/bin/bash", "-c", "/bin/bash scripts/docker/$ENTRYPOINT_SCRIPT"]

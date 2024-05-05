@@ -190,7 +190,7 @@ class TransitionMatrix:
         return A, B
 
 
-def generate_rank_correction_matrix(
+def generate_low_rank_matrix(
     measure: str, N: int, rank: int = 1, dtype: torch.dtype = torch.float
 ) -> torch.Tensor:
     """
@@ -284,7 +284,7 @@ def normal_plus_low_rank(
     A = torch.as_tensor(A, dtype=dtype)
     B = torch.as_tensor(B, dtype=dtype)[:, 0]
 
-    P = generate_rank_correction_matrix(
+    P = generate_low_rank_matrix(
         measure, matrix_size, rank=correction_rank, dtype=dtype
     )
     AP = A + torch.einsum("...i,...j->...ij", P, P.conj()).sum(dim=-3)
@@ -300,3 +300,29 @@ def normal_plus_low_rank(
     P = CONTRACT("ij, ...j -> ...i", V_inv, P.to(V.dtype))  # V^* P
 
     return w, P, B, V
+
+
+def cauchy_slow(v: torch.Tensor, z: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the sum of the Cauchy matrix along the second-to-last dimension.
+
+    Args:
+        v (torch.Tensor): Tensor of shape (..., N).
+        z (torch.Tensor): Tensor of shape (..., L).
+        w (torch.Tensor): Tensor of shape (..., N).
+
+    Returns:
+        torch.Tensor: The resulting tensor of shape (..., L) after computing
+                      the sum of the Cauchy matrix along the second-to-last dimension.
+    """
+    # Expand dimensions of v, z, and w to align for broadcasting
+    v_expanded = v.unsqueeze(-1)
+    z_expanded = z.unsqueeze(-2)
+    w_expanded = w.unsqueeze(-1)
+
+    # Compute the Cauchy matrix wiht Shape: (..., N, L)
+    cauchy_matrix = v_expanded / (z_expanded - w_expanded)
+
+    # Sum over the second-to-last dimension (N) to get the result
+    result = torch.sum(cauchy_matrix, dim=-2)
+    return result
