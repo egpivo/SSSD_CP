@@ -137,7 +137,7 @@ class S4(nn.Module):
 
         y = self.output_linear(y)
 
-        # ysize = b, k, l, requieres l, b, k
+        # ysize = b, k, l, requires l, b, k
         # y = self.time_transformer(y.permute(2,0,1)).permute(1,2,0)
 
         return y, None
