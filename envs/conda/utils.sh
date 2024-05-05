@@ -156,6 +156,9 @@ install_extensions_cauchy() {
     return "${ERROR_EXITCODE}"
   }
 
+  # Update the `setup.py` to force compiling CUDA extensions in non-GPU envs.
+  cp ${CONDA_DIR}/cauchy_mult_setup.py setup.py
+
   # Install the package
   echo -e "${FG_YELLOW}Installing cauchy-mult CUDA-Python package${FG_RESET}"
   TORCH_CUDA_ARCH_LIST="6.1+PTX" python setup.py install || {
