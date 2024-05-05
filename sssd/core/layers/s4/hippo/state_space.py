@@ -5,7 +5,7 @@ import torch.nn as nn
 from einops import rearrange, repeat
 
 from sssd.core.layers.s4.hippo.utils import power
-from sssd.core.layers.s4.hippo.utils_cauchy import cauchy_conj, cauchy_slow
+from sssd.core.layers.s4.hippo.utils_cauchy import cauchy_conj
 from sssd.utils.logger import setup_logger
 
 contract = oe.contract
@@ -255,10 +255,8 @@ class SSKernelNPLR(nn.Module):
         # Calculate resolvent at omega
         if has_cauchy_extension and z.dtype == torch.cfloat:
             r = cauchy_mult(v, z, w, symmetric=True)
-        elif torch.cuda.is_available():
-            r = cauchy_conj(v, z, w)
         else:
-            r = cauchy_slow(v, z, w)
+            r = cauchy_conj(v, z, w)
         r = r * dt[None, None, :, None]  # (S+1+R, C+R, H, L)
 
         # Low-rank Woodbury correction

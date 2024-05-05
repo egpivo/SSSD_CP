@@ -2,8 +2,22 @@ import torch
 
 from sssd.core.layers.s4.hippo.utils import broadcast_dims, cauchy_slow
 
+v = torch.randn(10, 4, dtype=torch.complex64, requires_grad=True)
+w = torch.randn(10, 4, dtype=torch.complex64, requires_grad=True)
+z = torch.randn(
+    5,
+    dtype=torch.complex64,
+)
+
 
 def cauchy_conj(v, z, w):
+    """
+    >>> v = torch.randn(10, 4, dtype=torch.complex64,  requires_grad=True)
+    >>> w = torch.randn(10, 4, dtype=torch.complex64,  requires_grad=True)
+    >>> z = torch.randn(5, dtype=torch.complex64,)
+    >>> cauchy_conj(v, z, w).shape
+    torch.Size([10, 5])
+    """
     if torch.cuda.is_available():
 
         from pykeops.torch import Genred
@@ -20,7 +34,6 @@ def cauchy_conj(v, z, w):
             ],
             reduction_op="Sum",
             axis=1,
-            dtype="float32" if v.dtype == torch.cfloat else "float64",
         )
 
         v, z, w = broadcast_dims(v, z, w)
