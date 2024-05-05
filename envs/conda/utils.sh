@@ -144,7 +144,6 @@ install_extensions_cauchy() {
   # If conditions are not met, continue with the following procedure
   echo -e "${FG_YELLOW}Cauchy not installed. Continuing...${FG_RESET}"
 
-
   # Clone the repository
   git clone --depth 1 --branch v3.0.0 https://github.com/state-spaces/s4.git || {
     echo -e "${FG_RED}Error: Failed to clone the repository.${FG_RESET}"
@@ -159,7 +158,7 @@ install_extensions_cauchy() {
 
   # Install the package
   echo -e "${FG_YELLOW}Installing cauchy-mult CUDA-Python package${FG_RESET}"
-  python setup.py install || {
+  TORCH_CUDA_ARCH_LIST="6.1+PTX" python setup.py install || {
     echo -e "${FG_RED}Error: Failed to install the cauchy-mult package.${FG_RESET}"
     popd || return "${ERROR_EXITCODE}"
     rm -rf "s4"
