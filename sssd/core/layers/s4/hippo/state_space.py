@@ -28,7 +28,7 @@ try:  # This module will be downloaded from s4 repo
     has_cauchy_extension = True
 except:
     LOGGER.warning(
-        "CUDA extension for cauchy multiplication not found. Install by going to extensions/cauchy/ and running `python setup.py install`. This should speed up end-to-end training by 10-50%"
+        "CUDA extension for cauchy multiplication not found. Please check `install_extensions_cauchy` in envs/conda/utils.sh "
     )
     has_cauchy_extension = False
 
