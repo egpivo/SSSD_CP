@@ -4,7 +4,6 @@ import torch
 
 from sssd.core.layers.s4.hippo.utils import (
     TransitionMatrix,
-    broadcast_dims,
     cauchy_slow,
     embed_c2r,
     generate_low_rank_matrix,
@@ -261,39 +260,6 @@ def test_nplr_b_transformed(setup_data):
     assert torch.all(
         B_transformed.imag.abs() <= 1e-6
     ), "Transformed B should have negligible imaginary part"
-
-
-def testbroadcast_dims():
-    # Test case 1: tensors with different dimensions
-    tensor1 = torch.randn(3, 4)
-    tensor2 = torch.randn(2, 5, 6)
-    tensor3 = torch.randn(7, 1)
-    result = broadcast_dims(tensor1, tensor2, tensor3)
-    assert all(
-        tensor.dim() == max(tensor1.dim(), tensor2.dim(), tensor3.dim())
-        for tensor in result
-    )
-
-    # Test case 2: tensors with the same dimensions
-    tensor4 = torch.randn(2, 3, 4)
-    tensor5 = torch.randn(2, 3, 4)
-    result = broadcast_dims(tensor4, tensor5)
-    assert all(tensor.dim() == max(tensor4.dim(), tensor5.dim()) for tensor in result)
-
-    # Test case 3: empty tensors
-    result = broadcast_dims(torch.empty(0), torch.empty(0))
-    assert all(tensor.dim() == 1 for tensor in result)
-
-    # Test case 4: tensors with different shapes
-    tensor6 = torch.randn(2, 3)
-    tensor7 = torch.randn(3, 2)
-    result = broadcast_dims(tensor6, tensor7)
-    assert all(tensor.dim() == max(tensor6.dim(), tensor7.dim()) for tensor in result)
-
-    # Test case 5: single tensor
-    tensor8 = torch.randn(3, 4, 5)
-    result = broadcast_dims(tensor8)
-    assert all(tensor.dim() == tensor8.dim() for tensor in result)
 
 
 def test_cauchy_slow():

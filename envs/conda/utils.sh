@@ -136,13 +136,13 @@ install_extensions_cauchy() {
   #    2. Function `cauchy_mult` will be utilized from this installation.
   #
   # Check if cauchy_mult is already installed and if the file exists
-  if ! pip list | grep -q "cauchy_mult" && [ -f "sssd/core/layers/s4/hippo/cauchy.py" ]; then
+
+  if pip list | grep -q "cauchy_mult" && [ -f "sssd/core/layers/s4/hippo/cauchy.py" ]; then
     echo -e "${FG_GREEN}Cauchy is installed.${FG_RESET}"
     return "${SUCCESS_EXITCODE}"
+  else
+    echo -e "${FG_RED}Cauchy is not installed or the cauchy.py file is missing.${FG_RESET}"
   fi
-
-  # If conditions are not met, continue with the following procedure
-  echo -e "${FG_YELLOW}Cauchy not installed. Continuing...${FG_RESET}"
 
   # Clone the repository
   git clone --depth 1 --branch v3.0.0 https://github.com/state-spaces/s4.git || {

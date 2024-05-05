@@ -1,4 +1,4 @@
-from typing import Dict, List, Tuple, Union
+from typing import Dict, Tuple, Union
 
 import numpy as np
 import opt_einsum
@@ -300,15 +300,6 @@ def normal_plus_low_rank(
     P = CONTRACT("ij, ...j -> ...i", V_inv, P.to(V.dtype))  # V^* P
 
     return w, P, B, V
-
-
-def broadcast_dims(*tensors: torch.Tensor) -> List[torch.Tensor]:
-    max_dim = max(tensor.dim() for tensor in tensors)
-    tensors = [
-        tensor.view((1,) * (max_dim - tensor.dim()) + tensor.shape)
-        for tensor in tensors
-    ]
-    return tensors
 
 
 def cauchy_slow(v: torch.Tensor, z: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
