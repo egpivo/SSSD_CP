@@ -23,7 +23,7 @@ LOGGER = setup_logger()
 
 """ Cauchy kernel """
 
-try:  # Try CUDA extension
+try:  # This module will be downloaded from s4 repo
     from sssd.core.layers.s4.hippo.cauchy import cauchy_mult
 
     has_cauchy_extension = True
@@ -32,18 +32,6 @@ except:
         "CUDA extension for cauchy multiplication not found. Install by going to extensions/cauchy/ and running `python setup.py install`. This should speed up end-to-end training by 10-50%"
     )
     has_cauchy_extension = False
-
-try:  # Try pykeops
-    pass
-
-    has_pykeops = torch.cuda.is_available()
-
-except ImportError:
-    has_pykeops = False
-    if not has_cauchy_extension:
-        LOGGER.error(
-            "Falling back on slow Cauchy kernel. Install at least one of pykeops or the CUDA extension for efficiency."
-        )
 
 
 class SSKernelNPLR(nn.Module):
@@ -267,7 +255,7 @@ class SSKernelNPLR(nn.Module):
         # Calculate resolvent at omega
         if has_cauchy_extension and z.dtype == torch.cfloat:
             r = cauchy_mult(v, z, w, symmetric=True)
-        elif has_pykeops:
+        elif torch.cuda.is_available():
             r = cauchy_conj(v, z, w)
         else:
             r = cauchy_slow(v, z, w)
