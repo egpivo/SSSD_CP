@@ -4,7 +4,7 @@
 FROM egpivo/sssd:latest AS builder
 
 LABEL authors="Joseph Wang <egpivo@gmail.com>" \
-      version="0.0.12"
+      version="0.0.13"
 
 # Set the working directory in the container
 WORKDIR /sssd
@@ -16,7 +16,6 @@ COPY bin bin/
 COPY notebooks notebooks/
 COPY sssd sssd/
 COPY pyproject.toml pyproject.toml
-
 
 # Build Conda environment and cleanup unnecessary files
 RUN bash envs/conda/build_conda_env.sh && \

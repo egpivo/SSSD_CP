@@ -2,7 +2,7 @@
 FROM pytorch/pytorch:2.1.0-cuda12.1-cudnn8-devel AS builder
 
 LABEL authors="Joseph Wang <egpivo@gmail.com>"\
-      version="0.0.12"
+      version="0.0.13"
 
 # Set the working directory in the container
 WORKDIR /sssd
@@ -16,22 +16,16 @@ COPY sssd sssd/
 COPY pyproject.toml pyproject.toml
 COPY README.md README.md
 
-# Install git
-RUN apt-get update && \
-    apt-get install -y git && \
+# Build Conda environment and cleanup unnecessary files
+RUN bash envs/conda/build_conda_env.sh && \
     apt-get clean && \
     apt-get autoclean && \
     apt-get autoremove -y && \
     rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Build Conda environment and cleanup unnecessary files
-RUN bash envs/conda/build_conda_env.sh
-
 # Stage 2: Final production image
 FROM continuumio/miniconda3:latest
 
-# Copy necessary CUDA libraries and binaries from the builder stage
-COPY --from=builder /usr/local/cuda /usr/local/cuda
 # Set environment variables for CUDA
 ENV PATH=/opt/conda/bin:/usr/local/nvidia/bin:/usr/local/cuda/bin:${PATH}
 ENV LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
