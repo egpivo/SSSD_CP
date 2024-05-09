@@ -141,7 +141,7 @@ class SSKernelNPLR(nn.Module):
         # Cache Fourier nodes every time we set up a desired length
         self.L = L
         if self.L is not None:
-            self._omega(self.L, dtype=C.dtype, device=C.device, cache=True)
+            _, _ = self._omega(self.L, dtype=C.dtype, device=C.device, cache=True)
 
         # Register parameters
         # C is a regular parameter, not state
@@ -213,7 +213,7 @@ class SSKernelNPLR(nn.Module):
 
         if rate == 1.0:
             # Use cached FFT nodes
-            omega, z = _r2c(self.omega), _r2c(self.z)  # (..., L)
+            omega, z = _r2c(self.omega), _r2c(self.z)  # (..., L // 2 + 1)
         else:
             omega, z = self._omega(
                 int(self.L / rate), dtype=w.dtype, device=w.device, cache=False
@@ -249,14 +249,14 @@ class SSKernelNPLR(nn.Module):
         # Incorporate B and C batch dimensions
         v = B.unsqueeze(-3) * C.unsqueeze(-4)  # (s+1+r, c+r, H, N)
         # w = w[None, None, ...]  # (1, 1, H, N)
-        # z = z[None, None, None, ...]  # (1, 1, 1, L)
+        # z = z[None, None, None, ...]  # (1, 1, 1, L // 2 + 1)
 
         # Calculate resolvent at omega
         if has_cauchy_extension and z.dtype == torch.cfloat:
             r = cauchy_mult(v, z, w, symmetric=True)
         else:
             r = cauchy_slow(v, z, w)
-        r = r * dt[None, None, :, None]  # (S+1+R, C+R, H, L)
+        r = r * dt[None, None, :, None]  # (S+1+R, C+R, H, L // 2 + 1)
 
         # Low-rank Woodbury correction
         if self.rank == 1:
@@ -295,17 +295,18 @@ class SSKernelNPLR(nn.Module):
         k_f = k_f * 2 / (1 + omega)
 
         # Move from frequency to coefficients
-        k = torch.fft.irfft(k_f)  # (S+1, C, H, L)
+        k = torch.fft.irfft(k_f)  # (S+1, C, H, L // 2 + 1)
         # Avoid the underflow or overflow
         k = torch.nan_to_num(k)
         # Truncate to target length
+        L = min(L, k.shape[-1])
         k = k[..., :L]
 
         if state is not None:
-            k_state = k[:-1, :, :, :]  # (S, C, H, L)
+            k_state = k[:-1, :, :, :]  # (S, C, H, L // 2 + 1)
         else:
             k_state = None
-        k_B = k[-1, :, :, :]  # (C H L)
+        k_B = k[-1, :, :, :]  # (C H L // 2 + 1)
         return k_B, k_state
 
     @torch.no_grad()
@@ -418,7 +419,6 @@ class SSKernelNPLR(nn.Module):
     def setup_step(self, mode="dense"):
         """Set up dA, dB, dC discretized parameters for stepping"""
         self._setup_state()
-
         # Calculate original C
         dA_L = power(self.L, self.dA)
         I = torch.eye(self.dA.size(-1)).to(dA_L)
@@ -433,6 +433,7 @@ class SSKernelNPLR(nn.Module):
         # Do special preprocessing for different step modes
 
         self._step_mode = mode
+
         if mode == "linear":
             # Linear case: special step function for the state, we need to handle output
             # use conjugate symmetry by default, which affects the output projection
