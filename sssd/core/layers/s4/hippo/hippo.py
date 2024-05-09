@@ -55,7 +55,7 @@ class HippoSSKernel(nn.Module):
             math.log(dt_max) - math.log(dt_min)
         ) + math.log(dt_min)
 
-        w, p, B, _ = normal_plus_low_rank(
+        w, p, B = normal_plus_low_rank(
             measure=measure, matrix_size=self.N, correction_rank=rank, dtype=dtype
         )
         C = torch.randn(channels, self.H, self.N // 2, dtype=cdtype)

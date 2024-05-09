@@ -244,7 +244,7 @@ def normal_plus_low_rank(
     matrix_size: int,
     correction_rank: int = 1,
     dtype: Union[type(torch.float), type(torch.cfloat)] = torch.float,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Normal plus Low-rank
     Return eigenvalues, correction_matrix, transformed_vector, unitary_matrix such that
     (eigenvalues - correction_matrix correction_matrix^*, transformed_vector) is unitarily equivalent
@@ -263,7 +263,6 @@ def normal_plus_low_rank(
     - w: The eigenvalues of the matrix AP.
     - P: The rank correction matrix.
     - B: The transformed input vector.
-    - V: The unitary matrix.
     """
     assert dtype in (
         torch.float,
@@ -277,8 +276,7 @@ def normal_plus_low_rank(
         )
         P = torch.randn(correction_rank, half_size, dtype=dtype)
         B = torch.randn(half_size, dtype=dtype)
-        V = torch.eye(matrix_size, dtype=dtype)[..., :half_size]  # Only used in testing
-        return w, P, B, V
+        return w, P, B
 
     A, B = TransitionMatrix(measure, matrix_size)
     A = torch.as_tensor(A, dtype=dtype)
@@ -299,7 +297,7 @@ def normal_plus_low_rank(
     B = CONTRACT("ij, j -> i", V_inv, B.to(V.dtype))  # V^* B
     P = CONTRACT("ij, ...j -> ...i", V_inv, P.to(V.dtype))  # V^* P
 
-    return w, P, B, V
+    return w, P, B
 
 
 def cauchy_slow(v: torch.Tensor, z: torch.Tensor, w: torch.Tensor) -> torch.Tensor:

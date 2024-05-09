@@ -26,7 +26,7 @@ try:  # This module will be downloaded from s4 repo
     from sssd.core.layers.s4.hippo.cauchy import cauchy_mult
 
     has_cauchy_extension = True
-except:
+except ModuleNotFoundError:
     LOGGER.warning(
         "CUDA extension for cauchy multiplication not found. Please check `install_extensions_cauchy` in envs/conda/utils.sh "
     )

@@ -188,25 +188,23 @@ def setup_data():
 
 def test_nplr_shapes_and_types(setup_data):
     measure, N, rank, dtype = setup_data
-    w, P, B, V = normal_plus_low_rank(measure, N, rank, dtype)
+    w, P, B = normal_plus_low_rank(measure, N, rank, dtype)
 
     # Check if the shapes are correct
     assert w.shape == (N // 2,)
     assert P.shape == (rank, N // 2)
     assert B.shape == (N // 2,)
-    assert V.shape == (N, N // 2)
 
     # Check if the types are correct
     assert w.dtype == (torch.cfloat if dtype == torch.float else torch.cdouble)
     assert P.dtype == w.dtype
     assert B.dtype == w.dtype
-    assert V.dtype == w.dtype
 
 
 def test_nplr_values(setup_data):
     torch.manual_seed(1)
     measure, N, rank, dtype = setup_data
-    w, P, B, V = normal_plus_low_rank(measure, N, rank, dtype)
+    w, P, B = normal_plus_low_rank(measure, N, rank, dtype)
 
     # Check if the imaginary parts of w are within the range [-2, 2]
     assert torch.all(
@@ -218,27 +216,16 @@ def test_nplr_values(setup_data):
 # Test to ensure that the eigenvalues 'w' are complex numbers
 def test_nplr_w_complex(setup_data):
     _, N, _, dtype = setup_data
-    w, _, _, _ = normal_plus_low_rank("random", N, dtype=dtype)
+    w, _, _ = normal_plus_low_rank("random", N, dtype=dtype)
     assert all(
         torch.is_complex(val) for val in w
     ), "Eigenvalues w should be complex numbers"
 
 
-# Test to ensure that the matrix 'V' is unitary
-def test_nplr_v_unitary(setup_data):
-    _, N, _, dtype = setup_data
-    _, _, _, V = normal_plus_low_rank("random", N, dtype=dtype)
-    V_inv = V.conj().transpose(-1, -2)
-    identity = torch.eye(
-        V.shape[-1], dtype=dtype
-    )  # Ensure the identity matrix matches the dimensions of V
-    assert torch.allclose((V_inv @ V).real, identity), "Matrix V should be unitary"
-
-
 # Test to ensure that 'P' has the correct rank
 def test_nplr_p_rank(setup_data):
     _, N, rank, dtype = setup_data
-    _, P, _, _ = normal_plus_low_rank("random", N, correction_rank=rank, dtype=dtype)
+    _, P, _ = normal_plus_low_rank("random", N, correction_rank=rank, dtype=dtype)
     assert P.shape[0] == rank, f"Matrix P should have rank {rank}"
 
 
@@ -246,20 +233,6 @@ def test_nplr_p_rank(setup_data):
 def test_nplr_invalid_measure():
     with pytest.raises(NotImplementedError):
         normal_plus_low_rank("invalid_measure", 10)
-
-
-def test_nplr_b_transformed(setup_data):
-    measure, N, rank, dtype = setup_data
-    _, _, _, V = normal_plus_low_rank(measure, N, correction_rank=rank, dtype=dtype)
-    _, B = TransitionMatrix(measure, N)
-    B = torch.as_tensor(B, dtype=V.dtype)[:, 0]
-    V_inv = V.conj().transpose(-1, -2)  # Assuming V_inv is 5 x 10
-    B_transformed = torch.einsum(
-        "ij,j->i", V_inv, B.to(V)
-    )  # Equivalent to CONTRACT("ij, j -> i", V_inv, B)
-    assert torch.all(
-        B_transformed.imag.abs() <= 1e-6
-    ), "Transformed B should have negligible imaginary part"
 
 
 def test_cauchy_slow():
