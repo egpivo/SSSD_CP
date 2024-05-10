@@ -4,9 +4,11 @@ import torch
 
 from sssd.core.layers.s4.hippo.utils import (
     TransitionMatrix,
-    cauchy_slow,
+    cauchy_cpu,
+    compute_fft_transform,
     embed_c2r,
     generate_low_rank_matrix,
+    hurwitz_transformation,
     normal_plus_low_rank,
     power,
 )
@@ -235,7 +237,7 @@ def test_nplr_invalid_measure():
         normal_plus_low_rank("invalid_measure", 10)
 
 
-def test_cauchy_slow():
+def test_cauchy_cpu():
     # Define input shapes
     shape = (3, 4)  # Example shape
     N = 4
@@ -247,7 +249,7 @@ def test_cauchy_slow():
     w = torch.randn(*shape, N)
 
     # Call the function
-    result = cauchy_slow(v, z, w)
+    result = cauchy_cpu(v, z, w)
 
     # Check if the output shape matches expectation
     assert result.shape == (*shape, L)
@@ -264,10 +266,52 @@ def test_cauchy_slow():
     cauchy_matrix_manual = v.unsqueeze(-1) / (z.unsqueeze(-2) - w.unsqueeze(-1))
     expected_result_manual = torch.sum(cauchy_matrix_manual, dim=-2)
 
-    # Use the cauchy_slow function to compute the result
-    result = cauchy_slow(v, z, w)
+    # Use the cauchy_cpu function to compute the result
+    result = cauchy_cpu(v, z, w)
 
     # Check if the result matches the expected result
     assert torch.allclose(
         result, expected_result_manual
     ), "The result does not match the expected values"
+
+
+def test_compute_fft_transform():
+    # Test parameters
+    sequence_length = 4
+    dtype = torch.cfloat
+    device = torch.device("cpu")
+
+    # Expected results
+    expected_omega = torch.tensor(
+        [np.exp(-2j * 0), np.exp(-2j * np.pi / 8), np.exp(-2j * np.pi / 8) ** 2],
+        dtype=dtype,
+    )
+    expected_z = 2 * (1 - expected_omega) / (1 + expected_omega)
+
+    # Compute the FFT transform
+    omega, z = compute_fft_transform(sequence_length, dtype, device)
+
+    # Verify the results
+    assert torch.allclose(
+        omega, expected_omega, atol=1e-5
+    ), "Omega values do not match expected results."
+    assert torch.allclose(
+        z, expected_z, atol=1e-5
+    ), "Z values do not match expected results."
+
+
+def test_hurwitz_transformation():
+    # Test data
+    log_w_real = torch.tensor([0.0, -1.0, -2.0])  # Logarithm of the real parts
+    w_imag = torch.tensor([1.0, 2.0, 3.0])  # Imaginary parts
+
+    # Expected output
+    expected_w = torch.tensor([-1.0 + 1.0j, -0.3679 + 2.0j, -0.1353 + 3.0j])
+
+    # Perform the transformation
+    result_w = hurwitz_transformation(log_w_real, w_imag)
+
+    # Assert that the result is close to the expected output
+    assert torch.allclose(
+        result_w, expected_w, atol=1e-4
+    ), "The hurwitz_transformation function did not produce the expected output."
