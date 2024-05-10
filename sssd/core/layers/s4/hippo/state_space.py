@@ -6,6 +6,10 @@ from einops import rearrange, repeat
 from opt_einsum import contract, contract_expression
 
 from sssd.core.layers.s4.hippo.utils import (
+    _c2r,
+    _conj,
+    _r2c,
+    _resolve_conj,
     compute_fft_transform,
     hurwitz_transformation,
     power,
@@ -26,12 +30,6 @@ except ModuleNotFoundError:
     from sssd.core.layers.s4.hippo.utils import cauchy_cpu
 
     has_cauchy_extension = False
-
-
-_c2r = torch.view_as_real
-_r2c = torch.view_as_complex
-_conj = lambda x: torch.cat([x, x.conj()], dim=-1)
-_resolve_conj = lambda x: x.conj().resolve_conj()
 
 
 class SSKernelNPLR(nn.Module):

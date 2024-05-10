@@ -10,6 +10,11 @@ Matrix = np.ndarray
 MeasureArgs = Dict[str, Union[float, int]]
 CONTRACT = opt_einsum.contract
 
+_c2r = torch.view_as_real
+_r2c = torch.view_as_complex
+_conj = lambda x: torch.cat([x, x.conj()], dim=-1)
+_resolve_conj = lambda x: x.conj().resolve_conj()
+
 
 def power(exponent: int, matrix: torch.Tensor) -> torch.Tensor:
     """
