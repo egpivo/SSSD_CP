@@ -1,125 +1,87 @@
-import numpy as np
-import opt_einsum as oe
+from typing import Optional, Tuple
+
 import torch
 import torch.nn as nn
 from einops import rearrange, repeat
+from opt_einsum import contract, contract_expression
 
-from sssd.core.layers.s4.hippo.utils import cauchy_slow, power
+from sssd.core.layers.s4.hippo.utils import (
+    _c2r,
+    _conj,
+    _r2c,
+    _resolve_conj,
+    compute_fft_transform,
+    hurwitz_transformation,
+    power,
+)
 from sssd.utils.logger import setup_logger
-
-contract = oe.contract
-contract_expression = oe.contract_expression
-_c2r = torch.view_as_real
-_r2c = torch.view_as_complex
-_conj = lambda x: torch.cat([x, x.conj()], dim=-1)
-if tuple(map(int, torch.__version__.split(".")[:2])) >= (1, 10):
-    _resolve_conj = lambda x: x.conj().resolve_conj()
-else:
-    _resolve_conj = lambda x: x.conj()
-
 
 LOGGER = setup_logger()
 
-""" Cauchy kernel """
 
 try:  # This module will be downloaded from s4 repo
     from sssd.core.layers.s4.hippo.cauchy import cauchy_mult
 
     has_cauchy_extension = True
-except:
+except ModuleNotFoundError:
     LOGGER.warning(
         "CUDA extension for cauchy multiplication not found. Please check `install_extensions_cauchy` in envs/conda/utils.sh "
     )
+    from sssd.core.layers.s4.hippo.utils import cauchy_cpu
+
     has_cauchy_extension = False
 
 
 class SSKernelNPLR(nn.Module):
-    """Stores a representation of and computes the SSKernel function K_L(A^dt, B^dt, C) corresponding to a discretized state space, where A is Normal + Low Rank (NPLR)
+    """
+    Stores a representation of and computes the SSKernel function K_L(A^dt, B^dt, C) corresponding to a discretized state space, where A is Normal + Low Rank (NPLR).
 
     The class name stands for 'State-Space SSKernel for Normal Plus Low-Rank'.
-    The parameters of this function are as follows.
-
-    A: (... N N) the state matrix
-    B: (... N) input matrix
-    C: (... N) output matrix
-    dt: (...) timescales / discretization step size
-    p, q: (... P N) low-rank correction to A, such that Ap=A+pq^T is a normal matrix
+    The parameters of this function are as follows:
+    - A: (... N N) the state matrix
+    - B: (... N) input matrix
+    - C: (... N) output matrix
+    - dt: (...) timescales / discretization step size
+    - p, q: (... P N) low-rank correction to A, such that Ap=A+pq^T is a normal matrix
 
     The forward pass of this Module returns:
     (... L) that represents FFT SSKernel_L(A^dt, B^dt, C)
-
     """
-
-    @torch.no_grad()
-    def _setup_C(self, double_length=False):
-        """Construct C~ from C
-
-        double_length: current C is for length L, convert it to length 2L
-        """
-        C = _r2c(self.C)
-        self._setup_state()
-        dA_L = power(self.L, self.dA)
-        # Multiply C by I - dA_L
-        C_ = _conj(C)
-        prod = contract("h m n, c h n -> c h m", dA_L.transpose(-1, -2), C_)
-        if double_length:
-            prod = -prod  # Multiply by I + dA_L instead
-        C_ = C_ - prod
-        C_ = C_[..., : self.N]  # Take conjugate pairs again
-        self.C.copy_(_c2r(C_))
-
-        if double_length:
-            self.L *= 2
-            self._omega(self.L, dtype=C.dtype, device=C.device, cache=True)
-
-    def _omega(self, L, dtype, device, cache=True):
-        """Calculate (and cache) FFT nodes and their "unprocessed" them with the bilinear transform
-        This should be called everytime the internal length self.L changes"""
-        omega = torch.tensor(
-            np.exp(-2j * np.pi / (L)), dtype=dtype, device=device
-        )  # \omega_{2L}
-        omega = omega ** torch.arange(0, L // 2 + 1, device=device)
-        z = 2 * (1 - omega) / (1 + omega)
-        if cache:
-            self.register_buffer("omega", _c2r(omega))
-            self.register_buffer("z", _c2r(z))
-        return omega, z
 
     def __init__(
         self,
-        L,
-        w,
-        P,
-        B,
-        C,
-        log_dt,
-        hurwitz=False,
-        trainable=None,
-        lr=None,
-        tie_state=False,
-        length_correction=True,
-        verbose=False,
-    ):
+        L: int,
+        w: torch.Tensor,
+        P: torch.Tensor,
+        B: torch.Tensor,
+        C: torch.Tensor,
+        log_dt: torch.Tensor,
+        hurwitz: bool = False,
+        trainable: Optional[dict] = None,
+        lr: Optional[float] = None,
+        tie_state: bool = False,
+        length_correction: bool = True,
+        verbose: bool = False,
+    ) -> None:
         """
-        L: Maximum length; this module computes an SSM kernel of length L
-        w: (N)
-        p: (r, N) low-rank correction to A
-        q: (r, N)
-        A represented by diag(w) - pq^*
+        Initialize the SSKernelNPLR module.
 
-        B: (N)
-        dt: (H) timescale per feature
-        C: (H, C, N) system is 1-D to c-D (channels)
+        Parameters:
+        - L (int): Maximum length; this module computes an SSM kernel of length L.
+        - w (torch.Tensor): Vector of shape (N,) representing weights.
+        - P (torch.Tensor): Matrix of shape (r, N) representing low-rank correction to A.
+        - B (torch.Tensor): Vector of shape (N,) representing input matrix B.
+        - C (torch.Tensor): Tensor of shape (H, C, N) representing the output matrix C.
+        - log_dt (torch.Tensor): Tensor of shape (H,) representing timescale per feature.
+        - hurwitz (bool): Flag to tie pq and ensure w has negative real part.
+        - trainable (dict, optional): Dictionary specifying which parameters are trainable.
+        - lr (float, optional): Learning rate for optimization.
+        - tie_state (bool): Flag to tie all state parameters across the H hidden features.
+        - length_correction (bool): Flag to multiply C by (I - dA^L) - can be turned off for slight speedup at initialization.
+        - verbose (bool): Flag for verbose mode.
 
-        hurwitz: tie pq and ensure w has negative real part
-        trainable: toggle which of the parameters is trainable
-        lr: add hook to set lr of hippo parameters specially (everything besides C)
-        tie_state: tie all state parameters across the H hidden features
-        length_correction: multiply C by (I - dA^L) - can be turned off when L is large for slight speedup at initialization (only relevant when N large as well)
-
-        Note: tensor shape N here denotes half the true state size, because of conjugate symmetry
+        Note: Tensor shape N here denotes half the true state size, because of conjugate symmetry.
         """
-
         super().__init__()
         self.hurwitz = hurwitz
         self.tie_state = tie_state
@@ -141,48 +103,119 @@ class SSKernelNPLR(nn.Module):
         # Cache Fourier nodes every time we set up a desired length
         self.L = L
         if self.L is not None:
-            self._omega(self.L, dtype=C.dtype, device=C.device, cache=True)
+            self._update_fft_nodes(self.L, dtype=C.dtype, device=C.device, cache=True)
 
         # Register parameters
-        # C is a regular parameter, not state
-        # self.C = nn.Parameter(_c2r(C.conj().resolve_conj()))
-        self.C = nn.Parameter(_c2r(_resolve_conj(C)))
+        self.C = nn.Parameter(
+            _c2r(_resolve_conj(C))
+        )  # C is a regular parameter, not state
+
         train = False
-        if trainable is None:
-            trainable = {}
-        if trainable == False:
-            trainable = {}
-        if trainable == True:
+        if trainable is True:
             trainable, train = {}, True
+        elif trainable is None or trainable is False:
+            trainable = {}
+
         self.register("log_dt", log_dt, trainable.get("dt", train), lr, 0.0)
         self.register("B", _c2r(B), trainable.get("B", train), lr, 0.0)
         self.register("P", _c2r(P), trainable.get("P", train), lr, 0.0)
         if self.hurwitz:
-            log_w_real = torch.log(
-                -w.real + 1e-3
-            )  # Some of the HiPPO methods have real part 0
+            log_w_real = torch.log(-w.real + 1e-3)
             w_imag = w.imag
             self.register("log_w_real", log_w_real, trainable.get("A", 0), lr, 0.0)
             self.register("w_imag", w_imag, trainable.get("A", train), lr, 0.0)
             self.Q = None
         else:
             self.register("w", _c2r(w), trainable.get("A", train), lr, 0.0)
-            # self.register("Q", _c2r(P.clone().conj().resolve_conj()), trainable.get('P', train), lr, 0.0)
             Q = _resolve_conj(P.clone())
             self.register("Q", _c2r(Q), trainable.get("P", train), lr, 0.0)
 
         if length_correction:
             self._setup_C()
 
-    def _w(self):
-        # Get the internal w (diagonal) parameter
-        if self.hurwitz:
-            w_real = -torch.exp(self.log_w_real)
-            w_imag = self.w_imag
-            w = w_real + 1j * w_imag
-        else:
-            w = _r2c(self.w)  # (..., N)
-        return w
+    @torch.no_grad()
+    def _setup_C(self, double_length=False) -> None:
+        """
+        Constructs the modified output matrix C~ from the current C.
+
+        If double_length is True, it converts C for a sequence of length L to a sequence of length 2L.
+
+        Args:
+            double_length (bool): Flag to indicate if the length should be doubled.
+
+        Returns:
+            None: Modifies the matrix C in place.
+        """
+        # Convert C to complex form
+        C_complex = _r2c(self.C)
+
+        # Setup the state for the transformation
+        self._setup_state()
+
+        # Compute the matrix power of dA for length L
+        dA_power_L = power(self.L, self.dA)
+
+        # Multiply C by (I - dA^L) or (I + dA^L) if doubling the length
+        C_conj = _conj(C_complex)
+        product = contract(
+            "h m n, c h n -> c h m", dA_power_L.transpose(-1, -2), C_conj
+        )
+        if double_length:
+            product = -product  # Use (I + dA^L) for doubling the length
+        C_modified = C_conj - product
+
+        # Retain only the necessary conjugate pairs
+        C_modified = C_modified[..., : self.N]
+
+        # Update the original C with the modified values
+        self.C.copy_(_c2r(C_modified))
+
+        # If doubling the length, update L and FFT nodes accordingly
+        if double_length:
+            self.L *= 2
+            if self.verbose:
+                LOGGER.info(f"S4: Doubling length from L = {self.L} to {2 * self.L}")
+            self._update_fft_nodes(
+                self.L, dtype=C_complex.dtype, device=C_complex.device, cache=True
+            )
+
+    def _update_fft_nodes(
+        self, L: int, dtype, device, cache: bool = True
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Calculate (and cache) FFT nodes and their "unprocessed" them with the bilinear transform.
+
+        Args:
+        - L (int): The length.
+        - dtype: The data type.
+        - device: The device.
+        - cache (bool, optional): Whether to cache the results. Defaults to True.
+
+        Returns:
+        - omega: The FFT nodes. (shape (L // 2 + 1))
+        - z: The transformed nodes. (shape (L // 2 + 1)_)
+        """
+        omega, z = compute_fft_transform(L, dtype, device)
+        if cache:
+            self.register_buffer("omega", _c2r(omega))
+            self.register_buffer("z", _c2r(z))
+        return omega, z
+
+    def _get_complex_weights(self) -> torch.Tensor:
+        """
+        Retrieves the complex diagonal weights 'w' for the state matrix.
+
+        If the 'hurwitz' flag is set, it constructs 'w' using the Hurwitz transformation.
+        Otherwise, it converts the stored real-valued tensor 'w' to a complex tensor.
+
+        Returns:
+            torch.Tensor: The complex diagonal weights 'w'.
+        """
+        return (
+            hurwitz_transformation(self.log_w_real, self.w_imag)
+            if self.hurwitz
+            else _r2c(self.w)
+        )
 
     def forward(self, state=None, rate=1.0, L=None):
         """
@@ -202,20 +235,20 @@ class SSKernelNPLR(nn.Module):
 
         # Increase the internal length if needed
         while rate * L > self.L:
-            self.double_length()
+            self._setup_C(double_length=True)
 
         dt = torch.exp(self.log_dt) * rate
         B = _r2c(self.B)
         C = _r2c(self.C)
         P = _r2c(self.P)
         Q = P.conj() if self.Q is None else _r2c(self.Q)
-        w = self._w()
+        w = self._get_complex_weights()
 
         if rate == 1.0:
             # Use cached FFT nodes
-            omega, z = _r2c(self.omega), _r2c(self.z)  # (..., L)
+            omega, z = _r2c(self.omega), _r2c(self.z)  # (..., L // 2 + 1)
         else:
-            omega, z = self._omega(
+            omega, z = self._update_fft_nodes(
                 int(self.L / rate), dtype=w.dtype, device=w.device, cache=False
             )
 
@@ -249,14 +282,14 @@ class SSKernelNPLR(nn.Module):
         # Incorporate B and C batch dimensions
         v = B.unsqueeze(-3) * C.unsqueeze(-4)  # (s+1+r, c+r, H, N)
         # w = w[None, None, ...]  # (1, 1, H, N)
-        # z = z[None, None, None, ...]  # (1, 1, 1, L)
+        # z = z[None, None, None, ...]  # (1, 1, 1, L // 2 + 1)
 
         # Calculate resolvent at omega
         if has_cauchy_extension and z.dtype == torch.cfloat:
             r = cauchy_mult(v, z, w, symmetric=True)
         else:
-            r = cauchy_slow(v, z, w)
-        r = r * dt[None, None, :, None]  # (S+1+R, C+R, H, L)
+            r = cauchy_cpu(v, z, w)
+        r = r * dt[None, None, :, None]  # (S+1+R, C+R, H, L // 2 + 1)
 
         # Low-rank Woodbury correction
         if self.rank == 1:
@@ -295,28 +328,23 @@ class SSKernelNPLR(nn.Module):
         k_f = k_f * 2 / (1 + omega)
 
         # Move from frequency to coefficients
-        k = torch.fft.irfft(k_f)  # (S+1, C, H, L)
+        k = torch.fft.irfft(k_f)  # (S+1, C, H, L // 2 + 1)
         # Avoid the underflow or overflow
         k = torch.nan_to_num(k)
         # Truncate to target length
+        L = min(L, k.shape[-1])
         k = k[..., :L]
 
         if state is not None:
-            k_state = k[:-1, :, :, :]  # (S, C, H, L)
+            k_state = k[:-1, :, :, :]  # (S, C, H, L // 2 + 1)
         else:
             k_state = None
-        k_B = k[-1, :, :, :]  # (C H L)
+        k_B = k[-1, :, :, :]  # (C H L // 2 + 1)
         return k_B, k_state
-
-    @torch.no_grad()
-    def double_length(self):
-        if self.verbose:
-            LOGGER.info(f"S4: Doubling length from L = {self.L} to {2*self.L}")
-        self._setup_C(double_length=True)
 
     def _setup_linear(self):
         """Create parameters that allow fast linear stepping of state"""
-        w = self._w()
+        w = self._get_complex_weights()
         B = _r2c(self.B)  # (H N)
         P = _r2c(self.P)
         Q = P.conj() if self.Q is None else _r2c(self.Q)
@@ -418,7 +446,6 @@ class SSKernelNPLR(nn.Module):
     def setup_step(self, mode="dense"):
         """Set up dA, dB, dC discretized parameters for stepping"""
         self._setup_state()
-
         # Calculate original C
         dA_L = power(self.L, self.dA)
         I = torch.eye(self.dA.size(-1)).to(dA_L)
@@ -433,6 +460,7 @@ class SSKernelNPLR(nn.Module):
         # Do special preprocessing for different step modes
 
         self._step_mode = mode
+
         if mode == "linear":
             # Linear case: special step function for the state, we need to handle output
             # use conjugate symmetry by default, which affects the output projection

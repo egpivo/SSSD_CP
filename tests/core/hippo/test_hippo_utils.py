@@ -4,9 +4,11 @@ import torch
 
 from sssd.core.layers.s4.hippo.utils import (
     TransitionMatrix,
-    cauchy_slow,
+    cauchy_cpu,
+    compute_fft_transform,
     embed_c2r,
     generate_low_rank_matrix,
+    hurwitz_transformation,
     normal_plus_low_rank,
     power,
 )
@@ -188,25 +190,23 @@ def setup_data():
 
 def test_nplr_shapes_and_types(setup_data):
     measure, N, rank, dtype = setup_data
-    w, P, B, V = normal_plus_low_rank(measure, N, rank, dtype)
+    w, P, B = normal_plus_low_rank(measure, N, rank, dtype)
 
     # Check if the shapes are correct
     assert w.shape == (N // 2,)
     assert P.shape == (rank, N // 2)
     assert B.shape == (N // 2,)
-    assert V.shape == (N, N // 2)
 
     # Check if the types are correct
     assert w.dtype == (torch.cfloat if dtype == torch.float else torch.cdouble)
     assert P.dtype == w.dtype
     assert B.dtype == w.dtype
-    assert V.dtype == w.dtype
 
 
 def test_nplr_values(setup_data):
     torch.manual_seed(1)
     measure, N, rank, dtype = setup_data
-    w, P, B, V = normal_plus_low_rank(measure, N, rank, dtype)
+    w, P, B = normal_plus_low_rank(measure, N, rank, dtype)
 
     # Check if the imaginary parts of w are within the range [-2, 2]
     assert torch.all(
@@ -218,27 +218,16 @@ def test_nplr_values(setup_data):
 # Test to ensure that the eigenvalues 'w' are complex numbers
 def test_nplr_w_complex(setup_data):
     _, N, _, dtype = setup_data
-    w, _, _, _ = normal_plus_low_rank("random", N, dtype=dtype)
+    w, _, _ = normal_plus_low_rank("random", N, dtype=dtype)
     assert all(
         torch.is_complex(val) for val in w
     ), "Eigenvalues w should be complex numbers"
 
 
-# Test to ensure that the matrix 'V' is unitary
-def test_nplr_v_unitary(setup_data):
-    _, N, _, dtype = setup_data
-    _, _, _, V = normal_plus_low_rank("random", N, dtype=dtype)
-    V_inv = V.conj().transpose(-1, -2)
-    identity = torch.eye(
-        V.shape[-1], dtype=dtype
-    )  # Ensure the identity matrix matches the dimensions of V
-    assert torch.allclose((V_inv @ V).real, identity), "Matrix V should be unitary"
-
-
 # Test to ensure that 'P' has the correct rank
 def test_nplr_p_rank(setup_data):
     _, N, rank, dtype = setup_data
-    _, P, _, _ = normal_plus_low_rank("random", N, correction_rank=rank, dtype=dtype)
+    _, P, _ = normal_plus_low_rank("random", N, correction_rank=rank, dtype=dtype)
     assert P.shape[0] == rank, f"Matrix P should have rank {rank}"
 
 
@@ -248,21 +237,7 @@ def test_nplr_invalid_measure():
         normal_plus_low_rank("invalid_measure", 10)
 
 
-def test_nplr_b_transformed(setup_data):
-    measure, N, rank, dtype = setup_data
-    _, _, _, V = normal_plus_low_rank(measure, N, correction_rank=rank, dtype=dtype)
-    _, B = TransitionMatrix(measure, N)
-    B = torch.as_tensor(B, dtype=V.dtype)[:, 0]
-    V_inv = V.conj().transpose(-1, -2)  # Assuming V_inv is 5 x 10
-    B_transformed = torch.einsum(
-        "ij,j->i", V_inv, B.to(V)
-    )  # Equivalent to CONTRACT("ij, j -> i", V_inv, B)
-    assert torch.all(
-        B_transformed.imag.abs() <= 1e-6
-    ), "Transformed B should have negligible imaginary part"
-
-
-def test_cauchy_slow():
+def test_cauchy_cpu():
     # Define input shapes
     shape = (3, 4)  # Example shape
     N = 4
@@ -274,7 +249,7 @@ def test_cauchy_slow():
     w = torch.randn(*shape, N)
 
     # Call the function
-    result = cauchy_slow(v, z, w)
+    result = cauchy_cpu(v, z, w)
 
     # Check if the output shape matches expectation
     assert result.shape == (*shape, L)
@@ -291,10 +266,52 @@ def test_cauchy_slow():
     cauchy_matrix_manual = v.unsqueeze(-1) / (z.unsqueeze(-2) - w.unsqueeze(-1))
     expected_result_manual = torch.sum(cauchy_matrix_manual, dim=-2)
 
-    # Use the cauchy_slow function to compute the result
-    result = cauchy_slow(v, z, w)
+    # Use the cauchy_cpu function to compute the result
+    result = cauchy_cpu(v, z, w)
 
     # Check if the result matches the expected result
     assert torch.allclose(
         result, expected_result_manual
     ), "The result does not match the expected values"
+
+
+def test_compute_fft_transform():
+    # Test parameters
+    sequence_length = 4
+    dtype = torch.cfloat
+    device = torch.device("cpu")
+
+    # Expected results
+    expected_omega = torch.tensor(
+        [np.exp(-2j * 0), np.exp(-2j * np.pi / 8), np.exp(-2j * np.pi / 8) ** 2],
+        dtype=dtype,
+    )
+    expected_z = 2 * (1 - expected_omega) / (1 + expected_omega)
+
+    # Compute the FFT transform
+    omega, z = compute_fft_transform(sequence_length, dtype, device)
+
+    # Verify the results
+    assert torch.allclose(
+        omega, expected_omega, atol=1e-5
+    ), "Omega values do not match expected results."
+    assert torch.allclose(
+        z, expected_z, atol=1e-5
+    ), "Z values do not match expected results."
+
+
+def test_hurwitz_transformation():
+    # Test data
+    log_w_real = torch.tensor([0.0, -1.0, -2.0])  # Logarithm of the real parts
+    w_imag = torch.tensor([1.0, 2.0, 3.0])  # Imaginary parts
+
+    # Expected output
+    expected_w = torch.tensor([-1.0 + 1.0j, -0.3679 + 2.0j, -0.1353 + 3.0j])
+
+    # Perform the transformation
+    result_w = hurwitz_transformation(log_w_real, w_imag)
+
+    # Assert that the result is close to the expected output
+    assert torch.allclose(
+        result_w, expected_w, atol=1e-4
+    ), "The hurwitz_transformation function did not produce the expected output."

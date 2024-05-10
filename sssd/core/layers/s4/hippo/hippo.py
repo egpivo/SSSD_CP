@@ -1,4 +1,5 @@
 import math
+from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -11,39 +12,33 @@ LOGGER = setup_logger()
 
 
 class HippoSSKernel(nn.Module):
-
-    """Wrapper around SSKernel that generates A, B, C, dt according to HiPPO arguments.
-
-    The SSKernel is expected to support the interface
-    forward()
-    default_state()
-    setup_step()
-    step()
+    """
+    Wrapper around SSKernel that generates A, B, C, dt according to HiPPO arguments.
+    The SSKernel is expected to support the interface forward(), default_state(), setup_step(), step().
     """
 
     def __init__(
         self,
-        H,
-        N=64,
-        L=1,
-        measure="legs",
-        rank=1,
-        channels=1,  # 1-dim to C-dim map; can think of C as having separate "heads"
-        dt_min=0.001,
-        dt_max=0.1,
-        trainable=None,  # Dictionary of options to train various HiPPO parameters
-        lr=None,  # Hook to set LR of hippo parameters differently
-        length_correction=True,  # Multiply by I-A|^L after initialization; can be turned off for initialization speed
-        hurwitz=False,
-        tie_state=False,  # Tie parameters of HiPPO ODE across the H features
-        precision=1,  # 1 (single) or 2 (double) for the kernel
-        resample=False,  # If given inputs of different lengths, adjust the sampling rate. Note that L should always be provided in this case, as it assumes that L is the true underlying length of the continuous signal
-        verbose=False,
-    ):
+        H: int,
+        N: int = 64,
+        L: int = 1,
+        measure: str = "legs",
+        rank: int = 1,
+        channels: int = 1,
+        dt_min: float = 0.001,
+        dt_max: float = 0.1,
+        trainable: Optional[Dict[str, bool]] = None,
+        lr: Optional[float] = None,
+        length_correction: bool = True,
+        hurwitz: bool = False,
+        tie_state: bool = False,
+        precision: int = 1,
+        resample: bool = False,
+        verbose: bool = False,
+    ) -> None:
         super().__init__()
         self.N = N
         self.H = H
-        L = L or 1
         self.precision = precision
         dtype = torch.double if self.precision == 2 else torch.float
         cdtype = torch.cfloat if dtype == torch.float else torch.cdouble
@@ -55,7 +50,7 @@ class HippoSSKernel(nn.Module):
             math.log(dt_max) - math.log(dt_min)
         ) + math.log(dt_min)
 
-        w, p, B, _ = normal_plus_low_rank(
+        w, p, B = normal_plus_low_rank(
             measure=measure, matrix_size=self.N, correction_rank=rank, dtype=dtype
         )
         C = torch.randn(channels, self.H, self.N // 2, dtype=cdtype)
@@ -74,13 +69,15 @@ class HippoSSKernel(nn.Module):
             verbose=verbose,
         )
 
-    def forward(self, L=None):
+    def forward(self, L: Optional[int] = None) -> torch.Tensor:
         k, _ = self.kernel(rate=self.rate, L=L)
         return k.float()
 
-    def step(self, u, state, **kwargs):
+    def step(
+        self, u: torch.Tensor, state: torch.Tensor, **kwargs
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         u, state = self.kernel.step(u, state, **kwargs)
         return u.float(), state
 
-    def default_state(self, *args, **kwargs):
+    def default_state(self, *args, **kwargs) -> torch.Tensor:
         return self.kernel.default_state(*args, **kwargs)

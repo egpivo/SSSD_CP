@@ -10,6 +10,11 @@ Matrix = np.ndarray
 MeasureArgs = Dict[str, Union[float, int]]
 CONTRACT = opt_einsum.contract
 
+_c2r = torch.view_as_real
+_r2c = torch.view_as_complex
+_conj = lambda x: torch.cat([x, x.conj()], dim=-1)
+_resolve_conj = lambda x: x.conj().resolve_conj()
+
 
 def power(exponent: int, matrix: torch.Tensor) -> torch.Tensor:
     """
@@ -244,7 +249,7 @@ def normal_plus_low_rank(
     matrix_size: int,
     correction_rank: int = 1,
     dtype: Union[type(torch.float), type(torch.cfloat)] = torch.float,
-) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Normal plus Low-rank
     Return eigenvalues, correction_matrix, transformed_vector, unitary_matrix such that
     (eigenvalues - correction_matrix correction_matrix^*, transformed_vector) is unitarily equivalent
@@ -263,7 +268,6 @@ def normal_plus_low_rank(
     - w: The eigenvalues of the matrix AP.
     - P: The rank correction matrix.
     - B: The transformed input vector.
-    - V: The unitary matrix.
     """
     assert dtype in (
         torch.float,
@@ -277,8 +281,7 @@ def normal_plus_low_rank(
         )
         P = torch.randn(correction_rank, half_size, dtype=dtype)
         B = torch.randn(half_size, dtype=dtype)
-        V = torch.eye(matrix_size, dtype=dtype)[..., :half_size]  # Only used in testing
-        return w, P, B, V
+        return w, P, B
 
     A, B = TransitionMatrix(measure, matrix_size)
     A = torch.as_tensor(A, dtype=dtype)
@@ -299,10 +302,10 @@ def normal_plus_low_rank(
     B = CONTRACT("ij, j -> i", V_inv, B.to(V.dtype))  # V^* B
     P = CONTRACT("ij, ...j -> ...i", V_inv, P.to(V.dtype))  # V^* P
 
-    return w, P, B, V
+    return w, P, B
 
 
-def cauchy_slow(v: torch.Tensor, z: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
+def cauchy_cpu(v: torch.Tensor, z: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
     """
     Compute the sum of the Cauchy matrix along the second-to-last dimension.
 
@@ -326,3 +329,31 @@ def cauchy_slow(v: torch.Tensor, z: torch.Tensor, w: torch.Tensor) -> torch.Tens
     # Sum over the second-to-last dimension (N) to get the result
     result = torch.sum(cauchy_matrix, dim=-2)
     return result
+
+
+def compute_fft_transform(
+    sequence_length: int, dtype, device
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """
+    Calculate (and cache) FFT nodes and their "unprocessed" them with the bilinear transform.
+
+    Args:
+    - sequence_length (int): The length.
+    - dtype: The data type.
+    - device: The device.
+
+    Returns:
+    - omega: The FFT nodes. (shape (L // 2 + 1))
+    - z: The transformed nodes. (shape (L // 2 + 1)_)
+    """
+    # ω_2L = exp(−2jπ/(2L))
+    base_omega = torch.tensor(
+        np.exp(-2j * np.pi / (2 * sequence_length)), dtype=dtype, device=device
+    )
+    omega = base_omega ** torch.arange(sequence_length // 2 + 1, device=device)
+    z = 2 * (1 - omega) / (1 + omega)
+    return omega, z
+
+
+def hurwitz_transformation(w_real: torch.Tensor, w_imag: torch.Tensor) -> torch.Tensor:
+    return torch.complex(-torch.exp(w_real), w_imag)
