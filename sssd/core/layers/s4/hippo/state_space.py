@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 import torch
 import torch.nn as nn
@@ -12,16 +12,8 @@ from sssd.core.layers.s4.hippo.utils import (
 )
 from sssd.utils.logger import setup_logger
 
-_c2r = torch.view_as_real
-_r2c = torch.view_as_complex
-_conj = lambda x: torch.cat([x, x.conj()], dim=-1)
-
-if tuple(map(int, torch.__version__.split(".")[:2])) >= (1, 10):
-    _resolve_conj = lambda x: x.conj().resolve_conj()
-else:
-    _resolve_conj = lambda x: x.conj()
-
 LOGGER = setup_logger()
+
 
 try:  # This module will be downloaded from s4 repo
     from sssd.core.layers.s4.hippo.cauchy import cauchy_mult
@@ -34,6 +26,16 @@ except ModuleNotFoundError:
     from sssd.core.layers.s4.hippo.utils import cauchy_cpu
 
     has_cauchy_extension = False
+
+
+_c2r = torch.view_as_real
+_r2c = torch.view_as_complex
+_conj = lambda x: torch.cat([x, x.conj()], dim=-1)
+
+if tuple(map(int, torch.__version__.split(".")[:2])) >= (1, 10):
+    _resolve_conj = lambda x: x.conj().resolve_conj()
+else:
+    _resolve_conj = lambda x: x.conj()
 
 
 class SSKernelNPLR(nn.Module):
@@ -107,9 +109,7 @@ class SSKernelNPLR(nn.Module):
         # Cache Fourier nodes every time we set up a desired length
         self.L = L
         if self.L is not None:
-            _, _ = self._update_fft_nodes(
-                self.L, dtype=C.dtype, device=C.device, cache=True
-            )
+            self._update_fft_nodes(self.L, dtype=C.dtype, device=C.device, cache=True)
 
         # Register parameters
         self.C = nn.Parameter(
@@ -141,29 +141,49 @@ class SSKernelNPLR(nn.Module):
 
     @torch.no_grad()
     def _setup_C(self, double_length=False):
-        """Construct C~ from C
-
-        double_length: current C is for length L, convert it to length 2L
         """
-        C = _r2c(self.C)
-        self._setup_state()
-        dA_L = power(self.L, self.dA)
-        # Multiply C by I - dA_L
-        C_ = _conj(C)
-        prod = contract("h m n, c h n -> c h m", dA_L.transpose(-1, -2), C_)
-        if double_length:
-            prod = -prod  # Multiply by I + dA_L instead
-        C_ = C_ - prod
-        C_ = C_[..., : self.N]  # Take conjugate pairs again
-        self.C.copy_(_c2r(C_))
+        Constructs the modified output matrix C~ from the current C.
 
+        If double_length is True, it converts C for a sequence of length L to a sequence of length 2L.
+
+        Args:
+            double_length (bool): Flag to indicate if the length should be doubled.
+
+        Returns:
+            None: Modifies the matrix C in place.
+        """
+        # Convert C to complex form
+        C_complex = _r2c(self.C)
+
+        # Setup the state for the transformation
+        self._setup_state()
+
+        # Compute the matrix power of dA for length L
+        dA_power_L = power(self.L, self.dA)
+
+        # Multiply C by (I - dA^L) or (I + dA^L) if doubling the length
+        C_conj = _conj(C_complex)
+        product = contract(
+            "h m n, c h n -> c h m", dA_power_L.transpose(-1, -2), C_conj
+        )
+        if double_length:
+            product = -product  # Use (I + dA^L) for doubling the length
+        C_modified = C_conj - product
+
+        # Retain only the necessary conjugate pairs
+        C_modified = C_modified[..., : self.N]
+
+        # Update the original C with the modified values
+        self.C.copy_(_c2r(C_modified))
+
+        # If doubling the length, update L and FFT nodes accordingly
         if double_length:
             self.L *= 2
-            _, _ = self._update_fft_nodes(
-                self.L, dtype=C.dtype, device=C.device, cache=True
+            if self.verbose:
+                LOGGER.info(f"S4: Doubling length from L = {self.L} to {2 * self.L}")
+            self._update_fft_nodes(
+                self.L, dtype=C_complex.dtype, device=C_complex.device, cache=True
             )
-
-    from typing import Tuple
 
     def _update_fft_nodes(
         self, L: int, dtype, device, cache: bool = True
@@ -221,7 +241,7 @@ class SSKernelNPLR(nn.Module):
 
         # Increase the internal length if needed
         while rate * L > self.L:
-            self.double_length()
+            self._setup_C(double_length=True)
 
         dt = torch.exp(self.log_dt) * rate
         B = _r2c(self.B)
@@ -327,12 +347,6 @@ class SSKernelNPLR(nn.Module):
             k_state = None
         k_B = k[-1, :, :, :]  # (C H L // 2 + 1)
         return k_B, k_state
-
-    @torch.no_grad()
-    def double_length(self):
-        if self.verbose:
-            LOGGER.info(f"S4: Doubling length from L = {self.L} to {2*self.L}")
-        self._setup_C(double_length=True)
 
     def _setup_linear(self):
         """Create parameters that allow fast linear stepping of state"""

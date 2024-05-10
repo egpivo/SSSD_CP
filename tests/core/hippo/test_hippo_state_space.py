@@ -51,5 +51,5 @@ def test_SSKernelNPLR(sample_data):
     assert_allclose(torch.view_as_real(torch.sum(default_state)), torch.Tensor([0, 0]))
 
     # Test doubling length
-    kernel.double_length()
+    kernel._setup_C(double_length=True)
     assert kernel.L == L * 2
