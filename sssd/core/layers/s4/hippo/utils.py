@@ -4,6 +4,8 @@ import numpy as np
 import opt_einsum
 import torch
 from einops import rearrange
+from opt_einsum import contract_expression
+from opt_einsum.contract import ContractExpression
 from scipy import special as ss
 
 Matrix = np.ndarray
@@ -355,5 +357,78 @@ def compute_fft_transform(
     return omega, z
 
 
-def hurwitz_transformation(w_real: torch.Tensor, w_imag: torch.Tensor) -> torch.Tensor:
-    return torch.complex(-torch.exp(w_real), w_imag)
+def hurwitz_transformation(w_real: torch.Tensor, w_image: torch.Tensor) -> torch.Tensor:
+    return torch.complex(-torch.exp(w_real), w_image)
+
+
+def get_diagonal_contraction(
+    batch_shape: Tuple[int, ...], H: int, N: int
+) -> ContractExpression:
+    """
+    Utility function to create a diagonal contraction expression.
+
+    Args:
+        batch_shape (Tuple[int, ...]): The shape of the batch.
+        H (int): The size of the first dimension.
+        N (int): The size of the second dimension.
+
+    Returns:
+        ContractExpression: The diagonal contraction expression.
+    """
+    return contract_expression("h n, ... h n -> ... h n", (H, N), batch_shape + (H, N))
+
+
+def get_dense_contraction(
+    batch_shape: Tuple[int, ...], H: int, N: int
+) -> ContractExpression:
+    """
+    Utility function to create a dense contraction expression.
+
+    Args:
+        batch_shape (Tuple[int, ...]): The shape of the batch.
+        H (int): The size of the first dimension.
+        N (int): The size of the second dimension.
+
+    Returns:
+        ContractExpression: The dense contraction expression.
+    """
+    return contract_expression(
+        "h m n, ... h n -> ... h m", (H, N, N), batch_shape + (H, N)
+    )
+
+
+def get_input_contraction(
+    batch_shape: Tuple[int, ...], H: int, N: int
+) -> ContractExpression:
+    """
+    Utility function to create an input contraction expression.
+
+    Args:
+        batch_shape (Tuple[int, ...]): The shape of the batch.
+        H (int): The size of the first dimension.
+        N (int): The size of the second dimension.
+
+    Returns:
+        ContractExpression: The input contraction expression.
+    """
+    return contract_expression("h n, ... h -> ... h n", (H, N), batch_shape + (H,))
+
+
+def get_output_contraction(
+    batch_shape: Tuple[int, ...], H: int, N: int, C: int
+) -> ContractExpression:
+    """
+    Utility function to create an output contraction expression.
+
+    Args:
+        batch_shape (Tuple[int, ...]): The shape of the batch.
+        H (int): The size of the first dimension.
+        N (int): The size of the second dimension.
+        C (int): The size of the third dimension.
+
+    Returns:
+        str: The output contraction expression.
+    """
+    return contract_expression(
+        "c h n, ... h n -> ... c h", (C, H, N), batch_shape + (H, N)
+    )

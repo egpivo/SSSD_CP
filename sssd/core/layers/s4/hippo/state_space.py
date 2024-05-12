@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 import torch
 import torch.nn as nn
 from einops import rearrange, repeat
-from opt_einsum import contract, contract_expression
+from opt_einsum import contract
 
 from sssd.core.layers.s4.hippo.utils import (
     _c2r,
@@ -11,6 +11,10 @@ from sssd.core.layers.s4.hippo.utils import (
     _r2c,
     _resolve_conj,
     compute_fft_transform,
+    get_dense_contraction,
+    get_diagonal_contraction,
+    get_input_contraction,
+    get_output_contraction,
     hurwitz_transformation,
     power,
 )
@@ -488,42 +492,32 @@ class SSKernelNPLR(nn.Module):
                 "NPLR Kernel step mode must be {'dense' | 'linear' | 'diagonal'}"
             )
 
-    def default_state(self, *batch_shape):
+    def default_state(self, *batch_shape: int) -> torch.Tensor:
+        """
+        Initialize the default state tensor.
+
+        Args:
+            *batch_shape (int): The shape of the batch.
+
+        Returns:
+            torch.Tensor: The default state tensor.
+        """
         C = _r2c(self.C)
         N = C.size(-1)
         H = C.size(-2)
 
-        # Cache the tensor contractions we will later do, for efficiency
-        # These are put in this function because they depend on the batch size
         if self._step_mode != "linear":
             N *= 2
 
             if self._step_mode == "diagonal":
-                self.state_contraction = contract_expression(
-                    "h n, ... h n -> ... h n",
-                    (H, N),
-                    batch_shape + (H, N),
-                )
+                self.state_contraction = get_diagonal_contraction(batch_shape, H, N)
             else:
                 # Dense (quadratic) case: expand all terms
-                self.state_contraction = contract_expression(
-                    "h m n, ... h n -> ... h m",
-                    (H, N, N),
-                    batch_shape + (H, N),
-                )
+                self.state_contraction = get_dense_contraction(batch_shape, H, N)
 
-            self.input_contraction = contract_expression(
-                "h n, ... h -> ... h n",
-                (H, N),  # self.dB.shape
-                batch_shape + (H,),
-            )
+            self.input_contraction = get_input_contraction(batch_shape, H, N)
 
-        self.output_contraction = contract_expression(
-            "c h n, ... h n -> ... c h",
-            (C.shape[0], H, N),  # self.dC.shape
-            batch_shape + (H, N),
-        )
-
+        self.output_contraction = get_output_contraction(batch_shape, H, N, C.shape[0])
         state = torch.zeros(*batch_shape, H, N, dtype=C.dtype, device=C.device)
         return state
 

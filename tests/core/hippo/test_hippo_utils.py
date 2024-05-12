@@ -8,6 +8,10 @@ from sssd.core.layers.s4.hippo.utils import (
     compute_fft_transform,
     embed_c2r,
     generate_low_rank_matrix,
+    get_dense_contraction,
+    get_diagonal_contraction,
+    get_input_contraction,
+    get_output_contraction,
     hurwitz_transformation,
     normal_plus_low_rank,
     power,
@@ -315,3 +319,40 @@ def test_hurwitz_transformation():
     assert torch.allclose(
         result_w, expected_w, atol=1e-4
     ), "The hurwitz_transformation function did not produce the expected output."
+
+
+def test_get_dense_contraction():
+    batch_shape = (2, 3)
+    H = 4
+    N = 5
+    result = get_dense_contraction(batch_shape, H, N)
+    assert result.contraction == "h m n, ... h n -> ... h m"
+    assert result.contraction_list[0][2] == "cdhn,hmn->cdhm"
+
+
+def test_get_input_contraction():
+    batch_shape = (2, 3)
+    H = 4
+    N = 5
+    result = get_input_contraction(batch_shape, H, N)
+    assert result.contraction == "h n, ... h -> ... h n"
+    assert result.contraction_list[0][2] == "bch,hn->bchn"
+
+
+def test_get_output_contraction():
+    batch_shape = (2, 3)
+    H = 4
+    N = 5
+    C = 6
+    result = get_output_contraction(batch_shape, H, N, C)
+    assert result.contraction == "c h n, ... h n -> ... c h"
+    assert result.contraction_list[0][2] == "dehn,chn->dech"
+
+
+def test_get_diagonal_contraction():
+    batch_shape = (2, 3)
+    H = 4
+    N = 5
+    result = get_diagonal_contraction(batch_shape, H, N)
+    assert result.contraction == "h n, ... h n -> ... h n"
+    assert result.contraction_list[0][2] == "cdhn,hn->cdhn"
