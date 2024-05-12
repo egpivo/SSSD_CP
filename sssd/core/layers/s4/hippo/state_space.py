@@ -309,10 +309,8 @@ class SSKernelNPLR(nn.Module):
         L = min(L, k.shape[-1])
         k = k[..., :L]
 
-        if state is not None:
-            k_state = k[:-1, :, :, :]  # (S, C, H, L // 2 + 1)
-        else:
-            k_state = None
+        # k_state shape: (S, C, H, L // 2 + 1)
+        k_state = k[:-1, :, :, :] if state is not None else None
         k_B = k[-1, :, :, :]  # (C H L // 2 + 1)
         return k_B, k_state
 
@@ -432,7 +430,6 @@ class SSKernelNPLR(nn.Module):
         self.dC = dC
 
         # Do special preprocessing for different step modes
-
         self._step_mode = mode
 
         if mode == "linear":
@@ -493,11 +490,11 @@ class SSKernelNPLR(nn.Module):
 
     def step(self, u, state):
         """Must have called self.setup_step() and created state with self.default_state() before calling this"""
-
-        if self._step_mode == "linear":
-            new_state = self._step_state_linear(u, state)
-        else:
-            new_state = self._step_state(u, state)
+        new_state = (
+            self._step_state_linear(u, state)
+            if self._step_mode == "linear"
+            else self._step_state(u, state)
+        )
         y = self.output_contraction(self.dC, new_state)
         return y, new_state
 

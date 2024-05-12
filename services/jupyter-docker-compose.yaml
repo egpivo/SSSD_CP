@@ -16,6 +16,8 @@ services:
     shm_size: "2GB"  # Increase shared memory size for runtime if the number of GPUs increases
     deploy:
       resources:
+        limits:
+          memory: 64G # Specify memory allocation in the container
         reservations:
           devices:
             - driver: nvidia
