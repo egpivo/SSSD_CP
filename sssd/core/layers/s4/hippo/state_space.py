@@ -10,6 +10,7 @@ from sssd.core.layers.s4.hippo.utils import (
     _conj,
     _r2c,
     _resolve_conj,
+    cauchy_wrapper,
     compute_fft_transform,
     get_dense_contraction,
     get_diagonal_contraction,
@@ -22,19 +23,6 @@ from sssd.core.layers.s4.hippo.utils import (
 from sssd.utils.logger import setup_logger
 
 LOGGER = setup_logger()
-
-
-try:  # This module will be downloaded from s4 repo
-    from sssd.core.layers.s4.hippo.cauchy import cauchy_mult
-
-    has_cauchy_extension = True
-except ModuleNotFoundError:
-    LOGGER.warning(
-        "CUDA extension for cauchy multiplication not found. Please check `install_extensions_cauchy` in envs/conda/utils.sh "
-    )
-    from sssd.core.layers.s4.hippo.utils import cauchy_cpu
-
-    has_cauchy_extension = False
 
 
 class SSKernelNPLR(nn.Module):
@@ -290,10 +278,7 @@ class SSKernelNPLR(nn.Module):
         # z = z[None, None, None, ...]  # (1, 1, 1, L // 2 + 1)
 
         # Calculate resolvent at omega
-        if has_cauchy_extension and z.dtype == torch.cfloat:
-            r = cauchy_mult(v, z, w, symmetric=True)
-        else:
-            r = cauchy_cpu(v, z, w)
+        r = cauchy_wrapper(v, z, w)
         r = r * dt[None, None, :, None]  # (S+1+R, C+R, H, L // 2 + 1)
 
         # Low-rank Woodbury correction

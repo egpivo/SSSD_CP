@@ -8,6 +8,10 @@ from opt_einsum import contract_expression
 from opt_einsum.contract import ContractExpression
 from scipy import special as ss
 
+from sssd.utils.logger import setup_logger
+
+LOGGER = setup_logger()
+
 Matrix = np.ndarray
 MeasureArgs = Dict[str, Union[float, int]]
 CONTRACT = opt_einsum.contract
@@ -331,6 +335,23 @@ def cauchy_cpu(v: torch.Tensor, z: torch.Tensor, w: torch.Tensor) -> torch.Tenso
     # Sum over the second-to-last dimension (N) to get the result
     result = torch.sum(cauchy_matrix, dim=-2)
     return result
+
+
+def cauchy_wrapper(v: torch.Tensor, z: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
+    try:  # This module will be downloaded from s4 repo
+        from sssd.core.layers.s4.hippo.cauchy import cauchy_mult
+
+        has_cauchy_extension = True
+    except ModuleNotFoundError:
+        LOGGER.warning(
+            "CUDA extension for cauchy multiplication not found. Please check `install_extensions_cauchy` in envs/conda/utils.sh "
+        )
+        has_cauchy_extension = False
+
+    if has_cauchy_extension and z.dtype == torch.cfloat:
+        return cauchy_mult(v, z, w, symmetric=True)
+    else:
+        return cauchy_cpu(v, z, w)
 
 
 def compute_fft_transform(

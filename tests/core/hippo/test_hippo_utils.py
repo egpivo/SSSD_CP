@@ -5,6 +5,7 @@ import torch
 from sssd.core.layers.s4.hippo.utils import (
     TransitionMatrix,
     cauchy_cpu,
+    cauchy_wrapper,
     compute_fft_transform,
     embed_c2r,
     generate_low_rank_matrix,
@@ -399,3 +400,19 @@ def test_low_rank_woodbury_correction_tensor_shape():
     rank = 1
     result = low_rank_woodbury_correction(r, rank)
     assert result.shape == (4, 4, 3, 3)
+
+
+def test_cauchy_wrapper_with_extension():
+    v = torch.randn(10, 10, dtype=torch.cfloat)
+    z = torch.randn(10, 10, dtype=torch.cfloat)
+    w = torch.randn(10, 10, dtype=torch.cfloat)
+    result = cauchy_wrapper(v, z, w)
+    assert result.shape == (10, 10)
+
+
+def test_cauchy_wrapper_without_extension():
+    v = torch.randn(10, 10)
+    z = torch.randn(10, 10)
+    w = torch.randn(10, 10)
+    result = cauchy_wrapper(v, z, w)
+    assert result.shape == (10, 10)
