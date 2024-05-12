@@ -13,6 +13,7 @@ from sssd.core.layers.s4.hippo.utils import (
     get_input_contraction,
     get_output_contraction,
     hurwitz_transformation,
+    low_rank_woodbury_correction,
     normal_plus_low_rank,
     power,
 )
@@ -356,3 +357,45 @@ def test_get_diagonal_contraction():
     result = get_diagonal_contraction(batch_shape, H, N)
     assert result.contraction == "h n, ... h n -> ... h n"
     assert result.contraction_list[0][2] == "cdhn,hn->cdhn"
+
+
+@pytest.fixture
+def sample_input():
+    # Generate sample input tensor and rank
+    r = torch.randn(4, 4, 3, 3)
+    rank = 2
+    return r, rank
+
+
+def test_low_rank_woodbury_correction(sample_input):
+    # Unpack sample input
+    r, rank = sample_input
+
+    # Compute the low-rank Woodbury correction
+    result = low_rank_woodbury_correction(r, rank)
+
+    assert result.shape == (2, 2, 3, 3)
+
+    assert isinstance(result, torch.Tensor)
+    torch.allclose(torch.max(result), torch.Tensor([29.82055]))
+
+
+def test_low_rank_woodbury_correction_rank_1():
+    r = torch.randn(5, 5, 3, 3)
+    rank = 1
+    result = low_rank_woodbury_correction(r, rank)
+    assert result.shape == (4, 4, 3, 3)
+
+
+def test_low_rank_woodbury_correction_rank_2():
+    r = torch.randn(5, 5, 3, 3)
+    rank = 2
+    result = low_rank_woodbury_correction(r, rank)
+    assert result.shape == (3, 3, 3, 3)
+
+
+def test_low_rank_woodbury_correction_tensor_shape():
+    r = torch.randn(5, 5, 3, 3)
+    rank = 1
+    result = low_rank_woodbury_correction(r, rank)
+    assert result.shape == (4, 4, 3, 3)

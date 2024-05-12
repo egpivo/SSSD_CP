@@ -432,3 +432,47 @@ def get_output_contraction(
     return contract_expression(
         "c h n, ... h n -> ... c h", (C, H, N), batch_shape + (H, N)
     )
+
+
+def low_rank_woodbury_correction(r: torch.Tensor, rank: int) -> torch.Tensor:
+    """
+    Compute the Low-rank Woodbury correction.
+
+    Args:
+        r (torch.Tensor): The input tensor.
+        rank (int): The rank value.
+
+    Returns:
+        torch.Tensor: The result of the Low-rank Woodbury correction.
+    """
+    if rank == 1:
+        k_f = r[:-1, :-1, :, :] - r[:-1, -1:, :, :] * r[-1:, :-1, :, :] / (
+            1 + r[-1:, -1:, :, :]
+        )
+    elif rank == 2:
+        r00 = r[:-rank, :-rank, :, :]
+        r01 = r[:-rank, -rank:, :, :]
+        r10 = r[-rank:, :-rank, :, :]
+        r11 = r[-rank:, -rank:, :, :]
+        det = (1 + r11[:1, :1, :, :]) * (1 + r11[1:, 1:, :, :]) - r11[
+            :1, 1:, :, :
+        ] * r11[1:, :1, :, :]
+        s = (
+            r01[:, :1, :, :] * (1 + r11[1:, 1:, :, :]) * r10[:1, :, :, :]
+            + r01[:, 1:, :, :] * (1 + r11[:1, :1, :, :]) * r10[1:, :, :, :]
+            - r01[:, :1, :, :] * (r11[:1, 1:, :, :]) * r10[1:, :, :, :]
+            - r01[:, 1:, :, :] * (r11[1:, :1, :, :]) * r10[:1, :, :, :]
+        )
+        s = s / det
+        k_f = r00 - s
+    else:
+        r00 = r[:-rank, :-rank, :, :]
+        r01 = r[:-rank, -rank:, :, :]
+        r10 = r[-rank:, :-rank, :, :]
+        r11 = r[-rank:, -rank:, :, :]
+        r11 = rearrange(r11, "a b h n -> h n a b")
+        r11 = torch.linalg.inv(torch.eye(rank, device=r.device) + r11)
+        r11 = rearrange(r11, "h n a b -> a b h n")
+        k_f = r00 - torch.einsum("i j h n, j k h n, k l h n -> i l h n", r01, r11, r10)
+
+    return k_f

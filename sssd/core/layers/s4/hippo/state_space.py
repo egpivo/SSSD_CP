@@ -16,6 +16,7 @@ from sssd.core.layers.s4.hippo.utils import (
     get_input_contraction,
     get_output_contraction,
     hurwitz_transformation,
+    low_rank_woodbury_correction,
     power,
 )
 from sssd.utils.logger import setup_logger
@@ -296,38 +297,7 @@ class SSKernelNPLR(nn.Module):
         r = r * dt[None, None, :, None]  # (S+1+R, C+R, H, L // 2 + 1)
 
         # Low-rank Woodbury correction
-        if self.rank == 1:
-            k_f = r[:-1, :-1, :, :] - r[:-1, -1:, :, :] * r[-1:, :-1, :, :] / (
-                1 + r[-1:, -1:, :, :]
-            )
-        elif self.rank == 2:
-            r00 = r[: -self.rank, : -self.rank, :, :]
-            r01 = r[: -self.rank, -self.rank :, :, :]
-            r10 = r[-self.rank :, : -self.rank, :, :]
-            r11 = r[-self.rank :, -self.rank :, :, :]
-            det = (1 + r11[:1, :1, :, :]) * (1 + r11[1:, 1:, :, :]) - r11[
-                :1, 1:, :, :
-            ] * r11[1:, :1, :, :]
-            s = (
-                r01[:, :1, :, :] * (1 + r11[1:, 1:, :, :]) * r10[:1, :, :, :]
-                + r01[:, 1:, :, :] * (1 + r11[:1, :1, :, :]) * r10[1:, :, :, :]
-                - r01[:, :1, :, :] * (r11[:1, 1:, :, :]) * r10[1:, :, :, :]
-                - r01[:, 1:, :, :] * (r11[1:, :1, :, :]) * r10[:1, :, :, :]
-            )
-            s = s / det
-            k_f = r00 - s
-        else:
-            r00 = r[: -self.rank, : -self.rank, :, :]
-            r01 = r[: -self.rank, -self.rank :, :, :]
-            r10 = r[-self.rank :, : -self.rank, :, :]
-            r11 = r[-self.rank :, -self.rank :, :, :]
-            r11 = rearrange(r11, "a b h n -> h n a b")
-            r11 = torch.linalg.inv(torch.eye(self.rank, device=r.device) + r11)
-            r11 = rearrange(r11, "h n a b -> a b h n")
-            k_f = r00 - torch.einsum(
-                "i j h n, j k h n, k l h n -> i l h n", r01, r11, r10
-            )
-
+        k_f = low_rank_woodbury_correction(r, self.rank)
         # Final correction for the bilinear transform
         k_f = k_f * 2 / (1 + omega)
 
@@ -471,17 +441,17 @@ class SSKernelNPLR(nn.Module):
             self.dC = 2 * self.dC[:, :, : self.N]
         elif mode == "diagonal":
             # Eigen-decomposition of the A matrix
-            L, V = torch.linalg.eig(self.dA)
+            w, V = torch.linalg.eig(self.dA)
             V_inv = torch.linalg.inv(V)
             # Check that the eigen-decomposition is correct
             if self.verbose:
                 LOGGER.info(
-                    "Diagonalization error:",
-                    torch.dist(V @ torch.diag_embed(L) @ V_inv, self.dA),
+                    "Diagonalization check:",
+                    torch.dist(V @ torch.diag_embed(w) @ V_inv, self.dA),
                 )
 
             # Change the parameterization to diagonalize
-            self.dA = L
+            self.dA = w
             self.dB = contract("h n m, h m -> h n", V_inv, self.dB)
             self.dC = contract("h n m, c h n -> c h m", V, self.dC)
 
