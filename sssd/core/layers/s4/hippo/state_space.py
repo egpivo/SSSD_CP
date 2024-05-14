@@ -207,12 +207,20 @@ class SSKernelNPLR(nn.Module):
             else _r2c(self.w)
         )
 
-    def forward(self, state: torch.Tensor = None, rate: float = 1.0, L: int = None):
+    def forward(
+        self, state: torch.Tensor = None, rate: float = 1.0, L: int = None
+    ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
         """
-        state: (..., s, N) extra tensor that augments B
-        rate: sampling rate factor
+        Computes the output given an input state, sampling rate, and target length.
 
-        returns: (..., c+s, L)
+        Args:
+            state: (..., s, N) extra tensor that augments B
+            rate: sampling rate factor
+            L: target length
+
+        Returns:
+            k_B: Coefficients for the output
+            k_state: Optional state coefficients
         """
         # Handle sampling rate logic
         # The idea is that this kernel's length (in continuous units) is self.L, while we are asked to provide a kernel of length L at (relative) sampling rate rate
@@ -296,7 +304,7 @@ class SSKernelNPLR(nn.Module):
         k_B = k[-1, :, :, :]  # (C H L // 2 + 1)
         return k_B, k_state
 
-    def _setup_linear(self):
+    def _setup_linear(self) -> None:
         """Create parameters that allow fast linear stepping of state"""
         w = self._get_complex_weights()
         B = _r2c(self.B)  # (H N)
@@ -323,7 +331,9 @@ class SSKernelNPLR(nn.Module):
             "E": 2.0 / dt.unsqueeze(-1) + w,  # (H N)
         }
 
-    def _step_state_linear(self, u=None, state=None):
+    def _step_state_linear(
+        self, u: Optional[torch.Tensor] = None, state: Optional[torch.Tensor] = None
+    ) -> torch.Tensor:
         """
         Version of the step function that has time O(N) instead of O(N^2) per step, which takes advantage of the DPLR form and bilinear discretization.
 
@@ -371,7 +381,7 @@ class SSKernelNPLR(nn.Module):
 
         return new_state
 
-    def _setup_state(self):
+    def _setup_state(self) -> None:
         """Construct dA and dB for discretized state equation"""
 
         # Construct dA and dB by using the stepping
@@ -390,14 +400,14 @@ class SSKernelNPLR(nn.Module):
         dB = _conj(dB)
         self.dB = rearrange(dB, "1 h n -> h n")  # (H N)
 
-    def _step_state(self, u, state):
+    def _step_state(self, u: torch.Tensor, state: torch.Tensor) -> torch.Tensor:
         """Must be called after self.default_state() is used to construct an initial state!"""
         next_state = self.state_contraction(self.dA, state) + self.input_contraction(
             self.dB, u
         )
         return next_state
 
-    def setup_step(self, mode="dense"):
+    def setup_step(self, mode: str = "dense") -> None:
         """Set up dA, dB, dC discretized parameters for stepping"""
         self._setup_state()
         # Calculate original C
@@ -482,7 +492,14 @@ class SSKernelNPLR(nn.Module):
         y = self.output_contraction(self.dC, new_state)
         return y, new_state
 
-    def register(self, name, tensor, trainable=False, lr=None, wd=None):
+    def register(
+        self,
+        name: str,
+        tensor: torch.Tensor,
+        trainable: bool = False,
+        lr: Optional[float] = None,
+        wd: Optional[float] = None,
+    ) -> None:
         """Utility method: register a tensor as a buffer or trainable parameter"""
 
         if trainable:
