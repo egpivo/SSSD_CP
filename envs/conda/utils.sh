@@ -178,3 +178,25 @@ install_extensions_cauchy() {
   cp "s4/extensions/cauchy/cauchy.py" "sssd/core/layers/s4/hippo/cauchy.py"
   rm -rf "s4"
 }
+
+activate_conda_environment() {
+  local CONDA_ENV=$1
+  initialize_conda
+  if [ "$(command -v conda)" ]; then
+    conda activate ${CONDA_ENV}
+  else
+    echo -e "${FG_RED}Activation Failed. Conda is not installed.${FG_RESET}"
+  fi
+}
+
+update_conda_environment() {
+  local PACKAGE_BASE_PATH=$1
+  local CONDA_ENV=$2
+
+  if [ "$(command -v conda)" ]; then
+    echo -e "${FG_YELLOW}Updating Conda environment - ${CONDA_ENV}${FG_RESET}"
+    bash "${CONDA_DIR}/build_conda_env.sh" --conda_env ${CONDA_ENV}
+  else
+    echo -e "${FG_RED}Update Failed. Conda is not installed.${FG_RESET}"
+  fi
+}

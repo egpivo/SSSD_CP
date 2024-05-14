@@ -1,16 +1,13 @@
-import opt_einsum as oe
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
+from opt_einsum import contract
 
 from sssd.core.layers.activation import Activation
 from sssd.core.layers.linear import LinearActivation
 from sssd.core.layers.s4.hippo.hippo import HippoSSKernel
 from sssd.utils.logger import setup_logger
-
-contract = oe.contract
-
 
 LOGGER = setup_logger()
 
@@ -90,7 +87,6 @@ class S4(nn.Module):
             activate=True,
             weight_norm=weight_norm,
         )
-        # self.time_transformer = get_torch_trans(heads=8, layers=1, channels=self.h)
 
     def forward(self, u, **kwargs):  # absorbs return_output and transformer sssd mask
         """
@@ -136,11 +132,7 @@ class S4(nn.Module):
             y = y.transpose(-1, -2)
 
         y = self.output_linear(y)
-
-        # ysize = b, k, l, requires l, b, k
-        # y = self.time_transformer(y.permute(2,0,1)).permute(1,2,0)
-
-        return y, None
+        return y
 
     def step(self, u, state):
         """Step one time step as a recurrent model. Intended to be used during validation.
@@ -195,7 +187,7 @@ class S4Layer(nn.Module):
         x = x.permute(
             (1, 2, 0)
         )  # batch, feature, seq (as expected from S4 with transposed=True)
-        xout, _ = self.s4_layer(x)  # batch, feature, seq
+        xout = self.s4_layer(x)  # batch, feature, seq
         xout = self.dropout(xout)
         xout = xout + x  # skip connection   # batch, feature, seq
         xout = xout.permute((2, 0, 1))  # seq, batch, feature

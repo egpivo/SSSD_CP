@@ -338,14 +338,12 @@ def cauchy_cpu(v: torch.Tensor, z: torch.Tensor, w: torch.Tensor) -> torch.Tenso
 
 
 def cauchy_wrapper(v: torch.Tensor, z: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
+    """ "CUDA extension for cauchy multiplication not found. Please check `install_extensions_cauchy` in envs/conda/utils.sh"""
     try:  # This module will be downloaded from s4 repo
         from sssd.core.layers.s4.hippo.cauchy import cauchy_mult
 
         has_cauchy_extension = True
     except ModuleNotFoundError:
-        LOGGER.warning(
-            "CUDA extension for cauchy multiplication not found. Please check `install_extensions_cauchy` in envs/conda/utils.sh "
-        )
         has_cauchy_extension = False
 
     if has_cauchy_extension and z.dtype == torch.cfloat:
@@ -355,7 +353,7 @@ def cauchy_wrapper(v: torch.Tensor, z: torch.Tensor, w: torch.Tensor) -> torch.T
 
 
 def compute_fft_transform(
-    sequence_length: int, dtype, device
+    sequence_length: int, dtype: torch.dtype, device
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Calculate (and cache) FFT nodes and their "unprocessed" them with the bilinear transform.

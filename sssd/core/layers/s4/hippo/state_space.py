@@ -98,10 +98,8 @@ class SSKernelNPLR(nn.Module):
         if self.L is not None:
             self._update_fft_nodes(self.L, dtype=C.dtype, device=C.device, cache=True)
 
-        # Register parameters
-        self.C = nn.Parameter(
-            _c2r(_resolve_conj(C))
-        )  # C is a regular parameter, not state
+        # C is a regular parameter, not state
+        self.C = nn.Parameter(_c2r(_resolve_conj(C)))
 
         train = False
         if trainable is True:
@@ -109,6 +107,7 @@ class SSKernelNPLR(nn.Module):
         elif trainable is None or trainable is False:
             trainable = {}
 
+        # Register parameters
         self.register("log_dt", log_dt, trainable.get("dt", train), lr, 0.0)
         self.register("B", _c2r(B), trainable.get("B", train), lr, 0.0)
         self.register("P", _c2r(P), trainable.get("P", train), lr, 0.0)
@@ -153,9 +152,7 @@ class SSKernelNPLR(nn.Module):
         product = contract(
             "h m n, c h n -> c h m", dA_power_L.transpose(-1, -2), C_conj
         )
-        if double_length:
-            product = -product  # Use (I + dA^L) for doubling the length
-        C_modified = C_conj - product
+        C_modified = C_conj + product if double_length else C_conj - product
 
         # Retain only the necessary conjugate pairs
         C_modified = C_modified[..., : self.N]
@@ -173,7 +170,7 @@ class SSKernelNPLR(nn.Module):
             )
 
     def _update_fft_nodes(
-        self, L: int, dtype, device, cache: bool = True
+        self, L: int, dtype: torch.dtype, device, cache: bool = True
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Calculate (and cache) FFT nodes and their "unprocessed" them with the bilinear transform.
@@ -210,7 +207,7 @@ class SSKernelNPLR(nn.Module):
             else _r2c(self.w)
         )
 
-    def forward(self, state=None, rate=1.0, L=None):
+    def forward(self, state: torch.Tensor = None, rate: float = 1.0, L: int = None):
         """
         state: (..., s, N) extra tensor that augments B
         rate: sampling rate factor
@@ -238,8 +235,8 @@ class SSKernelNPLR(nn.Module):
         w = self._get_complex_weights()
 
         if rate == 1.0:
-            # Use cached FFT nodes
-            omega, z = _r2c(self.omega), _r2c(self.z)  # (..., L // 2 + 1)
+            # Use cached FFT nodes with shape (..., L // 2 + 1)
+            omega, z = _r2c(self.omega), _r2c(self.z)
         else:
             omega, z = self._update_fft_nodes(
                 int(self.L / rate), dtype=w.dtype, device=w.device, cache=False
@@ -473,7 +470,9 @@ class SSKernelNPLR(nn.Module):
         state = torch.zeros(*batch_shape, H, N, dtype=C.dtype, device=C.device)
         return state
 
-    def step(self, u, state):
+    def step(
+        self, u: torch.Tensor, state: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Must have called self.setup_step() and created state with self.default_state() before calling this"""
         new_state = (
             self._step_state_linear(u, state)
