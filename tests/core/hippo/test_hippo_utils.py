@@ -402,6 +402,15 @@ def test_low_rank_woodbury_correction_tensor_shape():
     assert result.shape == (4, 4, 3, 3)
 
 
+def test_low_rank_woodbury_correction_tensor_3d():
+    torch.manual_seed(1)
+    r = torch.randn(5, 5, 3, 3)
+    rank = 3
+    result = low_rank_woodbury_correction(r, rank)
+    assert result.shape == (2, 2, 3, 3)
+    torch.allclose(torch.max(result), torch.Tensor([5.7736]))
+
+
 def test_cauchy_wrapper_with_extension():
     v = torch.randn(10, 10, dtype=torch.cfloat)
     z = torch.randn(10, 10, dtype=torch.cfloat)
