@@ -3,7 +3,7 @@ from typing import Dict, Optional, Tuple
 import torch
 import torch.nn as nn
 
-from sssd.core.layers.s4.hippo.normal_plus_low_rank import normal_plus_low_rank
+from sssd.core.layers.s4.hippo.normal_plus_low_rank import NormalPlusLowRank
 from sssd.core.layers.s4.hippo.state_space import SSKernelNPLR
 from sssd.core.layers.s4.hippo.utils import generate_dt
 from sssd.utils.logger import setup_logger
@@ -45,15 +45,16 @@ class HippoSSKernel(nn.Module):
         self.rate = None if resample else 1.0
         self.channels = channels
 
-        w, P, B = normal_plus_low_rank(
+        nplr_data = NormalPlusLowRank(
             measure=measure, matrix_size=self.N, correction_rank=rank, dtype=dtype
-        )
+        ).compute()
+
         C = torch.randn(channels, self.H, self.N // 2, dtype=cdtype)
         self.kernel = SSKernelNPLR(
             L=L,
-            w=w,
-            P=P,
-            B=B,
+            w=nplr_data.w,
+            P=nplr_data.P,
+            B=nplr_data.B,
             C=C,
             log_dt=generate_dt(self.H, dtype, dt_min, dt_max),
             hurwitz=hurwitz,

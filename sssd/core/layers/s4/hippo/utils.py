@@ -82,55 +82,6 @@ def embed_c2r(A: Matrix) -> Matrix:
     return rearrange(A_padded, "m x n y -> (m x) (n y)")
 
 
-def generate_low_rank_matrix(
-    measure: str, N: int, rank: int = 1, dtype: torch.dtype = torch.float
-) -> torch.Tensor:
-    """
-    Generate a low-rank matrix L such that A + L is normal.
-
-    Args:
-        measure (str): Type of measure.
-        N (int): Size of the matrix.
-        rank (int, optional): Rank of the low-rank matrix. Defaults to 1.
-        dtype (torch.dtype, optional): Data type of the matrix. Defaults to torch.float.
-
-    Returns:
-        torch.Tensor: Low-rank matrix L.
-
-    Raises:
-        NotImplementedError: If the specified measure is not implemented.
-    """
-
-    if measure == "legs":
-        assert rank >= 1
-        P = torch.sqrt(0.5 + torch.arange(N, dtype=dtype)).unsqueeze(0)  # (1, N)
-    elif measure == "legt":
-        assert rank >= 2
-        P = torch.sqrt(1 + 2 * torch.arange(N, dtype=dtype))  # (N,)
-        P0 = P.clone()
-        P0[0::2] = 0.0
-        P1 = P.clone()
-        P1[1::2] = 0.0
-        P = torch.stack([P0, P1], dim=0)  # (2, N)
-    elif measure == "lagt":
-        assert rank >= 1
-        P = 0.5**0.5 * torch.ones(1, N, dtype=dtype)
-    elif measure == "fourier":
-        P = torch.ones(N, dtype=dtype)  # (N,)
-        P0 = P.clone()
-        P0[0::2] = 0.0
-        P1 = P.clone()
-        P1[1::2] = 0.0
-        P = torch.stack([P0, P1], dim=0)  # (2, N)
-    else:
-        raise NotImplementedError(f"Measure '{measure}' is not implemented.")
-
-    d = P.size(0)
-    if rank > d:
-        P = torch.cat([P, torch.zeros(rank - d, N, dtype=dtype)], dim=0)  # (rank, N)
-    return P
-
-
 def cauchy_cpu(v: torch.Tensor, z: torch.Tensor, w: torch.Tensor) -> torch.Tensor:
     """
     Compute the sum of the Cauchy matrix along the second-to-last dimension.
