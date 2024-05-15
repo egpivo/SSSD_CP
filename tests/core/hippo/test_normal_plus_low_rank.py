@@ -1,7 +1,14 @@
 import pytest
 import torch
 
-from sssd.core.layers.s4.hippo.normal_plus_low_rank import NormalPlusLowRank
+from sssd.core.layers.s4.hippo.normal_plus_low_rank import (
+    FourierNormalPlusLowRank,
+    LagtNormalPlusLowRank,
+    LegsNormalPlusLowRank,
+    LegtNormalPlusLowRank,
+    NormalPlusLowRank,
+    RandomNormalPlusLowRank,
+)
 
 
 @pytest.fixture
@@ -60,3 +67,78 @@ def test_nplr_p_rank(setup_data):
 def test_nplr_invalid_measure():
     with pytest.raises(ValueError):
         NormalPlusLowRank("invalid_measure", 10).compute()
+
+
+@pytest.fixture
+def matrix_size():
+    return 10
+
+
+@pytest.fixture
+def correction_rank():
+    return 2
+
+
+@pytest.fixture
+def dtype():
+    return torch.float
+
+
+@pytest.fixture
+def random_instance(matrix_size, correction_rank, dtype):
+    return RandomNormalPlusLowRank("random", matrix_size, correction_rank, dtype)
+
+
+@pytest.fixture
+def legs_instance(matrix_size, correction_rank, dtype):
+    return LegsNormalPlusLowRank("legs", matrix_size, correction_rank, dtype)
+
+
+@pytest.fixture
+def legt_instance(matrix_size, correction_rank, dtype):
+    return LegtNormalPlusLowRank("legt", matrix_size, correction_rank, dtype)
+
+
+@pytest.fixture
+def lagt_instance(matrix_size, correction_rank, dtype):
+    return LagtNormalPlusLowRank("lagt", matrix_size, correction_rank, dtype)
+
+
+@pytest.fixture
+def fourier_instance(matrix_size, correction_rank, dtype):
+    return FourierNormalPlusLowRank("fourier", matrix_size, correction_rank, dtype)
+
+
+def test_legs_instance(legs_instance):
+    result = legs_instance.compute()
+    assert isinstance(result.w, torch.Tensor)
+    assert isinstance(result.P, torch.Tensor)
+    assert isinstance(result.B, torch.Tensor)
+
+
+def test_legt_instance(legt_instance):
+    result = legt_instance.compute()
+    assert isinstance(result.w, torch.Tensor)
+    assert isinstance(result.P, torch.Tensor)
+    assert isinstance(result.B, torch.Tensor)
+
+
+def test_lagt_instance(lagt_instance):
+    result = lagt_instance.compute()
+    assert isinstance(result.w, torch.Tensor)
+    assert isinstance(result.P, torch.Tensor)
+    assert isinstance(result.B, torch.Tensor)
+
+
+def test_fourier_instance(fourier_instance):
+    result = fourier_instance.compute()
+    assert isinstance(result.w, torch.Tensor)
+    assert isinstance(result.P, torch.Tensor)
+    assert isinstance(result.B, torch.Tensor)
+
+
+def test_random_instance(random_instance):
+    result = random_instance.compute()
+    assert isinstance(result.w, torch.Tensor)
+    assert isinstance(result.P, torch.Tensor)
+    assert isinstance(result.B, torch.Tensor)
