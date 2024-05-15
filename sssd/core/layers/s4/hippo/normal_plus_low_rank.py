@@ -139,10 +139,3 @@ class FourierNormalPlusLowRank(NonRandomNormalPlusLowRank):
         P1 = P.clone()
         P1[1::2] = 0.0
         return torch.stack([P0, P1], dim=0)  # (2, N)
-
-        d = P.size(0)
-        if rank > d:
-            P = torch.cat(
-                [P, torch.zeros(rank - d, N, dtype=dtype)], dim=0
-            )  # (rank, N)
-        return P
