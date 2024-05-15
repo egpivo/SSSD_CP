@@ -352,22 +352,23 @@ class SSKernelNPLR(nn.Module):
             state = torch.zeros(self.H, self.N, dtype=C.dtype, device=C.device)
 
         step_params = self.step_params.copy()
-        if (
-            state.size(-1) == self.N
-        ):  # Only store half of the conjugate pairs; should be true by default
+        if state.size(-1) == self.N:
+            # Only store half of the conjugate pairs; should be true by default
             # There should be a slightly faster way using conjugate symmetry
+            # inner outer product
             contract_fn = lambda p, x, y: contract(
                 "r h n, r h m, ... h m -> ... h n", _conj(p), _conj(x), _conj(y)
-            )[
-                ..., : self.N
-            ]  # inner outer product
-        else:
-            assert state.size(-1) == 2 * self.N
+            )[..., : self.N]
+        elif state.size(-1) == 2 * self.N:
             step_params = {k: _conj(v) for k, v in step_params.items()}
             # TODO worth setting up a contract_expression in default_state if we want to use this at inference time for stepping
+            # inner outer product
             contract_fn = lambda p, x, y: contract(
                 "r h n, r h m, ... h m -> ... h n", p, x, y
-            )  # inner outer product
+            )
+        else:
+            raise ValueError(f"Invalid state size, but got {state.size(-1) }")
+
         D = step_params["D"]  # (H N)
         E = step_params["E"]  # (H N)
         R = step_params["R"]  # (r H N)
