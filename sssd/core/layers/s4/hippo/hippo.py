@@ -3,8 +3,9 @@ from typing import Dict, Optional, Tuple
 import torch
 import torch.nn as nn
 
+from sssd.core.layers.s4.hippo.normal_plus_low_rank import normal_plus_low_rank
 from sssd.core.layers.s4.hippo.state_space import SSKernelNPLR
-from sssd.core.layers.s4.hippo.utils import generate_dt, normal_plus_low_rank
+from sssd.core.layers.s4.hippo.utils import generate_dt
 from sssd.utils.logger import setup_logger
 
 LOGGER = setup_logger()
