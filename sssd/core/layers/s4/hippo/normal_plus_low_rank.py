@@ -1,10 +1,13 @@
 from dataclasses import dataclass
-from typing import Union
+from typing import Tuple, Union
 
+import numpy as np
 import torch
 from opt_einsum import contract
 
-from sssd.core.layers.s4.hippo.trainsition_matrix import TransitionMatrix
+from sssd.core.layers.s4.hippo.utils import embed_c2r
+
+Matrix = np.ndarray
 
 
 @dataclass
@@ -65,10 +68,20 @@ class RandomNormalPlusLowRank(BaseNormalPlusLowRank):
 
 
 class NonRandomNormalPlusLowRank(BaseNormalPlusLowRank):
-    def _generate_low_rank_matrix(self):
+    def _generate_transition_matrix(self) -> Tuple[Matrix, Matrix]:
         return NotImplemented
 
-    def generate_low_rank_matrix(self):
+    def _generate_low_rank_matrix(self) -> torch.Tensor:
+        return NotImplemented
+
+    def generate_transition_matrix(self) -> Tuple[Matrix, Matrix]:
+        A, B = self._generate_transition_matrix()
+        A = torch.as_tensor(A, dtype=self.dtype)
+        B = torch.as_tensor(B, dtype=self.dtype)[:, 0]
+        return A, B
+
+    def generate_low_rank_matrix(self) -> torch.Tensor:
+        """Return the shape (rank, N)"""
         P = self._generate_low_rank_matrix()
         d = P.size(0)
         if self.correction_rank > d:
@@ -80,14 +93,11 @@ class NonRandomNormalPlusLowRank(BaseNormalPlusLowRank):
                     ),
                 ],
                 dim=0,
-            )  # (rank, N)
+            )
         return P
 
     def compute(self) -> NormalPlusLowRankResult:
-        A, B = TransitionMatrix(self.measure, self.matrix_size)
-        A = torch.as_tensor(A, dtype=self.dtype)
-        B = torch.as_tensor(B, dtype=self.dtype)[:, 0]
-
+        A, B = self.generate_transition_matrix()
         P = self.generate_low_rank_matrix()
         AP = A + torch.einsum("...i,...j->...ij", P, P.conj()).sum(dim=-3)
         w, V = torch.linalg.eig(AP)
@@ -105,7 +115,20 @@ class NonRandomNormalPlusLowRank(BaseNormalPlusLowRank):
 
 
 class LegsNormalPlusLowRank(NonRandomNormalPlusLowRank):
-    def _generate_low_rank_matrix(self):
+    """scaled legendre"""
+
+    def _generate_transition_matrix(self) -> Tuple[Matrix, Matrix]:
+        q = np.arange(self.matrix_size, dtype=np.float64)
+        col, row = np.meshgrid(q, q)
+        r = 2 * q + 1
+        M = -(np.where(row >= col, r, 0) - np.diag(q))
+        T = np.sqrt(np.diag(2 * q + 1))
+        A = T @ M @ np.linalg.inv(T)
+        B = np.diag(T)[:, None]
+        B = B.copy()
+        return A, B
+
+    def _generate_low_rank_matrix(self) -> torch.Tensor:
         assert self.correction_rank >= 1
         P = torch.sqrt(
             0.5 + torch.arange(self.matrix_size, dtype=self.dtype)
@@ -114,7 +137,17 @@ class LegsNormalPlusLowRank(NonRandomNormalPlusLowRank):
 
 
 class LegtNormalPlusLowRank(NonRandomNormalPlusLowRank):
-    def _generate_low_rank_matrix(self):
+    def _generate_transition_matrix(self) -> Tuple[Matrix, Matrix]:
+        """translated legendre"""
+        Q = np.arange(self.matrix_size, dtype=np.float64)
+        R = (2 * Q + 1) ** 0.5
+        j, i = np.meshgrid(Q, Q)
+        A = R[:, None] * np.where(i < j, (-1.0) ** (i - j), 1) * R[None, :]
+        B = R[:, None]
+        A = -A
+        return A, B
+
+    def _generate_low_rank_matrix(self) -> torch.Tensor:
         assert self.correction_rank >= 2
         P = torch.sqrt(1 + 2 * torch.arange(self.matrix_size, dtype=self.dtype))  # (N,)
         P0 = P.clone()
@@ -126,13 +159,29 @@ class LegtNormalPlusLowRank(NonRandomNormalPlusLowRank):
 
 
 class LagtNormalPlusLowRank(NonRandomNormalPlusLowRank):
-    def _generate_low_rank_matrix(self):
+    def _generate_transition_matrix(self, beta: float = 1.0) -> Tuple[Matrix, Matrix]:
+        """translated laguerre"""
+        A = np.eye(self.matrix_size) / 2 - np.tril(
+            np.ones((self.matrix_size, self.matrix_size))
+        )
+        B = beta * np.ones((self.matrix_size, 1))
+        return A, B
+
+    def _generate_low_rank_matrix(self) -> torch.Tensor:
         assert self.correction_rank >= 1
         return 0.5**0.5 * torch.ones(1, self.matrix_size, dtype=self.dtype)
 
 
 class FourierNormalPlusLowRank(NonRandomNormalPlusLowRank):
-    def _generate_low_rank_matrix(self):
+    def _generate_transition_matrix(self) -> Tuple[Matrix, Matrix]:
+        freqs = np.arange(self.matrix_size // 2)
+        d = np.stack([freqs, np.zeros(self.matrix_size // 2)], axis=-1).reshape(-1)[:-1]
+        A = 2 * np.pi * (np.diag(d, 1) - np.diag(d, -1))
+        A = A - embed_c2r(np.ones((self.matrix_size // 2, self.matrix_size // 2)))
+        B = embed_c2r(np.ones((self.matrix_size // 2, 1)))[..., :1]
+        return A, B
+
+    def _generate_low_rank_matrix(self) -> torch.Tensor:
         P = torch.ones(self.matrix_size, dtype=self.dtype)  # (N,)
         P0 = P.clone()
         P0[0::2] = 0.0
