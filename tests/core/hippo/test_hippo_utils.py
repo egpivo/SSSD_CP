@@ -8,6 +8,7 @@ from sssd.core.layers.s4.hippo.utils import (
     cauchy_wrapper,
     compute_fft_transform,
     embed_c2r,
+    generate_dt,
     generate_low_rank_matrix,
     get_dense_contraction,
     get_diagonal_contraction,
@@ -425,3 +426,50 @@ def test_cauchy_wrapper_without_extension():
     w = torch.randn(10, 10)
     result = cauchy_wrapper(v, z, w)
     assert result.shape == (10, 10)
+
+
+def test_generate_dt():
+    torch.manual_seed(1)
+    # Define test parameters
+    H = 10
+    dt_min = 0.1
+    dt_max = 1.0
+
+    # Test for float32 dtype
+    dtype = torch.float32
+    result = generate_dt(H, dtype, dt_min, dt_max)
+    assert isinstance(result, torch.Tensor)
+    assert result.dtype == dtype
+    assert result.shape == (H,)
+    torch.allclose(torch.min(result).unsqueeze(0), torch.Tensor([-2.235162]))
+
+    # Test for float64 dtype
+    dtype = torch.float64
+    result = generate_dt(H, dtype, dt_min, dt_max)
+    assert isinstance(result, torch.Tensor)
+    assert result.dtype == dtype
+    assert result.shape == (H,)
+
+    # Test for dt_min = dt_max
+    dt_min = 0.5
+    dt_max = 0.5
+    result = generate_dt(H, dtype, dt_min, dt_max)
+    assert isinstance(result, torch.Tensor)
+    assert result.dtype == dtype
+    assert result.shape == (H,)
+
+    # Test for negative dt_min and dt_max
+    dt_min = -1.0
+    dt_max = 1.0
+    with pytest.raises(ValueError):
+        generate_dt(H, dtype, dt_min, dt_max)
+
+    dt_min = 0.1
+    dt_max = -0.1
+    with pytest.raises(ValueError):
+        generate_dt(H, dtype, dt_min, dt_max)
+
+    dt_min = -1.0
+    dt_max = -0.1
+    with pytest.raises(ValueError):
+        generate_dt(H, dtype, dt_min, dt_max)

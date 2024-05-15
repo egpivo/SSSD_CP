@@ -1,3 +1,4 @@
+import math
 from typing import Dict, Tuple, Union
 
 import numpy as np
@@ -495,3 +496,23 @@ def low_rank_woodbury_correction(r: torch.Tensor, rank: int) -> torch.Tensor:
         k_f = r00 - torch.einsum("i j h n, j k h n, k l h n -> i l h n", r01, r11, r10)
 
     return k_f
+
+
+def generate_dt(
+    H: int, dtype: torch.dtype, dt_min: float, dt_max: float
+) -> torch.Tensor:
+    """
+    Generates a tensor of shape (H,) with random values between dt_min and dt_max.
+
+    Args:
+        H (int): The size of the tensor.
+        dtype (torch.dtype): The data type of the tensor.
+        dt_min (float): The minimum value of the tensor.
+        dt_max (float): The maximum value of the tensor.
+
+    Returns:
+        torch.Tensor: A tensor of shape (H,) with random values between dt_min and dt_max.
+    """
+    return torch.rand(H, dtype=dtype) * (
+        math.log(dt_max) - math.log(dt_min)
+    ) + math.log(dt_min)

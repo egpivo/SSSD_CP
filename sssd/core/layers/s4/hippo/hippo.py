@@ -1,20 +1,13 @@
-import math
 from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn as nn
 
 from sssd.core.layers.s4.hippo.state_space import SSKernelNPLR
-from sssd.core.layers.s4.hippo.utils import normal_plus_low_rank
+from sssd.core.layers.s4.hippo.utils import generate_dt, normal_plus_low_rank
 from sssd.utils.logger import setup_logger
 
 LOGGER = setup_logger()
-
-
-def generate_dt(H, dtype, dt_min, dt_max):
-    return torch.rand(H, dtype=dtype) * (
-        math.log(dt_max) - math.log(dt_min)
-    ) + math.log(dt_min)
 
 
 class HippoSSKernel(nn.Module):
