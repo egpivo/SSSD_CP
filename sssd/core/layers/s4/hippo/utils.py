@@ -3,7 +3,7 @@ from typing import Tuple
 
 import numpy as np
 import torch
-from einops import rearrange
+from einops import rearrange, repeat
 from opt_einsum import contract_expression
 from opt_einsum.contract import ContractExpression
 
@@ -286,3 +286,19 @@ def generate_dt(
     return torch.rand(H, dtype=dtype) * (
         math.log(dt_max) - math.log(dt_min)
     ) + math.log(dt_min)
+
+
+def repeat_along_additional_dimension(
+    tensor: torch.Tensor, repeat_count: int
+) -> torch.Tensor:
+    """
+    Repeats the input tensor along an additional dimension.
+
+    Args:
+        tensor: Input tensor to be repeated
+        repeat_count: Number of times to repeat the tensor along the additional dimension
+
+    Returns:
+        Repeated tensor
+    """
+    return repeat(tensor, "... 1 n -> ... h n", h=repeat_count)

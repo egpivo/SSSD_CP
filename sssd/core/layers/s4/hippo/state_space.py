@@ -19,6 +19,7 @@ from sssd.core.layers.s4.hippo.utils import (
     hurwitz_transformation,
     low_rank_woodbury_correction,
     power,
+    repeat_along_additional_dimension,
 )
 from sssd.utils.logger import setup_logger
 
@@ -207,6 +208,36 @@ class SSKernelNPLR(nn.Module):
             else _r2c(self.w)
         )
 
+    def _handle_sampling_rate_logic(
+        self, rate: Optional[float], L: Optional[int]
+    ) -> Tuple[float, int]:
+        """
+        Ensure either rate or L is provided. Handle sampling rate logic:
+        If rate is not provided, calculate it from L. If L is not provided, calculate it from rate.
+        Increase the internal length if needed.
+
+        Args:
+            rate: Sampling rate factor
+            L: Target length
+
+        Returns:
+            Tuple containing the adjusted rate and target length
+        """
+        # Ensure either rate or L is provided
+        assert not (rate is None and L is None), "Either rate or L must be provided."
+
+        # Handle sampling rate logic
+        if rate is None:
+            rate = self.L / L
+        if L is None:
+            L = int(self.L / rate)
+
+        # Increase the internal length if needed
+        while rate * L > self.L:
+            self._setup_C(double_length=True)
+
+        return rate, L
+
     def forward(
         self, state: torch.Tensor = None, rate: float = 1.0, L: int = None
     ) -> Tuple[torch.Tensor, Optional[torch.Tensor]]:
@@ -222,86 +253,72 @@ class SSKernelNPLR(nn.Module):
             k_B: Coefficients for the output
             k_state: Optional state coefficients
         """
-        # Handle sampling rate logic
-        # The idea is that this kernel's length (in continuous units) is self.L, while we are asked to provide a kernel of length L at (relative) sampling rate rate
-        # If either are not passed in, assume we're not asked to change the scale of our kernel
-        assert not (rate is None and L is None)
-        if rate is None:
-            rate = self.L / L
-        if L is None:
-            L = int(self.L / rate)
-
-        # Increase the internal length if needed
-        while rate * L > self.L:
-            self._setup_C(double_length=True)
-
+        rate, L = self._handle_sampling_rate_logic(rate, L)
         dt = torch.exp(self.log_dt) * rate
+
         B = _r2c(self.B)
         C = _r2c(self.C)
         P = _r2c(self.P)
         Q = P.conj() if self.Q is None else _r2c(self.Q)
         w = self._get_complex_weights()
 
+        # Use cached FFT nodes if rate is 1.0, else update them
         if rate == 1.0:
-            # Use cached FFT nodes with shape (..., L // 2 + 1)
             omega, z = _r2c(self.omega), _r2c(self.z)
         else:
             omega, z = self._update_fft_nodes(
                 int(self.L / rate), dtype=w.dtype, device=w.device, cache=False
             )
 
+        # Handle tied state with the pattern "... 1 n -> ... h n"
         if self.tie_state:
-            B = repeat(B, "... 1 n -> ... h n", h=self.H)
-            P = repeat(P, "... 1 n -> ... h n", h=self.H)
-            Q = repeat(Q, "... 1 n -> ... h n", h=self.H)
+            B = repeat_along_additional_dimension(B, self.H)
+            P = repeat_along_additional_dimension(P, self.H)
+            Q = repeat_along_additional_dimension(Q, self.H)
 
-        # Augment B
+        # Augment B with state if provided
         if state is not None:
-            # Have to "unbilinear" the state to put it into the same "type" as B
-            # Compute 1/dt * (I + dt/2 A) @ state
-
-            # Can do this without expanding (maybe minor speedup using conj symmetry in theory), but it's easier to read this way
-            s = _conj(state) if state.size(-1) == self.N else state  # (B H N)
-            sA = s * _conj(w) - contract(  # (B H N)
-                "bhm, rhm, rhn -> bhn", s, _conj(Q), _conj(P)
-            )
+            # Compute augmented state
+            s = _conj(state) if state.size(-1) == self.N else state
+            sA = s * _conj(w) - contract("bhm, rhm, rhn -> bhn", s, _conj(Q), _conj(P))
             s = s / dt.unsqueeze(-1) + sA / 2
             s = s[..., : self.N]
 
-            B = torch.cat([s, B], dim=-3)  # (s+1, H, N)
+            # Concatenate augmented state with B
+            B = torch.cat([s, B], dim=-3)
 
-        # Incorporate dt into A
-        w = w * dt.unsqueeze(-1)  # (H N)
+        # Incorporate dt into weights
+        w = w * dt.unsqueeze(-1)
 
-        # Stack B and p, C and q for convenient batching
-        B = torch.cat([B, P], dim=-3)  # (s+1+r, H, N)
-        C = torch.cat([C, Q], dim=-3)  # (c+r, H, N)
+        # Stack B and P, C and Q for convenient batching
+        B = torch.cat([B, P], dim=-3)
+        C = torch.cat([C, Q], dim=-3)
 
         # Incorporate B and C batch dimensions
-        v = B.unsqueeze(-3) * C.unsqueeze(-4)  # (s+1+r, c+r, H, N)
-        # w = w[None, None, ...]  # (1, 1, H, N)
-        # z = z[None, None, None, ...]  # (1, 1, 1, L // 2 + 1)
+        v = B.unsqueeze(-3) * C.unsqueeze(-4)
 
         # Calculate resolvent at omega
         r = cauchy_wrapper(v, z, w)
-        r = r * dt[None, None, :, None]  # (S+1+R, C+R, H, L // 2 + 1)
+        r = r * dt[None, None, :, None]
 
         # Low-rank Woodbury correction
         k_f = low_rank_woodbury_correction(r, self.rank)
+
         # Final correction for the bilinear transform
         k_f = k_f * 2 / (1 + omega)
 
         # Move from frequency to coefficients
-        k = torch.fft.irfft(k_f)  # (S+1, C, H, L // 2 + 1)
-        # Avoid the underflow or overflow
+        k = torch.fft.irfft(k_f)
         k = torch.nan_to_num(k)
+
         # Truncate to target length
         L = min(L, k.shape[-1])
         k = k[..., :L]
 
         # k_state shape: (S, C, H, L // 2 + 1)
         k_state = k[:-1, :, :, :] if state is not None else None
-        k_B = k[-1, :, :, :]  # (C H L // 2 + 1)
+        k_B = k[-1, :, :, :]
+
         return k_B, k_state
 
     def _setup_linear(self) -> None:

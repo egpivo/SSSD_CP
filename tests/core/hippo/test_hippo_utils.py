@@ -15,6 +15,7 @@ from sssd.core.layers.s4.hippo.utils import (
     hurwitz_transformation,
     low_rank_woodbury_correction,
     power,
+    repeat_along_additional_dimension,
 )
 
 
@@ -323,3 +324,44 @@ def test_generate_dt():
     dt_max = -0.1
     with pytest.raises(ValueError):
         generate_dt(H, dtype, dt_min, dt_max)
+
+
+@pytest.fixture
+def sample_tensor():
+    return torch.ones(
+        (2, 3, 1, 4)
+    )  # Example tensor of shape (2, 3, 1, 4) with a size of 1 along dimension 'h'
+
+
+def test_repeat_along_additional_dimension(sample_tensor):
+    # Test with repeat_count = 2
+    repeated_tensor = repeat_along_additional_dimension(sample_tensor, repeat_count=2)
+
+    # Check if the shape of the repeated tensor is as expected
+    assert repeated_tensor.shape == (2, 3, 2, 4)
+
+    # Check if the values of the repeated tensor are correct
+    for i in range(2):
+        assert torch.allclose(
+            repeated_tensor[:, :, : i + 1, :], sample_tensor.squeeze(dim=1)
+        )
+
+    # Test with repeat_count = 0
+    repeated_tensor = repeat_along_additional_dimension(sample_tensor, repeat_count=0)
+
+    # Check if the shape of the repeated tensor is as expected
+    assert repeated_tensor.shape == (2, 3, 0, 4)
+
+    # Test with repeat_count = 1 (no repetition)
+    repeated_tensor = repeat_along_additional_dimension(sample_tensor, repeat_count=1)
+
+    # Check if the shape of the repeated tensor is as expected
+    assert repeated_tensor.shape == (2, 3, 1, 4)
+    # Check if the values of the repeated tensor are correct
+    assert torch.allclose(repeated_tensor, sample_tensor)
+
+    # Test with repeat_count = 3
+    repeated_tensor = repeat_along_additional_dimension(sample_tensor, repeat_count=3)
+
+    # Check if the shape of the repeated tensor is as expected
+    assert repeated_tensor.shape == (2, 3, 3, 4)
