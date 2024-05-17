@@ -70,6 +70,7 @@ class NonRandomNormalPlusLowRank(BaseNormalPlusLowRank):
         return NotImplemented
 
     def _generate_low_rank_matrix(self) -> torch.Tensor:
+        """Shape (2, N)"""
         return NotImplemented
 
     def generate_transition_matrix(self) -> Tuple[Matrix, Matrix]:
@@ -135,8 +136,9 @@ class LegsNormalPlusLowRank(NonRandomNormalPlusLowRank):
 
 
 class LegtNormalPlusLowRank(NonRandomNormalPlusLowRank):
+    """Translated legendre"""
+
     def _generate_transition_matrix(self) -> Tuple[Matrix, Matrix]:
-        """translated legendre"""
         Q = np.arange(self.matrix_size, dtype=np.float64)
         R = (2 * Q + 1) ** 0.5
         j, i = np.meshgrid(Q, Q)
@@ -147,18 +149,19 @@ class LegtNormalPlusLowRank(NonRandomNormalPlusLowRank):
 
     def _generate_low_rank_matrix(self) -> torch.Tensor:
         assert self.correction_rank >= 2
-        P = torch.sqrt(1 + 2 * torch.arange(self.matrix_size, dtype=self.dtype))  # (N,)
+        P = torch.sqrt(1 + 2 * torch.arange(self.matrix_size, dtype=self.dtype))
         P0 = P.clone()
         P0[0::2] = 0.0
         P1 = P.clone()
         P1[1::2] = 0.0
-        P = torch.stack([P0, P1], dim=0)  # (2, N)
+        P = torch.stack([P0, P1], dim=0)
         return P
 
 
 class LagtNormalPlusLowRank(NonRandomNormalPlusLowRank):
+    """Translated Laguerre"""
+
     def _generate_transition_matrix(self, beta: float = 1.0) -> Tuple[Matrix, Matrix]:
-        """translated laguerre"""
         A = np.eye(self.matrix_size) / 2 - np.tril(
             np.ones((self.matrix_size, self.matrix_size))
         )
@@ -171,6 +174,8 @@ class LagtNormalPlusLowRank(NonRandomNormalPlusLowRank):
 
 
 class FourierNormalPlusLowRank(NonRandomNormalPlusLowRank):
+    """Fourier"""
+
     def _generate_transition_matrix(self) -> Tuple[Matrix, Matrix]:
         freqs = np.arange(self.matrix_size // 2)
         d = np.stack([freqs, np.zeros(self.matrix_size // 2)], axis=-1).reshape(-1)[:-1]
@@ -180,9 +185,9 @@ class FourierNormalPlusLowRank(NonRandomNormalPlusLowRank):
         return A, B
 
     def _generate_low_rank_matrix(self) -> torch.Tensor:
-        P = torch.ones(self.matrix_size, dtype=self.dtype)  # (N,)
+        P = torch.ones(self.matrix_size, dtype=self.dtype)
         P0 = P.clone()
         P0[0::2] = 0.0
         P1 = P.clone()
         P1[1::2] = 0.0
-        return torch.stack([P0, P1], dim=0)  # (2, N)
+        return torch.stack([P0, P1], dim=0)
