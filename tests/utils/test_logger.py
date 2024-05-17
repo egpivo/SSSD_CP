@@ -24,7 +24,7 @@ def test_setup_logger():
         isinstance(handler, logging.StreamHandler) for handler in reused_logger.handlers
     )
 
-    # Test adding an additional file handler
+    # Test adding a file handler
     file_handler = logging.FileHandler("test.log")
     reused_logger.addHandler(file_handler)
     assert any(
