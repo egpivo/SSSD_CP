@@ -108,7 +108,7 @@ install_python_package() {
 
   echo -e "${FG_YELLOW}Installing python package${FG_RESET}"
   poetry lock --no-update
-  poetry install
+  poetry install --no-root --only main
 
   # Install 3rd party packages when  CUDA driver is installed
   if command -v nvcc &> /dev/null; then
@@ -118,12 +118,28 @@ install_python_package() {
     echo -e "${FG_YELLOW}CUDA driver not found. Pass install Cauchy Module${FG_RESET}"
   fi
 
+  # Check if README.md exists
+  if [ ! -f README.md ]; then
+    echo "Temporary README.md" > README.md
+    TEMP_README=true
+  else
+    TEMP_README=false
+  fi
+
+  # Build the project using poetry
   poetry build
-  if [ -d "${PWD}"/dist/ ]; then
+
+  # Install the built package if the build was successful
+  if [ -d "${PWD}/dist/" ]; then
     pip install dist/*.tar.gz
     rm -r dist
   else
-    echo -e "${FG_RED}Failed to install python package${FG_RESET}"
+    echo -e "Failed to install python package"
+  fi
+
+  # Remove the temporary README.md if it was created
+  if [ "$TEMP_README" = true ]; then
+    rm README.md
   fi
   popd || exit
 }
@@ -177,4 +193,26 @@ install_extensions_cauchy() {
   echo -e "${FG_YELLOW}Copy main cauchy operation to HiPPO module${FG_RESET}"
   cp "s4/extensions/cauchy/cauchy.py" "sssd/core/layers/s4/hippo/cauchy.py"
   rm -rf "s4"
+}
+
+activate_conda_environment() {
+  local CONDA_ENV=$1
+  initialize_conda
+  if [ "$(command -v conda)" ]; then
+    conda activate ${CONDA_ENV}
+  else
+    echo -e "${FG_RED}Activation Failed. Conda is not installed.${FG_RESET}"
+  fi
+}
+
+update_conda_environment() {
+  local PACKAGE_BASE_PATH=$1
+  local CONDA_ENV=$2
+
+  if [ "$(command -v conda)" ]; then
+    echo -e "${FG_YELLOW}Updating Conda environment - ${CONDA_ENV}${FG_RESET}"
+    bash "${CONDA_DIR}/build_conda_env.sh" --conda_env ${CONDA_ENV}
+  else
+    echo -e "${FG_RED}Update Failed. Conda is not installed.${FG_RESET}"
+  fi
 }

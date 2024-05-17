@@ -72,6 +72,13 @@ else
   exit "${ERROR_EXITCODE}"
 fi
 
+if [[ -f "${PACKAGE_BASE_PATH}/envs/conda/utils.sh" ]]; then
+  source "${PACKAGE_BASE_PATH}/envs/conda/utils.sh"
+else
+  echo "Error: CONDA utils.sh not found" >&2
+  exit "${ERROR_EXITCODE}"
+fi
+
 CONDA_ENV="sssd"
 
 set -euo pipefail

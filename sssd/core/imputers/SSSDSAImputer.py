@@ -215,7 +215,7 @@ class ResidualBlock(nn.Module):
         # Prenorm
         z = self.norm(z.transpose(-1, -2)).transpose(-1, -2)
 
-        z, _ = self.layer(z)
+        z = self.layer(z)
 
         cond = self.cond_conv(cond)
         # cond = self.fc_label(cond)

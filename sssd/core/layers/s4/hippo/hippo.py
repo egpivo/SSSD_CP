@@ -1,11 +1,11 @@
-import math
 from typing import Dict, Optional, Tuple
 
 import torch
 import torch.nn as nn
 
+from sssd.core.layers.s4.hippo.normal_plus_low_rank import NormalPlusLowRank
 from sssd.core.layers.s4.hippo.state_space import SSKernelNPLR
-from sssd.core.layers.s4.hippo.utils import normal_plus_low_rank
+from sssd.core.layers.s4.hippo.utils import generate_dt
 from sssd.utils.logger import setup_logger
 
 LOGGER = setup_logger()
@@ -45,22 +45,18 @@ class HippoSSKernel(nn.Module):
         self.rate = None if resample else 1.0
         self.channels = channels
 
-        # Generate dt
-        log_dt = torch.rand(self.H, dtype=dtype) * (
-            math.log(dt_max) - math.log(dt_min)
-        ) + math.log(dt_min)
-
-        w, p, B = normal_plus_low_rank(
+        nplr_data = NormalPlusLowRank(
             measure=measure, matrix_size=self.N, correction_rank=rank, dtype=dtype
-        )
+        ).compute()
+
         C = torch.randn(channels, self.H, self.N // 2, dtype=cdtype)
         self.kernel = SSKernelNPLR(
-            L,
-            w,
-            p,
-            B,
-            C,
-            log_dt,
+            L=L,
+            w=nplr_data.w,
+            P=nplr_data.P,
+            B=nplr_data.B,
+            C=C,
+            log_dt=generate_dt(self.H, dtype, dt_min, dt_max),
             hurwitz=hurwitz,
             trainable=trainable,
             lr=lr,
@@ -74,9 +70,9 @@ class HippoSSKernel(nn.Module):
         return k.float()
 
     def step(
-        self, u: torch.Tensor, state: torch.Tensor, **kwargs
+        self, u: torch.Tensor, state: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        u, state = self.kernel.step(u, state, **kwargs)
+        u, state = self.kernel.step(u, state)
         return u.float(), state
 
     def default_state(self, *args, **kwargs) -> torch.Tensor:
