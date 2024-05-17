@@ -86,27 +86,27 @@ def dtype():
 
 @pytest.fixture
 def random_instance(matrix_size, correction_rank, dtype):
-    return RandomNormalPlusLowRank("random", matrix_size, correction_rank, dtype)
+    return RandomNormalPlusLowRank(matrix_size, correction_rank, dtype)
 
 
 @pytest.fixture
 def legs_instance(matrix_size, correction_rank, dtype):
-    return LegsNormalPlusLowRank("legs", matrix_size, correction_rank, dtype)
+    return LegsNormalPlusLowRank(matrix_size, correction_rank, dtype)
 
 
 @pytest.fixture
 def legt_instance(matrix_size, correction_rank, dtype):
-    return LegtNormalPlusLowRank("legt", matrix_size, correction_rank, dtype)
+    return LegtNormalPlusLowRank(matrix_size, correction_rank, dtype)
 
 
 @pytest.fixture
 def lagt_instance(matrix_size, correction_rank, dtype):
-    return LagtNormalPlusLowRank("lagt", matrix_size, correction_rank, dtype)
+    return LagtNormalPlusLowRank(matrix_size, correction_rank, dtype)
 
 
 @pytest.fixture
 def fourier_instance(matrix_size, correction_rank, dtype):
-    return FourierNormalPlusLowRank("fourier", matrix_size, correction_rank, dtype)
+    return FourierNormalPlusLowRank(matrix_size, correction_rank, dtype)
 
 
 def test_legs_instance(legs_instance):

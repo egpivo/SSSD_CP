@@ -32,19 +32,17 @@ class NormalPlusLowRank:
                 and subclass_name.endswith("NormalPlusLowRank")
                 and subclass_name.lower().startswith(measure.lower())
             ):
-                return subclass(measure, matrix_size, correction_rank, dtype)
+                return subclass(matrix_size, correction_rank, dtype)
         raise ValueError(f"No subclass found for measure: {measure}")
 
 
 class BaseNormalPlusLowRank:
     def __init__(
         self,
-        measure: str,
         matrix_size: int,
         correction_rank: int = 1,
         dtype: Union[type(torch.float), type(torch.cfloat)] = torch.float,
     ) -> None:
-        self.measure = measure
         self.matrix_size = matrix_size
         self.correction_rank = correction_rank
         self.dtype = dtype
