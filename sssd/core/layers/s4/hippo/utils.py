@@ -119,7 +119,7 @@ def cauchy_wrapper(v: torch.Tensor, z: torch.Tensor, w: torch.Tensor) -> torch.T
 
     if has_cauchy_extension and z.dtype == torch.cfloat:
         """The v, z, w are assumed to be saved on GPU"""
-        return cauchy_mult(v, z, w, symmetric=True)
+        return cauchy_mult(v.to("cuda"), z.to("cuda"), w.to("cuda"), symmetric=True)
     else:
         return cauchy_cpu(v, z, w)
 
