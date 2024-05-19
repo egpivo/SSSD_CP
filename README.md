@@ -4,6 +4,8 @@
   <a href="https://codecov.io/gh/egpivo/SSSD_CP"><img src="https://codecov.io/gh/egpivo/SSSD_CP/graph/badge.svg?token=gtKjUUupSz" alt="Codecov"/></a>
   <a href="https://hub.docker.com/repository/docker/egpivo/sssd"><img src="https://img.shields.io/docker/automated/egpivo/sssd" alt="Docker build"/></a>
   <a href="https://hub.docker.com/repository/docker/egpivo/sssd"><img src="https://img.shields.io/docker/v/egpivo/sssd" alt="Docker tag"/></a>
+  <a href="https://colab.research.google.com/github/egpivo/main/run_example_job.ipynb"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
+
 </p>
 
 ## Prerequisites
