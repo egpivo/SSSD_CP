@@ -45,7 +45,12 @@ COPY --from=builder /sssd/notebooks notebooks/
 COPY --from=builder /sssd/sssd sssd/
 COPY --from=builder /sssd/pyproject.toml pyproject.toml
 
-SHELL ["conda", "run", "-n", "sssd", "poetry", "install"]
+# Define build argument and environment variable for extras
+ARG POETRY_EXTRAS=""
+ENV POETRY_EXTRAS=$POETRY_EXTRAS
+
+# Install Python dependencies using poetry, conditionally including extras
+RUN conda run -n sssd bash -c 'if [ -n "$POETRY_EXTRAS" ]; then poetry install --extras $POETRY_EXTRAS; else poetry install; fi'
 
 # Set the entrypoint
 ENTRYPOINT ["/bin/bash", "-c", "/bin/bash scripts/docker/$ENTRYPOINT_SCRIPT"]
