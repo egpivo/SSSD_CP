@@ -4,7 +4,7 @@
 FROM egpivo/sssd:latest AS builder
 
 LABEL authors="Joseph Wang <egpivo@gmail.com>" \
-      version="0.0.15"
+      version="0.0.16"
 
 # Set the working directory in the container
 WORKDIR /sssd
@@ -44,8 +44,6 @@ COPY --from=builder /sssd/envs envs/
 COPY --from=builder /sssd/notebooks notebooks/
 COPY --from=builder /sssd/sssd sssd/
 COPY --from=builder /sssd/pyproject.toml pyproject.toml
-
-SHELL ["conda", "run", "-n", "sssd", "poetry", "install"]
 
 # Set the entrypoint
 ENTRYPOINT ["/bin/bash", "-c", "/bin/bash scripts/docker/$ENTRYPOINT_SCRIPT"]
