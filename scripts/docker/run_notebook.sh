@@ -5,4 +5,5 @@ conda activate sssd
 poetry install --no-root
 
 ${DOCKER_DIR}/../../envs/jupyter/start_jupyter_lab.sh \
-  --port ${PORT}
+  --port ${PORT} \
+  --does_update_conda
