@@ -45,9 +45,5 @@ COPY --from=builder /sssd/notebooks notebooks/
 COPY --from=builder /sssd/sssd sssd/
 COPY --from=builder /sssd/pyproject.toml pyproject.toml
 
-# Define build argument and environment variable for extras
-ARG POETRY_EXTRAS=""
-ENV POETRY_EXTRAS=$POETRY_EXTRAS
-
 # Set the entrypoint
 ENTRYPOINT ["/bin/bash", "-c", "/bin/bash scripts/docker/$ENTRYPOINT_SCRIPT"]
