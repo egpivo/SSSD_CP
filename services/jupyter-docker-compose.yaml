@@ -13,7 +13,6 @@ services:
     environment:
       ENTRYPOINT_SCRIPT: "run_notebook.sh"
       PORT: 8080
-      POETRY_EXTRAS: "notebook"
     shm_size: "2GB"  # Increase shared memory size for runtime if the number of GPUs increases
     deploy:
       resources:
