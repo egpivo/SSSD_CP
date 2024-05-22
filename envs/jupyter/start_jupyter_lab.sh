@@ -40,9 +40,7 @@ source "${NOTEBOOK_DIR}/utils.sh"
 PACKAGE_BASE_PATH="${NOTEBOOK_DIR}/../.."
 source "${PACKAGE_BASE_PATH}/bin/color_map.sh"
 source "${PACKAGE_BASE_PATH}/bin/exit_code.sh"
-CONDA_BASE=$(conda info --base)
-source "${CONDA_BASE}/etc/profile.d/conda.sh"
-
+source "/opt/conda/etc/profile.d/conda.sh"
 
 start_jupyter_server() {
   local PORT="$1"
@@ -60,7 +58,7 @@ start_jupyter_server() {
 
   update_gpu_env "${KERNEL_ENV}"
 
-  jupyter lab --ip=0.0.0.0 --port "${PORT}" --no-browser --NotebookApp.token='' --NotebookApp.password='' --allow-root
+  jupyter lab --ip=0.0.0.0 --port "${PORT}" --no-browser --NotebookApp.token="" --NotebookApp.password="" --allow-root
 
   conda deactivate
 }
