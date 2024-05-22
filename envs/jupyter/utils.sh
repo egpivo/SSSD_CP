@@ -21,7 +21,7 @@ update_conda_env_path() {
 
   # Install dependencies with Poetry
   . "${DIR}/../conda/build_conda_env.sh" -c "${ENV_NAME}"
-  poetry install --extras notebook --no-root
+  poetry install --no-root
 
   # Deactivate the environment
   conda deactivate
