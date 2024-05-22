@@ -40,7 +40,7 @@ source "${NOTEBOOK_DIR}/utils.sh"
 PACKAGE_BASE_PATH="${NOTEBOOK_DIR}/../.."
 source "${PACKAGE_BASE_PATH}/bin/color_map.sh"
 source "${PACKAGE_BASE_PATH}/bin/exit_code.sh"
-local CONDA_BASE=$(conda info --base)
+CONDA_BASE=$(conda info --base)
 source "${CONDA_BASE}/etc/profile.d/conda.sh"
 
 
