@@ -108,7 +108,7 @@ install_python_package() {
 
   echo -e "${FG_YELLOW}Installing python package${FG_RESET}"
   poetry lock --no-update
-  poetry install --no-root --only main
+  poetry install --no-root
 
   # Install 3rd party packages when  CUDA driver is installed
   if command -v nvcc &> /dev/null; then
