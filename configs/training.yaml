@@ -15,4 +15,4 @@ missing_k: 24  # Number of missing values
 
 # Data paths
 data:
-  train_path: "./datasets/NYISO/dataset/test-normalization/MILLWD_train_stdd.npy"  # Path to training data
+  train_path: "./datasets/NYISO/test-normalization/MILLWD_train_stdd.npy"  # Path to training data
