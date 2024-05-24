@@ -2,9 +2,9 @@ wavenet:
   # WaveNet model parameters
   input_channels: 1  # Number of input channels
   output_channels: 1  # Number of output channels
-  residual_layers: 2  # Number of residual layers
-  residual_channels: 2  # Number of channels in residual blocks
-  skip_channels: 2  # Number of channels in skip connections
+  residual_layers: 36  # Number of residual layers
+  residual_channels: 256  # Number of channels in residual blocks
+  skip_channels: 256  # Number of channels in skip connections
 
   # Diffusion step embedding dimensions
   diffusion_step_embed_dim_input: 128  # Input dimension
