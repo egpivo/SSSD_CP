@@ -132,11 +132,11 @@ class DiffusionTrainer:
 
             self.optimizer.zero_grad()
             loss = training_loss(
-                net=self.net,
-                loss_fn=nn.MSELoss(),
-                X=(batch, batch, mask, loss_mask),
-                diffusion_hyperparams=self.diffusion_hyperparams,
-                only_generate_missing=self.only_generate_missing,
+                model=self.net,
+                loss_function=nn.MSELoss(),
+                training_data=(batch, batch, mask, loss_mask),
+                diffusion_parameters=self.diffusion_hyperparams,
+                generate_only_missing=self.only_generate_missing,
                 device=self.device,
             )
             loss.backward()
