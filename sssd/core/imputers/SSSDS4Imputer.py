@@ -209,7 +209,9 @@ class SSSDS4Imputer(nn.Module):
         super(SSSDS4Imputer, self).__init__()
 
         self.init_conv = nn.Sequential(
-            Conv(input_channels, residual_channels, kernel_size=1), nn.ReLU()
+            Conv(input_channels, residual_channels, kernel_size=1),
+            nn.BatchNorm1d(residual_channels),
+            nn.ReLU(),
         )
 
         self.residual_layer = Residual_group(
@@ -235,7 +237,6 @@ class SSSDS4Imputer(nn.Module):
         )
 
     def forward(self, input_data):
-
         noise, conditional, mask, diffusion_steps = input_data
 
         conditional = conditional * mask
