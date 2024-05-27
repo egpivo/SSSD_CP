@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from tqdm import tqdm
 
 from sssd.core.model_specs import MASK_FN
 from sssd.training.utils import training_loss
@@ -121,7 +122,7 @@ class DiffusionTrainer:
         )
 
     def _train_per_epoch(self) -> torch.Tensor:
-        for (batch,) in self.dataloader:
+        for (batch,) in tqdm(self.dataloader):
             batch = batch.to(self.device)
             mask = self._update_mask(batch)
             loss_mask = ~mask.bool()
