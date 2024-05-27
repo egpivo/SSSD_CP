@@ -130,8 +130,6 @@ class DiffusionGenerator:
             batch = batch.to(self.device)
             mask = self._update_mask(batch)
             batch = batch.permute(0, 2, 1)
-            batch.size(2)
-            batch.size(1)
 
             generated_series = (
                 sampling(
@@ -151,10 +149,10 @@ class DiffusionGenerator:
             batch = batch.detach().cpu().numpy()
             mask = mask.detach().cpu().numpy()
             mse = mean_squared_error(
-                generated_series[~mask.astype(bool)], batch[~mask.astype(bool)]
+                batch[~mask.astype(bool)], generated_series[~mask.astype(bool)]
             )
             mape = mean_absolute_percentage_error(
-                generated_series[~mask.astype(bool)], batch[~mask.astype(bool)]
+                batch[~mask.astype(bool)], generated_series[~mask.astype(bool)]
             )
             all_mses.append(mse)
             all_mapes.append(mape)
