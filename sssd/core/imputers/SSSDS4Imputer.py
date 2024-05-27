@@ -210,8 +210,8 @@ class SSSDS4Imputer(nn.Module):
         super().__init__()
 
         self.init_conv = nn.Sequential(
+            nn.BatchNorm1d(input_channels),
             Conv(input_channels, residual_channels, kernel_size=1),
-            nn.BatchNorm1d(residual_channels),
             nn.ReLU(),
         )
 
