@@ -134,7 +134,7 @@ install_python_package() {
     rm README.md
   fi
 
-    # Install 3rd party packages when  CUDA driver is installed
+  # Install 3rd party packages when  CUDA driver is installed
   if command -v nvcc &> /dev/null; then
     echo -e "${FG_YELLOW}CUDA driver detected. Installing extensions_cauchy${FG_RESET}"
     install_extensions_cauchy
