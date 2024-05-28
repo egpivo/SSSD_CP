@@ -110,14 +110,6 @@ install_python_package() {
   poetry lock --no-update
   poetry install --no-root
 
-  # Install 3rd party packages when  CUDA driver is installed
-  if command -v nvcc &> /dev/null; then
-    echo -e "${FG_YELLOW}CUDA driver detected. Installing extensions_cauchy${FG_RESET}"
-    install_extensions_cauchy
-  else
-    echo -e "${FG_YELLOW}CUDA driver not found. Pass install Cauchy Module${FG_RESET}"
-  fi
-
   # Check if README.md exists
   if [ ! -f README.md ]; then
     echo "Temporary README.md" > README.md
@@ -140,6 +132,14 @@ install_python_package() {
   # Remove the temporary README.md if it was created
   if [ "$TEMP_README" = true ]; then
     rm README.md
+  fi
+
+    # Install 3rd party packages when  CUDA driver is installed
+  if command -v nvcc &> /dev/null; then
+    echo -e "${FG_YELLOW}CUDA driver detected. Installing extensions_cauchy${FG_RESET}"
+    install_extensions_cauchy
+  else
+    echo -e "${FG_YELLOW}CUDA driver not found. Pass install Cauchy Module${FG_RESET}"
   fi
   popd || exit
 }
