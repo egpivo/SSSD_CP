@@ -199,6 +199,7 @@ activate_conda_environment() {
   local CONDA_ENV=$1
   initialize_conda
   if [ "$(command -v conda)" ]; then
+    echo -e "${FG_YELLOW}Activating Conda Env: ${CONDA_ENV}${FG_RESET}"
     conda activate ${CONDA_ENV}
   else
     echo -e "${FG_RED}Activation Failed. Conda is not installed.${FG_RESET}"
