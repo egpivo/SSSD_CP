@@ -10,7 +10,9 @@ def test_generate():
     seed = 1
     expected_output = np.array([1.62434536, -0.44932188, -0.24823487])
 
-    generator = ArDataGenerator(coefficients=coefficients, n_sample=n_sample, seed=seed)
+    generator = ArDataGenerator(
+        coefficients=coefficients, series_length=n_sample, seed=seed
+    )
     output = generator.generate()
 
     try:
@@ -22,7 +24,7 @@ def test_generate():
 
 
 def test_generate_invalid_coefficients():
-    coefficients = [1.2, 0.3, 0.4]
+    coefficients = [[1.2]]
     n_sample = 5
     seed = 1
 
@@ -66,7 +68,7 @@ def test_generate_invalid_season_period():
 
 
 def test_generate_sine_seasonality():
-    generator = SeasonalityGenerator(n_samples=100, season_period=12, seed=42)
+    generator = SeasonalityGenerator(series_length=100, season_period=12, seed=42)
     seasonality = generator.generate_sine_seasonality()
 
     assert isinstance(seasonality, np.ndarray)
@@ -75,7 +77,7 @@ def test_generate_sine_seasonality():
 
 
 def test_generate_cosine_seasonality():
-    generator = SeasonalityGenerator(n_samples=120, season_period=24, seed=42)
+    generator = SeasonalityGenerator(series_length=120, season_period=24, seed=42)
     seasonality = generator.generate_cosine_seasonality()
 
     assert isinstance(seasonality, np.ndarray)
