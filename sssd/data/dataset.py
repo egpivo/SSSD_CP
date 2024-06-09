@@ -1,3 +1,4 @@
+import random
 from typing import List, Union
 
 import numpy as np
@@ -22,8 +23,8 @@ class ArDataset(Dataset):
         std (float, optional): Standard deviation of the generated noise. Defaults to 1.
         season_period (int, optional): Periodicity for the seasonal component.
             If not provided, no seasonality is added.
-        seed (int, optional): Seed for random number generation. Defaults to None.
-        detrend (bool, optional): Whether to detrend the generated data (remove linear trend).
+        seeds (List[int], optional): List of seeds for random number generation. Defaults to None.
+        intercept (int, optional): Intercept of an AR process
             Defaults to False.
 
     Examples:
@@ -32,8 +33,7 @@ class ArDataset(Dataset):
         >>> series_length = 120
         >>> std = 1
         >>> season_period = 12
-        >>> seed = 123
-        >>> dataset = ArDataset(coefficients, num_series, series_length, std, season_period, seed=seed, detrend=False)
+        >>> dataset = ArDataset(coefficients, num_series, series_length, std, season_period)
         >>> first_item = next(iter(dataset))
         >>> print("Shape of the first item:", first_item.shape)  # torch.Size([120, 1])
         >>> data = dataset._generate_data()
@@ -47,16 +47,18 @@ class ArDataset(Dataset):
         series_length: int,
         std: float = 1.0,
         season_period: int = None,
-        seed: int = None,
-        detrend: bool = False,
+        seeds: List[int] = None,
+        intercept: float = 0,
     ) -> None:
         self.num_series = num_series
         self.coefficients = coefficients
         self.series_length = series_length
         self.std = std
         self.season_period = season_period
-        self.seed = seed
-        self.detrend = detrend
+        self.seeds = seeds or [
+            random.randint(0, 2**32 - 1) for _ in range(num_series)
+        ]
+        self.intercept = intercept
         self.data = self._generate_data()
 
     def _generate_data(self) -> np.ndarray:
@@ -66,10 +68,10 @@ class ArDataset(Dataset):
                 series_length=self.series_length,
                 std=self.std,
                 season_period=self.season_period,
-                seed=self.seed,
-                detrend=self.detrend,
+                seed=self.seeds[i],
+                intercept=self.intercept,
             ).generate()
-            for _ in range(self.num_series)
+            for i in range(self.num_series)
         ]
         return np.stack(data, axis=0).reshape(self.num_series, self.series_length, 1)
 

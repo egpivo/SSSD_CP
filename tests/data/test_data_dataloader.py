@@ -16,19 +16,21 @@ def ar_dataloader():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     num_workers = 4
     training_rate = 0.8
-    seed = 42
+    seeds = list(range(num_series))
+    intercept = 0
 
     return ArDataLoader(
-        coefficients,
-        num_series,
-        series_length,
-        std,
-        season,
-        batch_size,
-        device,
-        num_workers,
-        training_rate,
-        seed,
+        coefficients=coefficients,
+        num_series=num_series,
+        series_length=series_length,
+        std=std,
+        season=season,
+        batch_size=batch_size,
+        device=device,
+        num_workers=num_workers,
+        training_rate=training_rate,
+        intercept=intercept,
+        seeds=seeds,
     )
 
 

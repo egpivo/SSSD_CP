@@ -64,10 +64,10 @@ class ArDataGenerator:
         coefficients: Union[list, np.ndarray],
         series_length: int,
         std: float = 1,
+        intercept: float = 0,
         seed: int = None,
         season_period: int = None,
         seasonality_method: str = "sine",
-        detrend: bool = False,
     ) -> None:
         ar_parameters = [1] + [-1 * coefficient for coefficient in coefficients]
         self.ar_process = ArmaProcess(ar_parameters, [1, 0])
@@ -76,15 +76,7 @@ class ArDataGenerator:
         self.seed = seed
         self.season_period = season_period
         self.seasonality_method = seasonality_method
-        self.detrend = detrend
-
-        if std <= 0:
-            raise ValueError(f"Please enter positive standard deviation, but got {std}")
-
-        if season_period is not None and season_period <= 0:
-            raise ValueError(
-                f"Please enter positive season period, but got {season_period}"
-            )
+        self.intercept = intercept
 
     def _generate_seasonality(self) -> np.ndarray:
         generator = SeasonalityGenerator(
@@ -102,12 +94,8 @@ class ArDataGenerator:
         ar_process = self.ar_process.generate_sample(
             nsample=self.series_length, scale=self.std
         )
-
+        ar_process += self.intercept
         if self.season_period:
             seasonality = self._generate_seasonality()
             ar_process += seasonality
-
-        if self.detrend:
-            ar_process -= ar_process.mean(axis=0)
-
         return ar_process

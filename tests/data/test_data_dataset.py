@@ -12,10 +12,10 @@ def ar_dataset():
     series_length = 120
     std = 0.001
     season_period = 3
-    seed = 123
+    seeds = list(range(num_series))
 
     return ArDataset(
-        coefficients_list, num_series, series_length, std, season_period, seed=seed
+        coefficients_list, num_series, series_length, std, season_period, seeds=seeds
     )
 
 

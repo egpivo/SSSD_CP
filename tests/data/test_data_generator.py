@@ -32,16 +32,6 @@ def test_generate_invalid_coefficients():
         _ = ArDataGenerator(coefficients, n_sample, seed)
 
 
-def test_generate_invalid_std():
-    coefficients = [0.1, 0.2, 0.3]
-    n_sample = 5
-    seed = 1
-    std = 0
-
-    with pytest.raises(ValueError):
-        _ = ArDataGenerator(coefficients, n_sample, std=std, seed=seed)
-
-
 def test_generate_with_different_std():
     coefficients = [0.1, 0.2, 0.3]
     n_sample = 5
@@ -52,19 +42,6 @@ def test_generate_with_different_std():
     output = generator.generate()
 
     assert len(output) == n_sample
-
-
-def test_generate_invalid_season_period():
-    coefficients = [0.1, 0.2, 0.3]
-    n_sample = 5
-    seed = 1
-    std = 1
-    season_period = 0
-
-    with pytest.raises(ValueError):
-        _ = ArDataGenerator(
-            coefficients, n_sample, std=std, seed=seed, season_period=season_period
-        )
 
 
 def test_generate_sine_seasonality():
