@@ -3,6 +3,7 @@ import math
 import torch
 import torch.nn as nn
 
+from sssd.core.layers.layer_normalization import CustomLayerNorm
 from sssd.core.layers.s4.s4_layer import S4Layer
 from sssd.core.utils import calc_diffusion_step_embedding
 
@@ -210,8 +211,7 @@ class SSSDS4Imputer(nn.Module):
         super().__init__()
 
         self.init_conv = nn.Sequential(
-            nn.BatchNorm1d(input_channels),
-            Conv(input_channels, residual_channels, kernel_size=1),
+            nn.Conv1d(input_channels, residual_channels, kernel_size=1),
             nn.ReLU(),
         )
 
@@ -232,19 +232,35 @@ class SSSDS4Imputer(nn.Module):
         )
 
         self.final_conv = nn.Sequential(
-            Conv(skip_channels, skip_channels, kernel_size=1),
+            nn.Conv1d(skip_channels, skip_channels, kernel_size=1),
             nn.ReLU(),
             ZeroConv1d(skip_channels, output_channels),
         )
 
+        # Custom layer normalization for input channels
+        self.noise_ln = CustomLayerNorm(s4_max_sequence_length)
+
+        # Custom layer normalization for conditional channels
+        self.conditional_ln = CustomLayerNorm(s4_max_sequence_length)
+
     def forward(self, input_data):
         noise, conditional, mask, diffusion_steps = input_data
 
+        # Normalize noise and conditional inputs using custom layer norm
+        noise = self.noise_ln(noise)
+        conditional = self.conditional_ln(conditional)
+
+        # Handle mask and concatenate it to the conditional input
         conditional = conditional * mask
         conditional = torch.cat([conditional, mask.float()], dim=1)
 
-        x = noise
+        # Forward pass through the network
+        x = noise  # Ensure x is 3D (B, C, L)
         x = self.init_conv(x)
         x = self.residual_layer((x, conditional, diffusion_steps))
         y = self.final_conv(x)
+
+        # Denormalize outputs using the stored statistics
+        y = self.noise_ln.denormalize(y)
+
         return y
