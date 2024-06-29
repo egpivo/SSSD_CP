@@ -3,7 +3,6 @@ import math
 import torch
 import torch.nn as nn
 
-from sssd.core.layers.layer_normalization import CustomLayerNorm
 from sssd.core.layers.s4.s4_layer import S4Layer
 from sssd.core.utils import calc_diffusion_step_embedding
 
@@ -237,18 +236,8 @@ class SSSDS4Imputer(nn.Module):
             ZeroConv1d(skip_channels, output_channels),
         )
 
-        # Custom layer normalization for input channels
-        self.noise_ln = CustomLayerNorm(s4_max_sequence_length)
-
-        # Custom layer normalization for conditional channels
-        self.conditional_ln = CustomLayerNorm(s4_max_sequence_length)
-
     def forward(self, input_data):
         noise, conditional, mask, diffusion_steps = input_data
-
-        # Normalize noise and conditional inputs using custom layer norm
-        noise = self.noise_ln(noise)
-        conditional = self.conditional_ln(conditional)
 
         # Handle mask and concatenate it to the conditional input
         conditional = conditional * mask
@@ -259,8 +248,5 @@ class SSSDS4Imputer(nn.Module):
         x = self.init_conv(x)
         x = self.residual_layer((x, conditional, diffusion_steps))
         y = self.final_conv(x)
-
-        # Denormalize outputs using the stored statistics
-        y = self.noise_ln.denormalize(y)
 
         return y
