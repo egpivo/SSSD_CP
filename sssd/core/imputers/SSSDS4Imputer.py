@@ -13,7 +13,7 @@ def swish(x):
 
 class Conv(nn.Module):
     def __init__(self, input_channels, output_channels, kernel_size=3, dilation=1):
-        super(Conv, self).__init__()
+        super().__init__()
         self.padding = dilation * (kernel_size - 1) // 2
         self.conv = nn.Conv1d(
             input_channels,
@@ -42,7 +42,7 @@ class ZeroConv1d(nn.Module):
         return out
 
 
-class Residual_block(nn.Module):
+class ResidualBlock(nn.Module):
     def __init__(
         self,
         residual_channels,
@@ -55,7 +55,7 @@ class Residual_block(nn.Module):
         s4_bidirectional,
         s4_use_layer_norm,
     ):
-        super(Residual_block, self).__init__()
+        super().__init__()
         self.residual_channels = residual_channels
 
         self.fc_t = nn.Linear(diffusion_step_embed_dim_output, self.residual_channels)
@@ -85,7 +85,7 @@ class Residual_block(nn.Module):
         self.cond_conv = Conv(
             2 * input_channels, 2 * self.residual_channels, kernel_size=1
         )
-
+        self.cond_bn = nn.BatchNorm1d(2 * self.residual_channels)
         self.res_conv = nn.Conv1d(residual_channels, residual_channels, kernel_size=1)
         self.res_conv = nn.utils.parametrizations.weight_norm(self.res_conv)
         nn.init.kaiming_normal_(self.res_conv.weight)
@@ -109,6 +109,7 @@ class Residual_block(nn.Module):
 
         assert cond is not None
         cond = self.cond_conv(cond)
+        cond = self.cond_bn(cond)
         h += cond
 
         h = self.S42(h.permute(2, 0, 1)).permute(1, 2, 0)
@@ -124,7 +125,7 @@ class Residual_block(nn.Module):
         return (x + res) * math.sqrt(0.5), skip  # normalize for training stability
 
 
-class Residual_group(nn.Module):
+class ResidualGroup(nn.Module):
     def __init__(
         self,
         residual_channels,
@@ -141,7 +142,7 @@ class Residual_group(nn.Module):
         s4_use_layer_norm,
         device="cuda",
     ):
-        super(Residual_group, self).__init__()
+        super(ResidualGroup, self).__init__()
         self.residual_layers = residual_layers
         self.diffusion_step_embed_dim_input = diffusion_step_embed_dim_input
 
@@ -155,7 +156,7 @@ class Residual_group(nn.Module):
         self.residual_blocks = nn.ModuleList()
         for n in range(self.residual_layers):
             self.residual_blocks.append(
-                Residual_block(
+                ResidualBlock(
                     residual_channels,
                     skip_channels,
                     diffusion_step_embed_dim_output=diffusion_step_embed_dim_output,
@@ -206,13 +207,14 @@ class SSSDS4Imputer(nn.Module):
         s4_use_layer_norm,
         device="cuda",
     ):
-        super(SSSDS4Imputer, self).__init__()
+        super().__init__()
 
         self.init_conv = nn.Sequential(
-            Conv(input_channels, residual_channels, kernel_size=1), nn.ReLU()
+            nn.Conv1d(input_channels, residual_channels, kernel_size=1),
+            nn.ReLU(),
         )
 
-        self.residual_layer = Residual_group(
+        self.residual_layer = ResidualGroup(
             residual_channels=residual_channels,
             skip_channels=skip_channels,
             residual_layers=residual_layers,
@@ -229,20 +231,22 @@ class SSSDS4Imputer(nn.Module):
         )
 
         self.final_conv = nn.Sequential(
-            Conv(skip_channels, skip_channels, kernel_size=1),
+            nn.Conv1d(skip_channels, skip_channels, kernel_size=1),
             nn.ReLU(),
             ZeroConv1d(skip_channels, output_channels),
         )
 
     def forward(self, input_data):
-
         noise, conditional, mask, diffusion_steps = input_data
 
+        # Handle mask and concatenate it to the conditional input
         conditional = conditional * mask
         conditional = torch.cat([conditional, mask.float()], dim=1)
 
-        x = noise
+        # Forward pass through the network
+        x = noise  # Ensure x is 3D (B, C, L)
         x = self.init_conv(x)
         x = self.residual_layer((x, conditional, diffusion_steps))
         y = self.final_conv(x)
+
         return y

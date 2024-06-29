@@ -86,7 +86,6 @@ set -euo pipefail
 # Validate mandatory parameter
 check_file_exists "${MODEL_CONFIG}"
 
-
 # Initialize Conda environment if specified
 if [ x"${DOES_UPDATE_CONDA_ENV}x" == "xtruex" ]; then
   update_conda_environment "${PACKAGE_BASE_PATH}" "${CONDA_ENV}"

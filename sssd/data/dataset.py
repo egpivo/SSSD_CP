@@ -1,3 +1,4 @@
+import random
 from typing import List, Union
 
 import numpy as np
@@ -8,94 +9,74 @@ from sssd.data.generator import ArDataGenerator
 
 
 class ArDataset(Dataset):
-    """
-    Dataset class for generating autoregressive (AR) time series data.
+    """Dataset class for generating autoregressive (AR) time series data.
+
+    This class generates multiple time series based on provided autoregressive (AR)
+    coefficients and other parameters.
 
     Args:
-        coefficients (List[Union[List[float], np.ndarray]]): List of coefficients for each AR process. Each coefficient array must have shape (p,), where p is the order of the AR process.
-        n_sample (int): Number of samples to generate for each AR process.
-        std_list (List[float], optional): List of standard deviations for the generated samples. If not provided, defaults to 1.
-        season_periods (List[int], optional): List of periods for the seasonality component for each AR process. If not provided, no seasonality is added.
-        seed (int, optional): Seed for random number generation. Defaults to None.
-        detrend (bool, optional): Whether to detrend the generated data. Defaults to False.
+        coefficients (List[Union[List[float], np.ndarray]]): List of coefficients
+            for each AR process. Each coefficient array must have shape (p,), where p
+            is the order of the AR process.
+        num_series (int): Number of time series to generate.
+        series_length (int): Length of each generated time series.
+        std (float, optional): Standard deviation of the generated noise. Defaults to 1.
+        season_period (int, optional): Periodicity for the seasonal component.
+            If not provided, no seasonality is added.
+        seeds (List[int], optional): List of seeds for random number generation. Defaults to None.
+        intercept (int, optional): Intercept of an AR process
+            Defaults to False.
 
-    Examples
-    --------
-    >>> from sssd.data.ar_dataset import ArDataset
-    >>> coefficients = [[0.1, 0.2, 0.3], [0.2, -0.1, 0.4]]
-    >>> n_sample = 120
-    >>> std_list = [1, 0.8]
-    >>> season_periods = [12, 6]
-    >>> seed = 123
-    >>> dataset = ArDataset(coefficients, n_sample, std_list, season_periods, seed=seed, detrend=False)
-    >>> next(iter(dataset))
-    tensor([[-1.0856],
-        [-0.8685]])
-    >>> data = dataset._generate_data()
-    >>> print("Shape of generated data:", data.shape)
-    Shape of generated data: (120, 2, 1)
+    Examples:
+        >>> coefficients = [0.1, 0.2, 0.3]
+        >>> num_series = 1024
+        >>> series_length = 120
+        >>> std = 1
+        >>> season_period = 12
+        >>> dataset = ArDataset(coefficients, num_series, series_length, std, season_period)
+        >>> first_item = next(iter(dataset))
+        >>> print("Shape of the first item:", first_item.shape)  # torch.Size([120, 1])
+        >>> data = dataset._generate_data()
+        >>> print("Shape of generated data:", data.shape)  # (1024, 120, 1)
     """
 
     def __init__(
         self,
-        coefficients: List[Union[List[float], np.ndarray]],
-        n_sample: int,
-        std_list: List[float] = None,
-        season_periods: List[int] = None,
-        seed: int = None,
-        detrend: bool = False,
+        coefficients: Union[List[float], np.ndarray],
+        num_series: int,
+        series_length: int,
+        std: float = 1.0,
+        season_period: int = None,
+        seeds: List[int] = None,
+        intercept: float = 0,
     ) -> None:
-        self.n_processes = len(coefficients)
+        self.num_series = num_series
         self.coefficients = coefficients
-        self.n_sample = n_sample
-        self.std_list = std_list or [1] * self.n_processes
-        self.season_periods = season_periods or [None] * self.n_processes
-        self.seed = seed
-        self.detrend = detrend
-
+        self.series_length = series_length
+        self.std = std
+        self.season_period = season_period
+        self.seeds = seeds or [
+            random.randint(0, 2**32 - 1) for _ in range(num_series)
+        ]
+        self.intercept = intercept
         self.data = self._generate_data()
 
     def _generate_data(self) -> np.ndarray:
-        """
-        Generate AR time series data.
-
-        Returns:
-            np.ndarray: Generated time series data with shape (n_sample, n_processes, 1).
-        """
-
-        data = []
-        for coefficients, std, season_period in zip(
-            self.coefficients, self.std_list, self.season_periods
-        ):
-            generator = ArDataGenerator(
-                coefficients=coefficients,
-                n_sample=self.n_sample,
-                std=std,
-                season_period=season_period,
-                seed=self.seed,
-                detrend=self.detrend,
-            )
-            data.append(generator.generate()[:, np.newaxis])
-        return np.stack(data, axis=1).reshape(self.n_sample, self.n_processes, 1)
+        data = [
+            ArDataGenerator(
+                coefficients=self.coefficients,
+                series_length=self.series_length,
+                std=self.std,
+                season_period=self.season_period,
+                seed=self.seeds[i],
+                intercept=self.intercept,
+            ).generate()
+            for i in range(self.num_series)
+        ]
+        return np.stack(data, axis=0).reshape(self.num_series, self.series_length, 1)
 
     def __len__(self) -> int:
-        """
-        Get the length of the dataset.
-
-        Returns:
-            int: Length of the dataset.
-        """
-        return len(self.data)
+        return self.num_series
 
     def __getitem__(self, idx: int) -> torch.Tensor:
-        """
-        Get a sample from the dataset.
-
-        Args:
-            idx (int): Index of the sample to retrieve.
-
-        Returns:
-            torch.Tensor: Sample from the dataset as a PyTorch tensor.
-        """
-        sample = self.data[idx]
-        return torch.tensor(sample, dtype=torch.float32)
+        return torch.tensor(self.data[idx, :, :], dtype=torch.float32)

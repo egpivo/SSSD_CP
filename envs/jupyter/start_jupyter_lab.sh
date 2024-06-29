@@ -40,7 +40,10 @@ source "${NOTEBOOK_DIR}/utils.sh"
 PACKAGE_BASE_PATH="${NOTEBOOK_DIR}/../.."
 source "${PACKAGE_BASE_PATH}/bin/color_map.sh"
 source "${PACKAGE_BASE_PATH}/bin/exit_code.sh"
-source "/opt/conda/etc/profile.d/conda.sh"
+
+CONDA_BASE=$(conda info --base 2>/dev/null || echo "/opt/conda")
+source "${CONDA_BASE}/etc/profile.d/conda.sh"
+
 
 start_jupyter_server() {
   local PORT="$1"

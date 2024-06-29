@@ -79,7 +79,7 @@ def run_job(
         LOGGER.info(f"The {trial}th inference trial")
         saved_data_names = data_names if trial == 0 else data_names[0]
 
-        mse = DiffusionGenerator(
+        mses, mapes = DiffusionGenerator(
             net=net,
             device=device,
             diffusion_hyperparams=diffusion_hyperparams,
@@ -95,7 +95,8 @@ def run_job(
             saved_data_names=saved_data_names,
         ).generate()
 
-        LOGGER.info(f"Average MSE: {sum(mse) / len(mse)}")
+        LOGGER.info(f"Average MSE: {sum(mses) / len(mses)}")
+        LOGGER.info(f"Average MAPE: {sum(mapes) / len(mapes)}")
         LOGGER.info(display_current_time())
 
 

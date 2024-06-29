@@ -4,7 +4,7 @@ from typing import Dict, Iterable, Optional, Union
 
 import numpy as np
 import torch
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_percentage_error, mean_squared_error
 from torch.utils.data import DataLoader
 
 from sssd.core.model_specs import MASK_FN
@@ -125,12 +125,11 @@ class DiffusionGenerator:
     def generate(self) -> list:
         """Generate samples using the given neural network model."""
         all_mses = []
+        all_mapes = []
         for index, (batch,) in enumerate(self.dataloader):
             batch = batch.to(self.device)
             mask = self._update_mask(batch)
             batch = batch.permute(0, 2, 1)
-            batch.size(2)
-            batch.size(1)
 
             generated_series = (
                 sampling(
@@ -150,9 +149,13 @@ class DiffusionGenerator:
             batch = batch.detach().cpu().numpy()
             mask = mask.detach().cpu().numpy()
             mse = mean_squared_error(
-                generated_series[~mask.astype(bool)], batch[~mask.astype(bool)]
+                batch[~mask.astype(bool)], generated_series[~mask.astype(bool)]
+            )
+            mape = mean_absolute_percentage_error(
+                batch[~mask.astype(bool)], generated_series[~mask.astype(bool)]
             )
             all_mses.append(mse)
+            all_mapes.append(mape)
             results = {
                 "imputation": generated_series,
                 "original": batch,
@@ -160,4 +163,4 @@ class DiffusionGenerator:
             }
             self._save_data(results, index)
 
-        return all_mses
+        return all_mses, all_mapes
