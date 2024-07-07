@@ -3,9 +3,11 @@ import tempfile
 import unittest
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import mock_open, patch
 
 import pytest
 import torch
+import yaml
 from torch import nn
 
 from sssd.core.imputers.SSSDS4Imputer import SSSDS4Imputer
@@ -16,6 +18,7 @@ from sssd.utils.utils import (
     find_repo_root,
     flatten,
     generate_date_from_seq,
+    load_yaml_file,
     print_size,
     sampling,
     std_normal,
@@ -233,6 +236,49 @@ class TestFindRepoRoot(unittest.TestCase):
         non_repo_dir.mkdir(parents=True, exist_ok=True)
         with self.assertRaises(FileNotFoundError):
             find_repo_root(str(non_repo_dir))
+
+
+class TestLoadYamlFile(unittest.TestCase):
+    @patch("os.path.exists", return_value=False)
+    def test_file_not_found(self, mock_exists):
+        with self.assertRaises(FileNotFoundError):
+            load_yaml_file("mock_file.yaml")
+
+    @patch("os.path.exists", return_value=True)
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data="""
+    key1: value1
+    key2: value2
+    nested:
+      key3: value3
+    """,
+    )
+    def test_load_yaml_file_valid(self, mock_open, mock_exists):
+        expected_output = {
+            "key1": "value1",
+            "key2": "value2",
+            "nested": {"key3": "value3"},
+        }
+        result = load_yaml_file("mock_file.yaml")
+        self.assertEqual(result, expected_output)
+
+    @patch("os.path.exists", return_value=True)
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data="""
+    key1: value1
+    key2: value2
+    nested:
+      key3: value3
+      key4 value4  # Missing colon, clearly erroneous
+    """,
+    )
+    def test_load_yaml_file_invalid(self, mock_open, mock_exists):
+        with self.assertRaises(yaml.YAMLError):
+            load_yaml_file("mock_file.yaml")
 
 
 if __name__ == "__main__":

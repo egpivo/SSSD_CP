@@ -4,6 +4,7 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
+import yaml
 
 
 def flatten(v: List[Union[List[Any], Tuple[Any]]]) -> List[Any]:
@@ -208,3 +209,23 @@ def find_repo_root(current_path: str) -> str:
             raise FileNotFoundError("Could not find the repository root.")
         current_path = parent_path
     return current_path
+
+
+def load_yaml_file(file_path: str) -> Any:
+    """
+    Load a YAML file and return its contents.
+
+    Parameters:
+    file_path (str): The path to the YAML file.
+
+    Returns:
+    Any: The contents of the YAML file.
+
+    Raises:
+    FileNotFoundError: If the file does not exist.
+    """
+    if not os.path.exists(file_path):
+        raise FileNotFoundError(f"The file {file_path} does not exist.")
+
+    with open(file_path, "rt") as f:
+        return yaml.safe_load(f)
