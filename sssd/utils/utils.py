@@ -187,3 +187,24 @@ def generate_date_from_seq(value: int, start_date: str = "2016-10-20") -> str:
     formatted_date = target_date.strftime("%Y/%m/%d")
 
     return formatted_date
+
+
+def find_repo_root(current_path: str) -> str:
+    """
+    Find the root directory of the git repository.
+
+    Parameters:
+    current_path (str): The starting path to search for the repository root.
+
+    Returns:
+    str: The path to the repository root.
+
+    Raises:
+    FileNotFoundError: If the repository root cannot be found.
+    """
+    while not os.path.isdir(os.path.join(current_path, ".git")):
+        parent_path = os.path.dirname(current_path)
+        if parent_path == current_path:
+            raise FileNotFoundError("Could not find the repository root.")
+        current_path = parent_path
+    return current_path

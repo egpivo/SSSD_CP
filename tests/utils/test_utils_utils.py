@@ -1,5 +1,8 @@
 import os
+import tempfile
+import unittest
 from datetime import datetime
+from pathlib import Path
 
 import pytest
 import torch
@@ -10,6 +13,7 @@ from sssd.utils.utils import (
     calc_diffusion_hyperparams,
     display_current_time,
     find_max_epoch,
+    find_repo_root,
     flatten,
     generate_date_from_seq,
     print_size,
@@ -200,3 +204,36 @@ def test_find_max_epoch(checkpoint_files):
     path, filenames = checkpoint_files
     max_epoch = find_max_epoch(path)
     assert max_epoch == 30000
+
+
+class TestFindRepoRoot(unittest.TestCase):
+    def setUp(self):
+        # Create a temporary directory structure for testing
+        self.test_dir = tempfile.TemporaryDirectory()
+        self.repo_root = Path(self.test_dir.name) / "repo"
+        self.repo_root.mkdir(parents=True, exist_ok=True)
+
+        # Create .git directory in the repo root
+        (self.repo_root / ".git").mkdir()
+
+    def tearDown(self):
+        # Clean up the temporary directory after tests
+        self.test_dir.cleanup()
+
+    def test_find_repo_root(self):
+        # Test if the function correctly finds the repo root
+        start_path = self.repo_root / "subdir1" / "subdir2"
+        start_path.mkdir(parents=True, exist_ok=True)
+        found_root = find_repo_root(str(start_path))
+        self.assertEqual(found_root, str(self.repo_root))
+
+    def test_no_repo_root(self):
+        # Test if the function raises FileNotFoundError when no repo root is found
+        non_repo_dir = Path(self.test_dir.name) / "non_repo"
+        non_repo_dir.mkdir(parents=True, exist_ok=True)
+        with self.assertRaises(FileNotFoundError):
+            find_repo_root(str(non_repo_dir))
+
+
+if __name__ == "__main__":
+    unittest.main()

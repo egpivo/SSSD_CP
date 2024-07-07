@@ -5,7 +5,7 @@ MODEL_CONFIG ?= configs/model.yaml
 TRAINING_CONFIG ?= configs/training.yaml
 INFERENCE_CONFIG ?= configs/inference.yaml
 
-.PHONY: clean install-dev test run-local-diffusion build-docker push-docker run-docker-diffusion run-docker-diffusion-log run-local-jupyter run-docker-jupyter run-docker-jupyter-log help
+.PHONY: clean clean-docker install-dev test run-local-diffusion build-docker push-docker run-docker-diffusion run-docker-diffusion-log run-local-jupyter run-docker-jupyter run-docker-jupyter-log help
 
 ## Clean up temporary files and Docker system
 clean:
@@ -16,6 +16,8 @@ clean:
 	@find . -name '*.egg-info' -exec rm -rf {} +
 	@rm -f .coverage
 	@rm -rf .pytest_cache
+
+clean-docker:
 	@docker system prune -f
 
 ## Install development dependencies
