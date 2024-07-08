@@ -118,6 +118,7 @@ def sampling(
     diffusion_hyperparams: Dict[str, torch.Tensor],
     cond: torch.Tensor,
     mask: torch.Tensor,
+    sample_size: int = 1,
     only_generate_missing: int = 0,
     device: Union[torch.device, str] = "cpu",
 ) -> torch.Tensor:
@@ -125,18 +126,18 @@ def sampling(
     Perform the complete sampling step according to p(x_0|x_T) = \prod_{t=1}^T p_{\theta}(x_{t-1}|x_t).
 
     Args:
-        net (torch.nn.Module): The wavenet model.
-        size (Tuple[int, int, int]): Size of tensor to be generated, usually (number of audios to generate, channels=1, length of audio).
-        diffusion_hyperparams (Dict[str, torch.Tensor]): Dictionary of diffusion hyperparameters returned by calc_diffusion_hyperparams. Note, the tensors need to be cuda tensors.
+        net (torch.nn.Module): The model.
+        size (Tuple[int, int, int]): Size of tensor to be generated, usually (batch_size, channels=1, length).
+        diffusion_hyperparams (Dict[str, torch.Tensor]): Dictionary of diffusion hyperparameters.
         cond (torch.Tensor): Conditioning tensor.
         mask (torch.Tensor): Mask tensor.
+        sample_size (int, optional): Number of samples to generate for each input (default is 1).
         only_generate_missing (int, optional): Flag indicating whether to only generate missing values (default is 0).
         device (Union[torch.device, str], optional): Device to place tensors (default is 'cpu').
 
     Returns:
-        torch.Tensor: The generated audio(s) in torch.Tensor, shape=size.
+        torch.Tensor: The generated samples in torch.Tensor, shape=(sample_size, *size).
     """
-
     _dh = diffusion_hyperparams
     T, Alpha, Alpha_bar, Sigma = _dh["T"], _dh["Alpha"], _dh["Alpha_bar"], _dh["Sigma"]
     assert len(Alpha) == T
@@ -144,28 +145,34 @@ def sampling(
     assert len(Sigma) == T
     assert len(size) == 3
 
-    x = std_normal(size, device)
+    batch_size, channels, length = size
+    all_samples = []
 
-    with torch.no_grad():
-        for t in range(T - 1, -1, -1):
-            if only_generate_missing == 1:
-                x = x * (1 - mask).float() + cond * mask.float()
-            diffusion_steps = (t * torch.ones((size[0], 1))).to(
-                device
-            )  # use the corresponding reverse step
-            epsilon_theta = net(
-                (x, cond, mask, diffusion_steps)
-            )  # predict \epsilon according to \epsilon_\theta
-            # update x_{t-1} to \mu_\theta(x_t)
-            x = (
-                x - (1 - Alpha[t]) / torch.sqrt(1 - Alpha_bar[t]) * epsilon_theta
-            ) / torch.sqrt(Alpha[t])
-            if t > 0:
-                x = x + Sigma[t] * std_normal(
-                    size, device
-                )  # add the variance term to x_{t-1}
+    for _ in range(sample_size):
+        x = std_normal((batch_size, channels, length), device)
 
-    return x
+        with torch.no_grad():
+            for t in range(T - 1, -1, -1):
+                if only_generate_missing == 1:
+                    x = x * (1 - mask).float() + cond * mask.float()
+                diffusion_steps = (t * torch.ones((batch_size, 1))).to(
+                    device
+                )  # use the corresponding reverse step
+                epsilon_theta = net(
+                    (x, cond, mask, diffusion_steps)
+                )  # predict \epsilon according to \epsilon_\theta
+                # update x_{t-1} to \mu_\theta(x_t)
+                x = (
+                    x - (1 - Alpha[t]) / torch.sqrt(1 - Alpha_bar[t]) * epsilon_theta
+                ) / torch.sqrt(Alpha[t])
+                if t > 0:
+                    x = x + Sigma[t] * std_normal(
+                        (batch_size, channels, length), device
+                    )  # add the variance term to x_{t-1}
+
+            all_samples.append(x.cpu().numpy())
+
+            return torch.tensor(np.stack(all_samples))
 
 
 def display_current_time() -> str:

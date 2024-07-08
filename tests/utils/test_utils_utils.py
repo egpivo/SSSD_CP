@@ -124,7 +124,7 @@ def test_sampling(dummy_data):
         device="cpu",
     )
     audio = sampling(net, size, diffusion_hyperparams, cond, mask)
-    assert audio.shape == size
+    assert list(audio.shape) == [1, *size]
 
 
 def test_print_size():
