@@ -172,7 +172,7 @@ def sampling(
 
             all_samples.append(x.cpu().numpy())
 
-            return torch.tensor(np.stack(all_samples))
+    return np.stack(all_samples)
 
 
 def display_current_time() -> str:
