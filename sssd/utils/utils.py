@@ -121,7 +121,7 @@ def sampling(
     sample_size: int = 1,
     only_generate_missing: int = 0,
     device: Union[torch.device, str] = "cpu",
-) -> torch.Tensor:
+) -> np.ndarray:
     """
     Perform the complete sampling step according to p(x_0|x_T) = \prod_{t=1}^T p_{\theta}(x_{t-1}|x_t).
 
@@ -136,7 +136,7 @@ def sampling(
         device (Union[torch.device, str], optional): Device to place tensors (default is 'cpu').
 
     Returns:
-        torch.Tensor: The generated samples in torch.Tensor, shape=(sample_size, *size).
+        np.ndarray: The generated samples, shape=(sample_size, *size).
     """
     _dh = diffusion_hyperparams
     T, Alpha, Alpha_bar, Sigma = _dh["T"], _dh["Alpha"], _dh["Alpha_bar"], _dh["Sigma"]
