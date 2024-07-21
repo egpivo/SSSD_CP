@@ -85,7 +85,6 @@ class ResidualBlock(nn.Module):
         self.cond_conv = Conv(
             2 * input_channels, 2 * self.residual_channels, kernel_size=1
         )
-        self.cond_bn = nn.BatchNorm1d(2 * self.residual_channels)
         self.res_conv = nn.Conv1d(residual_channels, residual_channels, kernel_size=1)
         self.res_conv = nn.utils.parametrizations.weight_norm(self.res_conv)
         nn.init.kaiming_normal_(self.res_conv.weight)
@@ -109,7 +108,6 @@ class ResidualBlock(nn.Module):
 
         assert cond is not None
         cond = self.cond_conv(cond)
-        cond = self.cond_bn(cond)
         h += cond
 
         h = self.S42(h.permute(2, 0, 1)).permute(1, 2, 0)

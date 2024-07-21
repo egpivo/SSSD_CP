@@ -1,8 +1,13 @@
 import os
+import tempfile
+import unittest
 from datetime import datetime
+from pathlib import Path
+from unittest.mock import mock_open, patch
 
 import pytest
 import torch
+import yaml
 from torch import nn
 
 from sssd.core.imputers.SSSDS4Imputer import SSSDS4Imputer
@@ -10,8 +15,10 @@ from sssd.utils.utils import (
     calc_diffusion_hyperparams,
     display_current_time,
     find_max_epoch,
+    find_repo_root,
     flatten,
     generate_date_from_seq,
+    load_yaml_file,
     print_size,
     sampling,
     std_normal,
@@ -117,7 +124,7 @@ def test_sampling(dummy_data):
         device="cpu",
     )
     audio = sampling(net, size, diffusion_hyperparams, cond, mask)
-    assert audio.shape == size
+    assert list(audio.shape) == [1, *size]
 
 
 def test_print_size():
@@ -200,3 +207,79 @@ def test_find_max_epoch(checkpoint_files):
     path, filenames = checkpoint_files
     max_epoch = find_max_epoch(path)
     assert max_epoch == 30000
+
+
+class TestFindRepoRoot(unittest.TestCase):
+    def setUp(self):
+        # Create a temporary directory structure for testing
+        self.test_dir = tempfile.TemporaryDirectory()
+        self.repo_root = Path(self.test_dir.name) / "repo"
+        self.repo_root.mkdir(parents=True, exist_ok=True)
+
+        # Create .git directory in the repo root
+        (self.repo_root / ".git").mkdir()
+
+    def tearDown(self):
+        # Clean up the temporary directory after tests
+        self.test_dir.cleanup()
+
+    def test_find_repo_root(self):
+        # Test if the function correctly finds the repo root
+        start_path = self.repo_root / "subdir1" / "subdir2"
+        start_path.mkdir(parents=True, exist_ok=True)
+        found_root = find_repo_root(str(start_path))
+        self.assertEqual(found_root, str(self.repo_root))
+
+    def test_no_repo_root(self):
+        # Test if the function raises FileNotFoundError when no repo root is found
+        non_repo_dir = Path(self.test_dir.name) / "non_repo"
+        non_repo_dir.mkdir(parents=True, exist_ok=True)
+        with self.assertRaises(FileNotFoundError):
+            find_repo_root(str(non_repo_dir))
+
+
+class TestLoadYamlFile(unittest.TestCase):
+    @patch("os.path.exists", return_value=False)
+    def test_file_not_found(self, mock_exists):
+        with self.assertRaises(FileNotFoundError):
+            load_yaml_file("mock_file.yaml")
+
+    @patch("os.path.exists", return_value=True)
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data="""
+    key1: value1
+    key2: value2
+    nested:
+      key3: value3
+    """,
+    )
+    def test_load_yaml_file_valid(self, mock_open, mock_exists):
+        expected_output = {
+            "key1": "value1",
+            "key2": "value2",
+            "nested": {"key3": "value3"},
+        }
+        result = load_yaml_file("mock_file.yaml")
+        self.assertEqual(result, expected_output)
+
+    @patch("os.path.exists", return_value=True)
+    @patch(
+        "builtins.open",
+        new_callable=mock_open,
+        read_data="""
+    key1: value1
+    key2: value2
+    nested:
+      key3: value3
+      key4 value4  # Missing colon, clearly erroneous
+    """,
+    )
+    def test_load_yaml_file_invalid(self, mock_open, mock_exists):
+        with self.assertRaises(yaml.YAMLError):
+            load_yaml_file("mock_file.yaml")
+
+
+if __name__ == "__main__":
+    unittest.main()
